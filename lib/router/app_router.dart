@@ -17,6 +17,7 @@ final GoRouter appRouter = GoRouter(
   routes: [
     // ShellRoute 會作為底下 routes 的 UI 外殼
     ShellRoute(
+      // ShellRoute 本身仍然會有 build，但裡面的子路由會沒有動畫
       builder: (context, state, child) {
         return MainShell(child: child);
       },
@@ -24,39 +25,66 @@ final GoRouter appRouter = GoRouter(
         // 這些頁面會共享 MainShell 的 UI (也就是有底部導覽列)
         GoRoute(
           path: '/',
-          builder: (context, state) => const HomePage(),
+          // 使用 NoTransitionPage 實現無動畫切換
+          pageBuilder: (context, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const HomePage(),
+          ),
         ),
         GoRoute(
           path: '/upload',
-          builder: (context, state) => const UploadPage(),
+          // 使用 NoTransitionPage 實現無動畫切換
+          pageBuilder: (context, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const UploadPage(),
+          ),
         ),
-        // 為了展示，先建立兩個空的頁面
         GoRoute(
           path: '/library',
-          builder: (context, state) => const Center(child: Text('我的樂庫')),
+          // 使用 NoTransitionPage 實現無動畫切換
+          pageBuilder: (context, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const Center(child: Text('我的樂庫')),
+          ),
         ),
         GoRoute(
           path: '/settings',
-          builder: (context, state) => const Center(child: Text('設定')),
+          // 使用 NoTransitionPage 實現無動畫切換
+          pageBuilder: (context, state) => NoTransitionPage<void>(
+            key: state.pageKey,
+            child: const Center(child: Text('設定')),
+          ),
         ),
       ],
     ),
-    
-    // 這些是獨立的頁面，不會顯示底部導覽列
+
+    // 這些是獨立的頁面，它們的切換也會沒有動畫
     GoRoute(
       path: '/playback',
       parentNavigatorKey: _rootNavigatorKey, // 確保它能覆蓋整個畫面
-      builder: (context, state) => const PlaybackPage(),
+      // 使用 NoTransitionPage 實現無動畫切換
+      pageBuilder: (context, state) => NoTransitionPage<void>(
+        key: state.pageKey,
+        child: const PlaybackPage(),
+      ),
     ),
     GoRoute(
       path: '/practice',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PracticePage(),
+      // 使用 NoTransitionPage 實現無動畫切換
+      pageBuilder: (context, state) => NoTransitionPage<void>(
+        key: state.pageKey,
+        child: const PracticePage(),
+      ),
     ),
     GoRoute(
       path: '/analysis',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const AnalysisPage(),
+      // 使用 NoTransitionPage 實現無動畫切換
+      pageBuilder: (context, state) => NoTransitionPage<void>(
+        key: state.pageKey,
+        child: const AnalysisPage(),
+      ),
     ),
   ],
 );

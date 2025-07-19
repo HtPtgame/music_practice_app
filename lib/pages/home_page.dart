@@ -25,7 +25,7 @@ class HomePage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.music_note, color: AppColors.primary, size: 28),
+                      Icon(Icons.music_note, color:  Color.fromARGB(255, 90, 157, 224), size: 28),
                       SizedBox(width: 8),
                       Text('音樂練習', style: TextStyle(color: AppColors.textDark, fontSize: 20, fontWeight: FontWeight.bold)),
                     ],
