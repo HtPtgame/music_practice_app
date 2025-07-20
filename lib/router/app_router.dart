@@ -92,5 +92,9 @@ final GoRouter appRouter = GoRouter(
         child: const AnalysisPage(),
       ),
     ),
+    GoRoute(
+      path: '/upload2',
+      builder: (context, state) => const UploadPage2(), // 新增這條路由
+),
   ],
 );
