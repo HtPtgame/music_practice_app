@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/router/app_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:flutter_midi_pro/flutter_midi_pro.dart'; //midi模組
+
 
 void main() {
   runApp(const MusicPracticeApp());
