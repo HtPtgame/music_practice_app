@@ -20,16 +20,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
   final double _totalDuration = 180.0; // 模擬3分鐘的歌曲長度
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -45,11 +35,10 @@ class _PlaybackPageState extends State<PlaybackPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
             // 檔案資訊區域
             Card(
               color: AppColors.card,
@@ -89,7 +78,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               ),
             ),
             
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             
             // 播放進度區域
             Card(
@@ -97,7 +86,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
                     // 進度條
@@ -112,12 +101,11 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       child: Slider(
                         value: _currentPosition,
                         max: _totalDuration,
-                        onChanged: _isPlaying ? null : (value) {
-                          // 只有在非播放狀態下才允許拖動
+                        onChanged: _isPlaying ? (value) {
                           setState(() {
                             _currentPosition = value;
                           });
-                        },
+                        } : null,
                       ),
                     ),
                     
@@ -149,7 +137,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               ),
             ),
             
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             
             // 播放控制區域
             Card(
@@ -157,7 +145,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -202,57 +190,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               ),
             ),
             
-            const SizedBox(height: 20),
-            
-            // 演奏測試控制區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    Text(
-                      '演奏練習',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: _goToPractice,
-                          icon: const Icon(Icons.piano),
-                          label: const Text('開始演奏'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '點擊開始演奏來進入演奏練習模式',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textLight,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
+            const Spacer(),
             
             // 狀態顯示
             Container(
@@ -280,10 +218,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 ],
               ),
             ),
-            
-            const SizedBox(height: 20), // 底部安全間距
           ],
-        ),
         ),
       ),
     );
@@ -297,7 +232,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
       } else {
         _isPlaying = true;
         _isPaused = false;
-        // 開始播放模擬進度
+        // 模擬播放進度
         _simulatePlayback();
       }
     });
@@ -355,10 +290,5 @@ class _PlaybackPageState extends State<PlaybackPage> {
     } else {
       return '準備播放';
     }
-  }
-
-  // 導向演奏頁面
-  void _goToPractice() {
-    context.go('/practice');
   }
 }

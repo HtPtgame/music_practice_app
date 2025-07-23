@@ -39,11 +39,44 @@
                   context,
                   icon: MaterialCommunityIcons.image_multiple_outline,
                   label: '從本機上傳五線譜',
-                  onTap: () => context.go('/playback'),
+                  onTap: () => _showFeatureNotAvailable(context),
                 ),
               ],
             ),
           ),
+        );
+      }
+      
+      void _showFeatureNotAvailable(BuildContext context) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: AppColors.card,
+              title: const Text(
+                '功能開發中',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: const Text(
+                '五線譜上傳功能即將推出，敬請期待！',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
+                  child: const Text('確定'),
+                ),
+              ],
+            );
+          },
         );
       }
 

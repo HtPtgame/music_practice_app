@@ -1,14 +1,15 @@
 // lib/router/app_router.dart
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:music_practice_app/pages/analysis_page.dart';
 import 'package:music_practice_app/pages/home_page.dart';
 import 'package:music_practice_app/pages/playback_page.dart';
 import 'package:music_practice_app/pages/practice_page.dart';
 import 'package:music_practice_app/pages/upload_page.dart';
 import 'package:music_practice_app/pages/upload_page2.dart'; // 確保導入 UploadPage2
+import 'package:music_practice_app/pages/library_page.dart'; // 導入樂庫頁面
 import 'package:music_practice_app/widgets/main_shell.dart'; // 確保導入 MainShell
-import 'package:music_practice_app/utils/app_colors.dart'; // 確保導入 AppColors
 
 // 建立一個 GlobalKey 給我們的 ShellRoute
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -48,7 +49,7 @@ final GoRouter appRouter = GoRouter(
           // 使用 NoTransitionPage 實現無動畫切換
           pageBuilder: (context, state) => NoTransitionPage<void>(
             key: state.pageKey,
-            child: const Center(child: Text('我的樂庫')),
+            child: const LibraryPage(),
           ),
         ),
         GoRoute(
@@ -69,10 +70,13 @@ final GoRouter appRouter = GoRouter(
       path: '/playback',
       parentNavigatorKey: _rootNavigatorKey, // 確保它能覆蓋整個畫面
       // 使用 NoTransitionPage 實現無動畫切換
-      pageBuilder: (context, state) => NoTransitionPage<void>(
-        key: state.pageKey,
-        child: const PlaybackPage(),
-      ),
+      pageBuilder: (context, state) {
+        final file = state.extra as PlatformFile?;
+        return NoTransitionPage<void>(
+          key: state.pageKey,
+          child: PlaybackPage(file: file),
+        );
+      },
     ),
     GoRoute(
       path: '/practice',
