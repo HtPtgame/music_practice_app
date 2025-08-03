@@ -2,18 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:file_picker/file_picker.dart';
-
-class LibraryPage extends StatefulWidget {
-  const LibraryPage({super.key});
-
-  @override
-  State<LibraryPage> createState() => _LibraryPageState();
-}
+import 'package:file_picker/file_picker.dart'; // 確保這個導入也存在
 
 // 全域MIDI檔案管理類別
+// 這些類別必須放在這裡 (文件頂層)，才能被其他文件導入和使用
 class MidiFileManager {
-  static List<MidiFileInfo> _midiFiles = [];
+  static final List<MidiFileInfo> _midiFiles = [];
   
   static List<MidiFileInfo> get midiFiles => List.unmodifiable(_midiFiles);
   
@@ -34,12 +28,50 @@ class MidiFileManager {
   }
 }
 
+// MIDI檔案資訊類別
+// 這個類別也必須放在這裡 (文件頂層)
+class MidiFileInfo {
+  final String name;
+  final int size;
+  final DateTime uploadTime;
+  final PlatformFile file; // 這裡儲存了 PlatformFile 對象
+
+  MidiFileInfo({
+    required this.name,
+    required this.size,
+    required this.uploadTime,
+    required this.file,
+  });
+}
+
+
+class LibraryPage extends StatefulWidget { // 將 StatelessWidget 改回 StatefulWidget
+  const LibraryPage({super.key});
+
+  @override
+  State<LibraryPage> createState() => _LibraryPageState();
+}
+
 class _LibraryPageState extends State<LibraryPage> {
+
+  // 注意：如果您希望在添加或刪除檔案後立即更新列表，
+  // 您需要在 _deleteMidiFile 或其他地方呼叫 setState()。
+  // 並且，MidiFileManager 的更改需要通知到所有監聽者。
+  // 這裡為了簡化，假設每次進入頁面時會重新構建。
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
+    return Scaffold(
+      backgroundColor: AppColors.background, // 使用您定義的背景色
+      appBar: AppBar(
+        title: const Text(
+          '我的樂庫',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.background, // AppBar 背景色與頁面背景色一致
+        elevation: 0, // 移除 AppBar 陰影
+      ),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,6 +132,17 @@ class _LibraryPageState extends State<LibraryPage> {
               ),
           ],
         ),
+      ),
+      // 在這裡添加 FloatingActionButton
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // 點擊按鈕後導航到上傳頁面 (upload_page2.dart)
+          context.go('/upload2');
+        },
+        backgroundColor: AppColors.primary, // 使用您定義的主題色
+        foregroundColor: Colors.white, // 加號圖標
+        tooltip: '上傳新的 MIDI 檔案', // 圖標顏色
+        child: const Icon(Icons.add), // 長按提示
       ),
     );
   }
@@ -181,7 +224,8 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   void _playMidiFile(BuildContext context, MidiFileInfo midiFile) {
-    // 導航到播放頁面
+    // 導航到播放頁面，並傳遞 PlatformFile 對象
+    // 注意：PlaybackPage 需要修改以接收 PlatformFile
     context.go('/playback', extra: midiFile.file);
   }
 
@@ -211,7 +255,7 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
             TextButton(
               onPressed: () {
-                setState(() {
+                setState(() { // 呼叫 setState 觸發 UI 更新
                   MidiFileManager.removeMidiFile(index);
                 });
                 Navigator.of(context).pop();
@@ -236,19 +280,4 @@ class _LibraryPageState extends State<LibraryPage> {
   String _formatDate(DateTime date) {
     return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
-}
-
-// MIDI檔案資訊類別
-class MidiFileInfo {
-  final String name;
-  final int size;
-  final DateTime uploadTime;
-  final PlatformFile file;
-
-  MidiFileInfo({
-    required this.name,
-    required this.size,
-    required this.uploadTime,
-    required this.file,
-  });
 }

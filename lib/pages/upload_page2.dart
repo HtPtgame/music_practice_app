@@ -1,9 +1,11 @@
+// lib/pages/upload_page2.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // 用於檢測平台
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:music_practice_app/pages/library_page.dart';
+// 導入 Uint8List
+import 'package:music_practice_app/pages/library_page.dart'; // <<== 確保這一行存在且正確導入 MidiFileManager
 
 class UploadPage2 extends StatefulWidget {
   const UploadPage2({super.key});
@@ -26,7 +28,7 @@ class _UploadPage2State extends State<UploadPage2> {
         type: FileType.custom,
         allowedExtensions: ['midi', 'mid'],
         allowMultiple: false,
-        withData: true, // 確保在 Web 平台上獲取文件數據
+        withData: true, // 確保獲取檔案的位元組數據 (對 Web 和原生平台都適用)
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -37,13 +39,10 @@ class _UploadPage2State extends State<UploadPage2> {
         debugPrint('選擇的 MIDI 檔案: ${file.name}');
         debugPrint('檔案大小: ${file.size} bytes');
         
-        // 檢查文件是否有內容
         if (file.bytes != null) {
           debugPrint('文件數據已載入 (${file.bytes!.length} bytes)');
-        } else if (file.path != null) {
-          debugPrint('檔案路徑: ${file.path}');
         } else {
-          debugPrint('警告: 無法獲取文件路徑或數據');
+          debugPrint('警告: 無法獲取文件數據 (bytes)。');
         }
       } else {
         debugPrint('使用者取消檔案選擇');
@@ -67,22 +66,11 @@ class _UploadPage2State extends State<UploadPage2> {
 
   void _saveToLibrary() {
     if (_pickedFile != null) {
-      // 檢查文件是否有效
-      bool isValidFile = false;
-      
-      if (kIsWeb) {
-        // Web 平台：檢查 bytes 是否可用
-        isValidFile = _pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty;
-      } else {
-        // 原生平台：檢查 path 是否可用
-        isValidFile = _pickedFile!.path != null && _pickedFile!.path!.isNotEmpty;
-      }
+      bool isValidFile = _pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty;
       
       if (isValidFile) {
-        // 儲存到樂庫
-        MidiFileManager.addMidiFile(_pickedFile!);
+        MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
         
-        // 顯示成功訊息並導航到樂庫
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('MIDI檔案已成功儲存到樂庫！'),
@@ -90,7 +78,6 @@ class _UploadPage2State extends State<UploadPage2> {
           ),
         );
         
-        // 延遲一下再導航，讓使用者看到訊息
         Future.delayed(const Duration(milliseconds: 1500), () {
           if (mounted) {
             context.go('/library');
@@ -98,10 +85,30 @@ class _UploadPage2State extends State<UploadPage2> {
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(kIsWeb 
-              ? '錯誤：無法讀取檔案內容，請重新選擇檔案。'
-              : '錯誤：無法取得檔案路徑，請確認檔案權限。'),
+          const SnackBar(
+            content: Text('錯誤：無法讀取檔案內容，請重新選擇檔案。'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmAndPlay() {
+    if (_pickedFile != null) {
+      if (_pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty) {
+        // 傳遞 PlatformFile 對象給 playback 頁面
+        context.go('/playback', extra: _pickedFile!); // <<== 傳遞 PlatformFile 對象
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('MIDI檔案已選取，準備播放！'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('錯誤：無法讀取檔案內容，請重新選擇檔案。'),
             backgroundColor: Colors.red,
           ),
         );
@@ -216,16 +223,33 @@ class _UploadPage2State extends State<UploadPage2> {
             
             // 儲存按鈕
             if (_pickedFile != null)
-              ElevatedButton.icon(
-                onPressed: _saveToLibrary,
-                icon: const Icon(Icons.save, size: 28),
-                label: const Text('儲存到樂庫', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _saveToLibrary, // 儲存到樂庫
+                    icon: const Icon(Icons.save, size: 28),
+                    label: const Text('儲存到樂庫', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _confirmAndPlay, // 確認並播放
+                    icon: const Icon(Icons.play_arrow, size: 28),
+                    label: const Text('確認並播放', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ),
           ],
         ),

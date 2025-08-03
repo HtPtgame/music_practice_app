@@ -59,7 +59,7 @@ class _HomePageContent extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         ElevatedButton(
-          onPressed: () => context.go('/upload'),
+          onPressed: () => context.go('/library'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
@@ -68,6 +68,7 @@ class _HomePageContent extends StatelessWidget {
           ),
           child: const Text('開始練習', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
+        
         const SizedBox(height: 32),
         const Text('最近活動', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark)),
         const SizedBox(height: 16),

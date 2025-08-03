@@ -24,7 +24,7 @@ final GoRouter appRouter = GoRouter(
       // ShellRoute 本身仍然會有 build，但裡面的子路由會沒有動畫
       builder: (context, state, child) {
         // 將 state 傳遞給 MainShell，以便其內部可以獲取當前路由路徑
-        return MainShell(child: child, state: state);
+        return MainShell(state: state, child: child);
       },
       routes: [
         // 這些頁面會共享 MainShell 的 UI (也就是有底部導覽列)
