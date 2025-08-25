@@ -1,12 +1,14 @@
 // lib/pages/playback_page.dart
+
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:music_practice_app/services/midi_player_service.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
 
 class PlaybackPage extends StatefulWidget {
   final PlatformFile? file;
-
   const PlaybackPage({super.key, this.file});
 
   @override
@@ -14,19 +16,94 @@ class PlaybackPage extends StatefulWidget {
 }
 
 class _PlaybackPageState extends State<PlaybackPage> {
+  // 1. 獲取 Service 實例
+  final MidiPlayerService _midiService = MidiPlayerService();
+  StreamSubscription? _playingStateSubscription;
+
+  bool _isLoading = true;
   bool _isPlaying = false;
-  bool _isPaused = false;
+  String _status = '正在初始化...';
+
+  // 來自您設計的 UI 狀態 (進度條為 mockup)
   double _currentPosition = 0.0;
-  final double _totalDuration = 180.0; // 模擬3分鐘的歌曲長度
+  final double _totalDuration = 1.0;
 
   @override
   void initState() {
     super.initState();
+    _initialize();
+
+    // 2. 訂閱「廣播電台」，監聽播放狀態
+    _playingStateSubscription = _midiService.playingStateStream.listen((isPlaying) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = isPlaying;
+          _status = isPlaying ? '播放中...' : '已停止';
+          // 播放結束時，將進度條設為滿
+          if (!isPlaying && _currentPosition > 0) {
+            _currentPosition = _totalDuration;
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _initialize() async {
+    await _midiService.initialize();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _status = '準備播放';
+      });
+    }
   }
 
   @override
   void dispose() {
+    // 3. 離開頁面時，取消訂閱並停止音樂
+    _playingStateSubscription?.cancel();
+    _midiService.stop();
     super.dispose();
+  }
+
+  // 4. 將 UI 操作轉發給 Service
+  void _togglePlayPause() {
+    if (widget.file?.path == null) return;
+
+    if (_isPlaying) {
+      _midiService.stop();
+    } else {
+      setState(() {
+        _currentPosition = 0.0;
+      }); // 播放前將進度條歸零
+      _midiService.play(widget.file!.path!);
+    }
+  }
+
+  void _restart() async {
+    if (widget.file?.path == null) return;
+    await _midiService.stop();
+    await Future.delayed(const Duration(milliseconds: 200));
+    setState(() {
+      _currentPosition = 0.0;
+    }); // 播放前將進度條歸零
+    _midiService.play(widget.file!.path!);
+  }
+
+  void _stop() {
+    _midiService.stop();
+  }
+
+  void _goToPractice() {
+    // 進入練習模式前，確保音樂是停止的
+    _stop();
+    context.go('/practice', extra: widget.file);
+  }
+
+  String _formatTime(double seconds) {
+    final int minutes = (seconds / 60).floor();
+    final int remainingSeconds = (seconds % 60).floor();
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -45,320 +122,204 @@ class _PlaybackPageState extends State<PlaybackPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-            // 檔案資訊區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      body: _isLoading
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(_status),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.music_note,
-                      size: 80,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.file?.name ?? '未知檔案',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                    // 檔案資訊 Card
+                    Card(
+                      color: AppColors.card,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (widget.file != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textLight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.music_note,
+                                size: 80, color: AppColors.primary),
+                            const SizedBox(height: 16),
+                            Text(
+                              widget.file?.name ?? '未知檔案',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (widget.file != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // 播放進度區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    // 進度條
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: AppColors.primary,
-                        inactiveTrackColor: AppColors.primary.withOpacity(0.3),
-                        thumbColor: AppColors.primary,
-                        overlayColor: AppColors.primary.withOpacity(0.2),
-                        trackHeight: 4.0,
+                    ),
+                    const SizedBox(height: 32),
+                    // 播放進度 Card
+                    Card(
+                      color: AppColors.card,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Slider(
-                        value: _currentPosition,
-                        max: _totalDuration,
-                        onChanged: _isPlaying ? null : (value) {
-                          // 只有在非播放狀態下才允許拖動
-                          setState(() {
-                            _currentPosition = value;
-                          });
-                        },
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          children: [
+                            Slider(
+                              value: _currentPosition,
+                              max: _totalDuration,
+                              onChanged: null,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(_formatTime(_currentPosition)),
+                                  Text(_formatTime(_totalDuration)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    
-                    // 時間顯示
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatTime(_currentPosition),
-                            style: const TextStyle(
-                              color: AppColors.textLight,
-                              fontSize: 14,
+                    const SizedBox(height: 32),
+                    // 播放控制 Card
+                    Card(
+                      color: AppColors.card,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            IconButton(
+                              onPressed: _isLoading ? null : _restart,
+                              icon: const Icon(Icons.replay),
+                              iconSize: 36,
+                              color: AppColors.textDark,
+                              tooltip: '重新播放',
                             ),
+                            Container(
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                onPressed: _isLoading ? null : _togglePlayPause,
+                                icon: Icon(
+                                    _isPlaying ? Icons.pause : Icons.play_arrow),
+                                iconSize: 48,
+                                color: Colors.white,
+                                tooltip: _isPlaying ? '暫停' : '播放',
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _isLoading ? null : _stop,
+                              icon: const Icon(Icons.stop),
+                              iconSize: 36,
+                              color: AppColors.textDark,
+                              tooltip: '停止',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // 演奏練習 Card
+                    Card(
+                      color: AppColors.card,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          children: [
+                            const Text(
+                              '演奏練習',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _goToPractice,
+                              icon: const Icon(Icons.piano),
+                              label: const Text('開始演奏'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // 狀態顯示
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isPlaying ? Icons.music_note : Icons.music_off,
+                            color: AppColors.primary,
+                            size: 20,
                           ),
+                          const SizedBox(width: 8),
                           Text(
-                            _formatTime(_totalDuration),
+                            _status,
                             style: const TextStyle(
-                              color: AppColors.textLight,
-                              fontSize: 14,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
-            
-            const SizedBox(height: 32),
-            
-            // 播放控制區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // 重新播放按鈕
-                    IconButton(
-                      onPressed: _restart,
-                      icon: const Icon(Icons.replay),
-                      iconSize: 36,
-                      color: AppColors.textDark,
-                      tooltip: '重新播放',
-                    ),
-                    
-                    // 主要播放/暫停按鈕
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: _togglePlayPause,
-                        icon: Icon(
-                          _isPlaying 
-                            ? Icons.pause 
-                            : Icons.play_arrow,
-                        ),
-                        iconSize: 48,
-                        color: Colors.white,
-                        tooltip: _isPlaying ? '暫停' : '播放',
-                      ),
-                    ),
-                    
-                    // 停止按鈕
-                    IconButton(
-                      onPressed: _stop,
-                      icon: const Icon(Icons.stop),
-                      iconSize: 36,
-                      color: AppColors.textDark,
-                      tooltip: '停止',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // 演奏測試控制區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    Text(
-                      '演奏練習',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: _goToPractice,
-                          icon: const Icon(Icons.piano),
-                          label: const Text('開始演奏'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '點擊開始演奏來進入演奏練習模式',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textLight,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 狀態顯示
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _isPlaying ? Icons.music_note : Icons.music_off,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _getStatusText(),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 20), // 底部安全間距
-          ],
-        ),
-        ),
-      ),
     );
-  }
-
-  void _togglePlayPause() {
-    setState(() {
-      if (_isPlaying) {
-        _isPlaying = false;
-        _isPaused = true;
-      } else {
-        _isPlaying = true;
-        _isPaused = false;
-        // 開始播放模擬進度
-        _simulatePlayback();
-      }
-    });
-  }
-
-  void _restart() {
-    setState(() {
-      _currentPosition = 0.0;
-      _isPlaying = true;
-      _isPaused = false;
-    });
-    _simulatePlayback();
-  }
-
-  void _stop() {
-    setState(() {
-      _isPlaying = false;
-      _isPaused = false;
-      _currentPosition = 0.0;
-    });
-  }
-
-  void _simulatePlayback() {
-    if (_isPlaying && !_isPaused) {
-      Future.delayed(const Duration(seconds: 1), () {
-        if (_isPlaying && !_isPaused && mounted) {
-          setState(() {
-            _currentPosition += 1.0;
-            if (_currentPosition >= _totalDuration) {
-              _currentPosition = _totalDuration;
-              _isPlaying = false;
-            }
-          });
-          if (_isPlaying) {
-            _simulatePlayback();
-          }
-        }
-      });
-    }
-  }
-
-  String _formatTime(double seconds) {
-    final int minutes = (seconds / 60).floor();
-    final int remainingSeconds = (seconds % 60).floor();
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
-  String _getStatusText() {
-    if (_isPlaying) {
-      return '播放中...';
-    } else if (_isPaused) {
-      return '已暫停';
-    } else if (_currentPosition > 0) {
-      return '已停止';
-    } else {
-      return '準備播放';
-    }
-  }
-
-  // 導向演奏頁面
-  void _goToPractice() {
-    context.go('/practice');
   }
 }
