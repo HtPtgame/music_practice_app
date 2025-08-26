@@ -1,5 +1,3 @@
-// lib/pages/playback_page.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -16,33 +14,36 @@ class PlaybackPage extends StatefulWidget {
 }
 
 class _PlaybackPageState extends State<PlaybackPage> {
-  // 1. 獲取 Service 實例
   final MidiPlayerService _midiService = MidiPlayerService();
   StreamSubscription? _playingStateSubscription;
+  StreamSubscription? _progressSubscription;
 
   bool _isLoading = true;
   bool _isPlaying = false;
   String _status = '正在初始化...';
 
-  // 來自您設計的 UI 狀態 (進度條為 mockup)
   double _currentPosition = 0.0;
-  final double _totalDuration = 1.0;
+  double get _totalDuration => _midiService.totalDurationMs / 1000.0; // 秒
 
   @override
   void initState() {
     super.initState();
     _initialize();
 
-    // 2. 訂閱「廣播電台」，監聽播放狀態
-    _playingStateSubscription = _midiService.playingStateStream.listen((isPlaying) {
+    _playingStateSubscription =
+        _midiService.playingStateStream.listen((isPlaying) {
       if (mounted) {
         setState(() {
           _isPlaying = isPlaying;
           _status = isPlaying ? '播放中...' : '已停止';
-          // 播放結束時，將進度條設為滿
-          if (!isPlaying && _currentPosition > 0) {
-            _currentPosition = _totalDuration;
-          }
+        });
+      }
+    });
+
+    _progressSubscription = _midiService.progressStream.listen((progress) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = progress * _totalDuration;
         });
       }
     });
@@ -60,23 +61,23 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
   @override
   void dispose() {
-    // 3. 離開頁面時，取消訂閱並停止音樂
     _playingStateSubscription?.cancel();
+    _progressSubscription?.cancel();
     _midiService.stop();
     super.dispose();
   }
 
-  // 4. 將 UI 操作轉發給 Service
   void _togglePlayPause() {
     if (widget.file?.path == null) return;
 
     if (_isPlaying) {
-      _midiService.stop();
+      _midiService.pause();
     } else {
-      setState(() {
-        _currentPosition = 0.0;
-      }); // 播放前將進度條歸零
-      _midiService.play(widget.file!.path!);
+      if (_currentPosition > 0) {
+        _midiService.resume();
+      } else {
+        _midiService.play(widget.file!.path!);
+      }
     }
   }
 
@@ -84,9 +85,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
     if (widget.file?.path == null) return;
     await _midiService.stop();
     await Future.delayed(const Duration(milliseconds: 200));
-    setState(() {
-      _currentPosition = 0.0;
-    }); // 播放前將進度條歸零
     _midiService.play(widget.file!.path!);
   }
 
@@ -95,7 +93,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
   }
 
   void _goToPractice() {
-    // 進入練習模式前，確保音樂是停止的
     _stop();
     context.go('/practice', extra: widget.file);
   }
@@ -138,7 +135,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    // 檔案資訊 Card
                     Card(
                       color: AppColors.card,
                       elevation: 2,
@@ -176,7 +172,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    // 播放進度 Card
                     Card(
                       color: AppColors.card,
                       elevation: 2,
@@ -193,9 +188,11 @@ class _PlaybackPageState extends State<PlaybackPage> {
                               onChanged: null,
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(_formatTime(_currentPosition)),
                                   Text(_formatTime(_totalDuration)),
@@ -207,7 +204,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    // 播放控制 Card
                     Card(
                       color: AppColors.card,
                       elevation: 2,
@@ -252,7 +248,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // 演奏練習 Card
                     Card(
                       color: AppColors.card,
                       elevation: 2,
@@ -286,14 +281,13 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // 狀態顯示
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withAlpha((0.1 * 255).round()),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
