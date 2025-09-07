@@ -26,6 +26,7 @@ class MidiPlayerService {
   int _pauseTime = 0;
 
   List<TempoChange> _tempoChanges = [];
+  int _tempoIndex = 0;
   int _tpq = 480;
 
   final _playingStateController = StreamController<bool>.broadcast();
@@ -34,11 +35,12 @@ class MidiPlayerService {
   final _progressController = StreamController<double>.broadcast();
   Stream<double> get progressStream => _progressController.stream;
 
-  // 效能優化：限制每次處理的音符數量，避免累積
-  static const int _maxBatchSize = 3; // 手機優化：減少到 3 個
+  // 效能優化：批次處理音符
+  final List<MidiNoteEvent> _batchedEvents = [];
+  static const int _maxBatchSize = 10;
   
-  // 效能優化：手機優化的播放頻率
-  static const int _playbackIntervalMs = 12; // 手機優化：調整為 12ms
+  // 效能優化：減少播放頻率
+  static const int _playbackIntervalMs = 10; // 從 5ms 改為 10ms
 
   int get totalDurationMs {
     if (_events.isEmpty) return 0;
@@ -160,6 +162,8 @@ class MidiPlayerService {
 
     _currentMidiPath = midiPath;
     _tempoChanges.clear();
+    _tempoIndex = 0;
+    _batchedEvents.clear();
 
     try {
       final file = File(midiPath);
@@ -237,27 +241,27 @@ class MidiPlayerService {
       final now = DateTime.now().millisecondsSinceEpoch;
       final elapsed = now - _startTime;
 
-      // 適應性批次大小：檢查接下來的音符密度
-      final adaptiveBatchSize = _calculateAdaptiveBatchSize();
+      // 更新 tempo
+      while (_tempoIndex + 1 < _tempoChanges.length &&
+          _tempoChanges[_tempoIndex + 1].tick <= _events[_currentIndex].tick) {
+        _tempoIndex++;
+        _msPerTick = _tempoChanges[_tempoIndex].msPerTick(_tpq);
+      }
 
-      // 逐個處理音符事件，使用精確時間計算
-      int processedCount = 0;
-      while (_currentIndex < _events.length && processedCount < adaptiveBatchSize) {
+      // 批次收集當前應該播放的事件
+      _batchedEvents.clear();
+      while (_currentIndex < _events.length && _batchedEvents.length < _maxBatchSize) {
         final event = _events[_currentIndex];
-        
-        // 使用精確的累積時間計算，避免 tempo 變化誤差
-        final eventTime = _calculateAccurateEventTime(event.tick);
-        
-        // 如果音符時間還沒到，停止處理
+        final eventTime = (event.tick * _msPerTick).round();
         if (eventTime > elapsed) break;
 
-        // 立即播放單個音符
-        if (_soundfontId != null) {
-          _playSingleNote(event);
-        }
-        
+        _batchedEvents.add(event);
         _currentIndex++;
-        processedCount++;
+      }
+
+      // 批次處理音符事件（只有當有 SoundFont 時）
+      if (_soundfontId != null && _batchedEvents.isNotEmpty) {
+        _processBatchedEvents();
       }
 
       // 更新進度
@@ -268,85 +272,24 @@ class MidiPlayerService {
     });
   }
 
-  // 根據接下來音符的密度動態調整批次大小
-  int _calculateAdaptiveBatchSize() {
-    if (_currentIndex >= _events.length) return _maxBatchSize;
-    
-    // 檢查接下來 50ms 內的音符數量
-    final currentEvent = _events[_currentIndex];
-    final currentTime = _calculateAccurateEventTime(currentEvent.tick);
-    const lookAheadMs = 50.0; // 向前看 50ms
-    
-    int notesInWindow = 0;
-    for (int i = _currentIndex; i < _events.length && notesInWindow < 20; i++) {
-      final event = _events[i];
-      final eventTime = _calculateAccurateEventTime(event.tick);
-      if (eventTime > currentTime + lookAheadMs) break;
-      notesInWindow++;
-    }
-    
-    // 根據密度調整批次大小
-    if (notesInWindow > 15) return 1; // 高密度：一次一個
-    if (notesInWindow > 10) return 2; // 中高密度：一次兩個
-    if (notesInWindow > 5) return 3;  // 中等密度：一次三個
-    return _maxBatchSize; // 低密度：正常批次
-  }
-
-  // 精確計算事件時間，考慮 tempo 變化
-  double _calculateAccurateEventTime(int targetTick) {
-    if (_tempoChanges.isEmpty) {
-      return targetTick * _msPerTick;
-    }
-
-    double totalMs = 0;
-    int prevTick = 0;
-    
-    for (int i = 0; i < _tempoChanges.length; i++) {
-      final tempo = _tempoChanges[i];
-      final currentMsPerTick = tempo.msPerTick(_tpq);
-      
-      // 如果目標 tick 在當前 tempo 段之前
-      if (i + 1 < _tempoChanges.length) {
-        final nextTempo = _tempoChanges[i + 1];
-        if (targetTick <= nextTempo.tick) {
-          totalMs += (targetTick - prevTick) * currentMsPerTick;
-          return totalMs;
-        } else {
-          totalMs += (nextTempo.tick - prevTick) * currentMsPerTick;
-          prevTick = nextTempo.tick;
-        }
-      } else {
-        // 最後一個 tempo 段
-        totalMs += (targetTick - prevTick) * currentMsPerTick;
-        return totalMs;
-      }
-    }
-    
-    return totalMs;
-  }
-
-  void _playSingleNote(MidiNoteEvent event) {
+  void _processBatchedEvents() {
     if (_soundfontId == null) return;
     
     try {
-      if (event.isNoteOn) {
-        _midiPro.playNote(
-          sfId: _soundfontId!, 
-          key: event.noteNumber, 
-          velocity: event.velocity
-        );
-        // 手機調試：減少日誌輸出，避免性能影響
-        if (kDebugMode) {
-          debugPrint('MidiPlayerService: Note ${event.noteNumber} ON');
+      for (final event in _batchedEvents) {
+        if (event.isNoteOn) {
+          _midiPro.playNote(
+            sfId: _soundfontId!, 
+            key: event.noteNumber, 
+            velocity: event.velocity
+          );
+        } else {
+          _midiPro.stopNote(sfId: _soundfontId!, key: event.noteNumber);
         }
-      } else {
-        _midiPro.stopNote(sfId: _soundfontId!, key: event.noteNumber);
       }
     } catch (e) {
-      // 手機優化：簡化錯誤日誌
-      if (kDebugMode) {
-        debugPrint('MidiPlayerService: Note error: $e');
-      }
+      // 如果發生錯誤，記錄但不影響播放
+      debugPrint('MidiPlayerService: Batch playback error: $e');
     }
   }
 
@@ -358,6 +301,8 @@ class MidiPlayerService {
     _pauseTime = 0;
     _currentMidiPath = null;
     _tempoChanges.clear();
+    _tempoIndex = 0;
+    _batchedEvents.clear();
 
     // 停止所有音符
     if (_soundfontId != null) {
