@@ -1,62 +1,93 @@
 // lib/router/app_router.dart
-import 'package:flutter/material.dart';
+
 import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:music_practice_app/pages/analysis_page.dart';
 import 'package:music_practice_app/pages/home_page.dart';
 import 'package:music_practice_app/pages/playback_page.dart';
 import 'package:music_practice_app/pages/practice_page.dart';
 import 'package:music_practice_app/pages/upload_page.dart';
+import 'package:music_practice_app/pages/upload_page2.dart';
+import 'package:music_practice_app/pages/library_page.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 
-// 建立一個 GlobalKey 給我們的 ShellRoute
+// 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+// 這是 appRouter 的定義
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   routes: [
-    // ShellRoute 會作為底下 routes 的 UI 外殼
+    // ShellRoute 會作為底下 routes 的 UI 外殼，讓底部導覽列常駐
     ShellRoute(
       builder: (context, state, child) {
         return MainShell(child: child);
       },
       routes: [
-        // 這些頁面會共享 MainShell 的 UI (也就是有底部導覽列)
+        // 共享底部導覽列的頁面
         GoRoute(
           path: '/',
-          builder: (context, state) => const HomePage(),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: HomePage(),
+          ),
         ),
         GoRoute(
           path: '/upload',
-          builder: (context, state) => const UploadPage(),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: UploadPage(),
+          ),
         ),
-        // 為了展示，先建立兩個空的頁面
         GoRoute(
           path: '/library',
-          builder: (context, state) => const Center(child: Text('我的樂庫')),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: LibraryPage(),
+          ),
         ),
         GoRoute(
           path: '/settings',
-          builder: (context, state) => const Center(child: Text('設定')),
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: Center(child: Text('設定')),
+          ),
         ),
       ],
     ),
-    
-    // 這些是獨立的頁面，不會顯示底部導覽列
+
+    // 獨立的全螢幕頁面 (不會顯示底部導覽列)
     GoRoute(
       path: '/playback',
-      parentNavigatorKey: _rootNavigatorKey, // 確保它能覆蓋整個畫面
-      builder: (context, state) => const PlaybackPage(),
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final file = state.extra as PlatformFile?;
+        return NoTransitionPage(
+          child: PlaybackPage(file: file),
+        );
+      },
     ),
     GoRoute(
       path: '/practice',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const PracticePage(),
+      pageBuilder: (context, state) {
+        final file = state.extra as PlatformFile?; // 練習頁面也需要檔案資訊
+        return NoTransitionPage(
+          child: PracticePage(file: file),
+        );
+      },
     ),
     GoRoute(
       path: '/analysis',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const AnalysisPage(),
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: AnalysisPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/upload2',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: UploadPage2(),
+      ),
     ),
   ],
 );

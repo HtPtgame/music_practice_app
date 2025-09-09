@@ -55,7 +55,7 @@ class AnalysisPage extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () => context.go('/practice'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: const Color.fromARGB(255, 90, 157, 224),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),

@@ -1,61 +1,51 @@
-// lib/pages/practice_page.dart
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 
-class PracticePage extends StatelessWidget {
-  const PracticePage({super.key});
+class PracticePage extends StatefulWidget {
+  final PlatformFile? file;
+  const PracticePage({super.key, this.file});
 
+  @override
+  State<PracticePage> createState() => _PracticePageState();
+}
+
+class _PracticePageState extends State<PracticePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('小星星 - 演奏中', style: TextStyle(fontWeight: FontWeight.bold))),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(16),
-                // 【修正】直接使用現有顏色
-                border: Border.all(color: Colors.greenAccent),
-              ),
-              child: const Center(
-                child: Text('即時偵測與互動區域', style: TextStyle(color: Colors.white, fontSize: 18)),
-              ),
+      appBar: AppBar(
+        title: Text(widget.file?.name ?? '演奏練習', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) context.pop();
+            else context.go('/library');
+          },
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.piano, size: 80, color: AppColors.primary),
+            const SizedBox(height: 24),
+            const Text('演奏偵測介面', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Text(
+              '即將在此練習：${widget.file?.name ?? '未指定曲目'}',
+              style: const TextStyle(fontSize: 16, color: AppColors.textLight),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const Expanded(
-            flex: 1,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                 Text('加油！', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                 SizedBox(height: 16),
-                 Text('請跟隨節拍演奏...', style: TextStyle(fontSize: 18, color: AppColors.textLight)),
-              ],
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () => context.go('/analysis'),
+              child: const Text('（模擬）完成練習'),
             ),
-          ),
-           Padding(
-             padding: const EdgeInsets.all(24.0),
-             child: SizedBox(
-              width: double.infinity,
-               child: ElevatedButton(
-                onPressed: () => context.go('/analysis'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-                child: const Text('結束演奏', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                       ),
-             ),
-           ),
-        ],
+          ],
+        ),
       ),
     );
   }
