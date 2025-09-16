@@ -9,40 +9,38 @@
 
       @override
       Widget build(BuildContext context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
-                  child: Text(
-                    '選擇樂譜',
-                    style: TextStyle(
-                      color: AppColors.textDark,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
+                child: Text(
+                  '選擇樂譜',
+                  style: TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
-                _buildUploadOption(
-                  context,
-                  icon: MaterialCommunityIcons.midi_port,
-                  label: '從本機上傳 MIDI',
-                  // 【修改】點擊此選項時導航到新的 UploadPage2
-                  onTap: () => context.go('/upload2'),
-                ),
-                const SizedBox(height: 16),
-                _buildUploadOption(
-                  context,
-                  icon: MaterialCommunityIcons.image_multiple_outline,
-                  label: '從本機上傳五線譜',
-                  onTap: () => _showFeatureNotAvailable(context),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              _buildUploadOption(
+                context,
+                icon: MaterialCommunityIcons.midi_port,
+                label: '從本機上傳 MIDI',
+                // 【修改】點擊此選項時導航到新的 UploadPage2
+                onTap: () => context.go('/upload2'),
+              ),
+              const SizedBox(height: 16),
+              _buildUploadOption(
+                context,
+                icon: MaterialCommunityIcons.image_multiple_outline,
+                label: '從本機上傳五線譜',
+                onTap: () => _showFeatureNotAvailable(context),
+              ),
+            ],
           ),
         );
       }

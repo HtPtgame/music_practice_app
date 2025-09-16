@@ -72,10 +72,10 @@ class _PracticePageState extends State<PracticePage> {
       }
       
       final directory = await getApplicationDocumentsDirectory();
-      _audioPath = '${directory.path}/practice_record.wav';
+      _audioPath = '${directory.path}/practice_record.aac';
 
       await Future.delayed(const Duration(milliseconds: 500));
-      await _recorder!.startRecorder(toFile: _audioPath, codec: Codec.pcm16WAV);
+      await _recorder!.startRecorder(toFile: _audioPath, codec: Codec.aacADTS);
       setState(() { isRecording = true; });
       debugPrint('錄音開始，狀態: ${_recorder!.isRecording}');
     } catch (e) {
@@ -91,6 +91,10 @@ class _PracticePageState extends State<PracticePage> {
     await _recorder!.stopRecorder();
     setState(() { isRecording = false; });
     debugPrint('錄音結束，狀態: ${_recorder!.isStopped}');
+    
+    // 等待一小段時間確保檔案寫入完成
+    await Future.delayed(const Duration(milliseconds: 300));
+    
     if (_audioPath != null) {
       try {
         final file = File(_audioPath!);
@@ -98,18 +102,34 @@ class _PracticePageState extends State<PracticePage> {
         debugPrint('錄音檔案路徑: $_audioPath');
         debugPrint('錄音檔案大小: $size bytes');
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('錄音檔案：$_audioPath\n大小：$size bytes'),
-            backgroundColor: size == 0 ? Colors.red : Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        if (size == 0) {
-          debugPrint('錄音檔案為空，請重試');
+        
+        if (size > 100) { // 至少要有100 bytes才算有效錄音
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('錄音完成！檔案大小：${(size / 1024).toStringAsFixed(1)} KB'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('錄音檔案太小，請重新錄音'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          debugPrint('錄音檔案太小，請重試');
         }
       } catch (e) {
         debugPrint('錄音檔案檢查失敗: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('錄音檔案檢查失敗: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -125,8 +145,8 @@ class _PracticePageState extends State<PracticePage> {
     try {
       final file = File(_audioPath!);
       final size = await file.length();
-      debugPrint('撥放錄音檔案路徑: $_audioPath');
-      debugPrint('撥放錄音檔案大小: $size bytes');
+      debugPrint('播放錄音檔案路徑: $_audioPath');
+      debugPrint('播放錄音檔案大小: $size bytes');
       if (size == 0) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -141,7 +161,7 @@ class _PracticePageState extends State<PracticePage> {
     try {
       await _player!.startPlayer(
         fromURI: _audioPath,
-        codec: Codec.pcm16WAV,
+        codec: Codec.aacADTS,
         whenFinished: () {
           setState(() { isPlaying = false; });
         },

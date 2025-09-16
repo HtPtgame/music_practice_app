@@ -10,6 +10,7 @@ import 'package:music_practice_app/pages/practice_page.dart';
 import 'package:music_practice_app/pages/upload_page.dart';
 import 'package:music_practice_app/pages/upload_page2.dart';
 import 'package:music_practice_app/pages/library_page.dart';
+import 'package:music_practice_app/pages/settings_page.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
@@ -48,7 +49,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/settings',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: Center(child: Text('設定')),
+            child: SettingsPage(),
           ),
         ),
       ],

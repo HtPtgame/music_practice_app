@@ -126,12 +126,12 @@ class _LibraryPageState extends State<LibraryPage> {
       // 在這裡添加 FloatingActionButton
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 點擊按鈕後導航到上傳頁面 (upload_page2.dart)
-          context.go('/upload2');
+          // 點擊按鈕後導航到上傳頁面 (upload_page.dart)
+          context.go('/upload');
         },
         backgroundColor: AppColors.primary, // 使用您定義的主題色
         foregroundColor: Colors.white, // 加號圖標
-        tooltip: '上傳新的 MIDI 檔案', // 圖標顏色
+        tooltip: '新增樂曲', // 圖標顏色
         child: const Icon(Icons.add), // 長按提示
       ),
     );

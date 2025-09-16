@@ -10,11 +10,10 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Scaffold 和 AppBar 已被移除，由 MainShell 提供
-    // 使用 SafeArea 確保內容不會被系統狀態列遮擋
-    return const SafeArea(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column( // 將 ListView 改為 Column 以便放置 AppBar
+    // SafeArea 已在 MainShell 層級處理
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column( // 將 ListView 改為 Column 以便放置 AppBar
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 我們把 AppBar 的內容手動加到這裡
@@ -44,8 +43,7 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
