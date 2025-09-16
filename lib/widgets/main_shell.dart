@@ -21,7 +21,6 @@ class MainShell extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '首頁'),
-          BottomNavigationBarItem(icon: Icon(Icons.upload), label: '上傳'),
           BottomNavigationBarItem(icon: Icon(Icons.library_music), label: '我的樂庫'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),
         ],
@@ -30,11 +29,10 @@ class MainShell extends StatelessWidget {
   }
 
   int _calculateSelectedIndex(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/upload')) return 1;
-    if (location.startsWith('/library')) return 2;
-    if (location.startsWith('/settings')) return 3;
-    return 0;
+  final String location = GoRouterState.of(context).uri.toString();
+  if (location.startsWith('/library')) return 1;
+  if (location.startsWith('/settings')) return 2;
+  return 0;
   }
 
   void _onItemTapped(int index, BuildContext context) {
@@ -43,12 +41,9 @@ class MainShell extends StatelessWidget {
         context.go('/');
         break;
       case 1:
-        context.go('/upload');
-        break;
-      case 2:
         context.go('/library');
         break;
-      case 3:
+      case 2:
         context.go('/settings');
         break;
     }

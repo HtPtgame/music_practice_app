@@ -70,19 +70,16 @@ class _UploadPage2State extends State<UploadPage2> {
       
       if (isValidFile) {
         MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
-        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('MIDI檔案已成功儲存到樂庫！'),
             backgroundColor: Colors.green,
+            duration: Duration(milliseconds: 800),
           ),
         );
-        
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) {
-            context.go('/library');
-          }
-        });
+        if (mounted) {
+          context.go('/library');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -124,7 +121,7 @@ class _UploadPage2State extends State<UploadPage2> {
         title: const Text('從本機上傳 MIDI', style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/upload'),
+          onPressed: () => context.go('/library'),
         ),
       ),
       body: Padding(
@@ -206,7 +203,9 @@ class _UploadPage2State extends State<UploadPage2> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.folder_open),
-                      label: Text(_isLoading ? '選擇中...' : '選擇檔案'),
+                      label: Text(_isLoading
+                        ? '選擇中...'
+                        : _pickedFile != null ? '重新選擇' : '選擇檔案'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -232,18 +231,6 @@ class _UploadPage2State extends State<UploadPage2> {
                     label: const Text('儲存到樂庫', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _confirmAndPlay, // 確認並播放
-                    icon: const Icon(Icons.play_arrow, size: 28),
-                    label: const Text('確認並播放', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

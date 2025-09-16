@@ -248,38 +248,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Card(
-                      color: AppColors.card,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
-                            const Text(
-                              '演奏練習',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton.icon(
-                              onPressed: _goToPractice,
-                              icon: const Icon(Icons.piano),
-                              label: const Text('開始演奏'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    // ...已移除『開始演奏』按鈕區塊...
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(

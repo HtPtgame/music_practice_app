@@ -76,17 +76,7 @@ class _LibraryPageState extends State<LibraryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
-              child: Text(
-                '我的樂庫',
-                style: TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            // ...existing code...
             const SizedBox(height: 16),
             
             if (MidiFileManager.midiFiles.isEmpty)
@@ -209,13 +199,20 @@ class _LibraryPageState extends State<LibraryPage> {
                     tooltip: '播放',
                   ),
                   IconButton(
+                    icon: const Icon(Icons.school),
+                    color: Colors.green,
+                    onPressed: () => _goToPractice(context, midiFile),
+                    tooltip: '練習',
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.delete_outline),
                     color: Colors.red,
                     onPressed: () => _deleteMidiFile(context, index),
                     tooltip: '刪除',
                   ),
+                  
                 ],
-              ),
+              )
             ],
           ),
         ),
@@ -227,6 +224,10 @@ class _LibraryPageState extends State<LibraryPage> {
     // 導航到播放頁面，並傳遞 PlatformFile 對象
     // 注意：PlaybackPage 需要修改以接收 PlatformFile
     context.go('/playback', extra: midiFile.file);
+  }
+
+  void _goToPractice(BuildContext context, MidiFileInfo midiFile) {
+    context.go('/practice', extra: midiFile.file);
   }
 
   void _deleteMidiFile(BuildContext context, int index) {

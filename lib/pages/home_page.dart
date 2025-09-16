@@ -66,9 +66,8 @@ class _HomePageContent extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-          child: const Text('開始練習', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: const Text('開始練習（上次的曲目）', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
-        
         const SizedBox(height: 32),
         const Text('最近活動', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark)),
         const SizedBox(height: 16),
