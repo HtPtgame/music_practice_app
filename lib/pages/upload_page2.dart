@@ -91,28 +91,6 @@ class _UploadPage2State extends State<UploadPage2> {
     }
   }
 
-  void _confirmAndPlay() {
-    if (_pickedFile != null) {
-      if (_pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty) {
-        // 傳遞 PlatformFile 對象給 playback 頁面
-        context.go('/playback', extra: _pickedFile!); // <<== 傳遞 PlatformFile 對象
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('MIDI檔案已選取，準備播放！'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('錯誤：無法讀取檔案內容，請重新選擇檔案。'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

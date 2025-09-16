@@ -16,7 +16,6 @@ class PracticePage extends StatefulWidget {
 }
 
 class _PracticePageState extends State<PracticePage> {
-  DateTime? _recordStartTime;
   FlutterSoundRecorder? _recorder;
   FlutterSoundPlayer? _player;
   String? _audioPath;
@@ -77,7 +76,6 @@ class _PracticePageState extends State<PracticePage> {
 
       await Future.delayed(const Duration(milliseconds: 500));
       await _recorder!.startRecorder(toFile: _audioPath, codec: Codec.pcm16WAV);
-      _recordStartTime = DateTime.now();
       setState(() { isRecording = true; });
       debugPrint('錄音開始，狀態: ${_recorder!.isRecording}');
     } catch (e) {
@@ -90,16 +88,6 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Future<void> stopRecording() async {
-    if (_recordStartTime != null) {
-      final elapsed = DateTime.now().difference(_recordStartTime!);
-      if (elapsed.inMilliseconds < 1000) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('請至少錄音 1 秒'), backgroundColor: Colors.orange),
-        );
-        await Future.delayed(Duration(milliseconds: 1000 - elapsed.inMilliseconds));
-      }
-    }
     await _recorder!.stopRecorder();
     setState(() { isRecording = false; });
     debugPrint('錄音結束，狀態: ${_recorder!.isStopped}');

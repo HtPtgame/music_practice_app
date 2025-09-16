@@ -92,11 +92,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
     _midiService.stop();
   }
 
-  void _goToPractice() {
-    _stop();
-    context.go('/practice', extra: widget.file);
-  }
-
   String _formatTime(double seconds) {
     final int minutes = (seconds / 60).floor();
     final int remainingSeconds = (seconds % 60).floor();

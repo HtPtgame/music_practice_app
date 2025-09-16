@@ -42,7 +42,7 @@ class MidiParser {
     if (headerId != 'MThd') throw 'Invalid MIDI file: Missing MThd chunk.';
 
     final headerLength = _byteData.getUint32(_p + 4);
-    final formatType = _byteData.getUint16(_p + 8); // 0, 1, 2
+    // final formatType = _byteData.getUint16(_p + 8); // 0, 1, 2 - unused
     final trackCount = _byteData.getUint16(_p + 10);
     ticksPerQuarterNote = _byteData.getUint16(_p + 12);
     _p += 8 + headerLength;

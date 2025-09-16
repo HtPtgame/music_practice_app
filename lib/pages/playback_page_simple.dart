@@ -93,9 +93,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         activeTrackColor: AppColors.primary,
-                        inactiveTrackColor: AppColors.primary.withOpacity(0.3),
+                        inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
                         thumbColor: AppColors.primary,
-                        overlayColor: AppColors.primary.withOpacity(0.2),
+                        overlayColor: AppColors.primary.withValues(alpha: 0.2),
                         trackHeight: 4.0,
                       ),
                       child: Slider(
@@ -160,7 +160,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     
                     // 主要播放/暫停按鈕
                     Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
@@ -196,7 +196,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

@@ -228,7 +228,7 @@ class MidiPlayerService {
 
   void _startPlaybackLoop() {
     _playbackLoop?.cancel();
-    _playbackLoop = Timer.periodic(Duration(milliseconds: _playbackIntervalMs), (timer) {
+    _playbackLoop = Timer.periodic(const Duration(milliseconds: _playbackIntervalMs), (timer) {
       if (_currentIndex >= _events.length) {
         stop();
         return;
