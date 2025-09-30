@@ -24,10 +24,22 @@ android {
         applicationId = "com.example.music_practice_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-    minSdk = 24
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // 【FFmpeg 修正 1/2】強制包含特定的原生架構
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
+    }
+
+    // 【FFmpeg 修正 2/2】允許打包 FFmpeg 的大型 .so 檔案，避免構建失敗
+    packagingOptions {
+        doNotStrip("**/armeabi-v7a/libffmpegkit.so")
+        doNotStrip("**/arm64-v8a/libffmpegkit.so") 
+        doNotStrip("**/x86_64/libffmpegkit.so")
     }
 
     buildTypes {

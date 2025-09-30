@@ -112,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -207,7 +207,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -308,7 +308,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           _languageDescriptions[languageCode] ?? '',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isSelected ? AppColors.primary.withOpacity(0.7) : AppColors.textLight,
+                            color: isSelected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textLight,
                           ),
                         ),
                         trailing: isSelected
@@ -530,9 +530,9 @@ class _SettingsPageState extends State<SettingsPage> {
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.primary.withOpacity(0.3),
+            inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
             thumbColor: AppColors.primary,
-            overlayColor: AppColors.primary.withOpacity(0.2),
+            overlayColor: AppColors.primary.withValues(alpha: 0.2),
             trackHeight: 4.0,
           ),
           child: Slider(
@@ -551,7 +551,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
+        color: AppColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
