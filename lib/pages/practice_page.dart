@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:record/record.dart'; // 新增：record 套件
 
 import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
@@ -14,8 +15,7 @@ import 'dart:typed_data';
 import 'dart:math';
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:ffmpeg_kit_flutter_minimal/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_minimal/return_code.dart';
+
 
 class PracticePage extends StatefulWidget {
   final PlatformFile? file;
@@ -28,6 +28,8 @@ class PracticePage extends StatefulWidget {
 class _PracticePageState extends State<PracticePage> {
   FlutterSoundRecorder? _recorder; // 使用 flutter_sound 進行錄音
   FlutterSoundPlayer? _player; // 保留 flutter_sound 用於播放
+  final AudioRecorder _recordAlt = AudioRecorder(); // 新增：替代錄音器
+  bool _useAltRecorder = true; // 新增：預設啟用替代方案
   String? _audioPath;
   String? _midiPath; // 新增：儲存轉換後的 MIDI 檔案路徑
   bool isPlaying = false;
@@ -53,14 +55,51 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Future<void> _initAudio() async {
-    _recorder = FlutterSoundRecorder();
-    _player = FlutterSoundPlayer();
     try {
+      debugPrint('🔄 開始初始化音訊系統...');
+      
+      _recorder = FlutterSoundRecorder();
+      _player = FlutterSoundPlayer();
+      
+      // 先檢查麥克風權限
+      final micPermission = await Permission.microphone.status;
+      debugPrint('麥克風權限狀態: $micPermission');
+      
+      if (micPermission != PermissionStatus.granted) {
+        debugPrint('⚠️ 麥克風權限未授權，將在錄音時請求');
+      }
+      
+      // 初始化錄音器
+      debugPrint('初始化錄音器...');
       await _recorder!.openRecorder();
+      debugPrint('✅ 錄音器初始化成功');
+      
+      // 初始化播放器
+      debugPrint('初始化播放器...');
       await _player!.openPlayer();
-      debugPrint('音訊系統初始化成功');
-    } catch (e) {
-      debugPrint('音訊初始化失敗: $e');
+      debugPrint('✅ 播放器初始化成功');
+      
+      debugPrint('✅ 音訊系統初始化完成');
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ 音訊初始化失敗: $e');
+      debugPrint('堆疊追蹤: $stackTrace');
+      
+      // 嘗試重新初始化
+      try {
+        debugPrint('嘗試重新初始化...');
+        await Future.delayed(const Duration(milliseconds: 1000));
+        
+        _recorder = FlutterSoundRecorder();
+        _player = FlutterSoundPlayer();
+        
+        await _recorder!.openRecorder();
+        await _player!.openPlayer();
+        
+        debugPrint('✅ 重新初始化成功');
+      } catch (retryError) {
+        debugPrint('❌ 重新初始化也失敗: $retryError');
+      }
     }
   }
 
@@ -126,15 +165,70 @@ class _PracticePageState extends State<PracticePage> {
     }
   }
 
-  // ... 保留原有的錄音功能 ...
   Future<void> startRecording() async {
-    var micStatus = await Permission.microphone.request();
+    if (_useAltRecorder) {
+      debugPrint('🎤 (ALT) 使用 record 套件開始錄音');
+      if (!await _recordAlt.hasPermission()) {
+        final status = await Permission.microphone.request();
+        if (status != PermissionStatus.granted) {
+          debugPrint('❌ (ALT) 未授權麥克風');
+          return;
+        }
+      }
+      final dir = await getApplicationDocumentsDirectory();
+      final altPath = '${dir.path}/practice_record_alt.wav';
+      if (await File(altPath).exists()) await File(altPath).delete();
+      await _recordAlt.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+          bitRate: 256000,
+        ),
+        path: altPath,
+      );
+      setState(() {
+        isRecording = true;
+        _audioPath = altPath;
+        _recordingDurationSeconds = 0;
+      });
+      _recordingTimer?.cancel();
+      _recordingTimer = Timer.periodic(const Duration(seconds:1), (t){
+        if (!mounted) return;
+        if (!isRecording) { t.cancel(); return; }
+        setState(() { _recordingDurationSeconds++; });
+        debugPrint('🔴 (ALT) 錄音中... $_recordingDurationSeconds 秒');
+      });
+      return; // 不執行原 flutter_sound 流程
+    }
 
-    if (!mounted) return;
+    debugPrint('🎤 開始錄音程序...');
+    
+    if (!mounted) {
+      debugPrint('組件已銷毀，停止錄音');
+      return;
+    }
+
+    // 更強健的權限檢查
+    debugPrint('檢查麥克風權限...');
+    var micStatus = await Permission.microphone.status;
+    debugPrint('當前權限狀態: $micStatus');
+    
+    if (micStatus != PermissionStatus.granted) {
+      debugPrint('請求麥克風權限...');
+      micStatus = await Permission.microphone.request();
+      debugPrint('權限請求結果: $micStatus');
+    }
 
     if (micStatus != PermissionStatus.granted) {
+      debugPrint('❌ 麥克風權限被拒絕');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('未取得麥克風權限'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('需要麥克風權限才能錄音，請在設定中手動授權'), 
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
       );
       return;
     }
@@ -142,15 +236,32 @@ class _PracticePageState extends State<PracticePage> {
     try {
       // 確保錄音器處於正確狀態
       if (_recorder == null) {
-        debugPrint('錄音器未初始化');
-        return;
+        debugPrint('❌ 錄音器未初始化，嘗試重新初始化...');
+        await _initAudio();
+        if (_recorder == null) {
+          throw Exception('無法初始化錄音器');
+        }
+      }
+      
+      // 檢查錄音器是否正在錄音
+      bool isCurrentlyRecording = false;
+      try {
+        isCurrentlyRecording = _recorder!.isRecording;
+        debugPrint('錄音器當前狀態: 正在錄音=$isCurrentlyRecording');
+      } catch (e) {
+        debugPrint('無法獲取錄音器狀態: $e');
       }
       
       // 如果正在錄音，先停止
-      if (isRecording) {
+      if (isRecording || isCurrentlyRecording) {
         debugPrint('停止之前的錄音...');
-        await _recorder!.stopRecorder();
-        await Future.delayed(const Duration(milliseconds: 500));
+        try {
+          await _recorder!.stopRecorder();
+          debugPrint('✅ 之前的錄音已停止');
+        } catch (stopError) {
+          debugPrint('停止之前的錄音失敗: $stopError');
+        }
+        await Future.delayed(const Duration(milliseconds: 1000));
         setState(() { isRecording = false; });
       }
       
@@ -164,32 +275,35 @@ class _PracticePageState extends State<PracticePage> {
         debugPrint('刪除舊的 WAV 檔案');
       }
 
-      // 設定錄音參數和檔案路徑 - WAV 格式專門配置
+      // 設定錄音參數和檔案路徑 - 直接 WAV 格式
       final wavPath = '$basePath.wav';
       
-      debugPrint('準備開始 WAV 錄音...');
+      debugPrint('準備開始直接 WAV 錄音...');
       debugPrint('WAV 檔案路徑: $wavPath');
       
-      // � AAC→WAV 備用方案 - 使用可靠的 AAC 錄音後轉換
-      debugPrint('� 使用 AAC 錄音備用方案（WAV 直錄在此設備有問題）');
-      final aacPath = '${directory.path}/temp_record.aac';
+      // 直接使用 WAV 格式錄音（優化參數）
+      debugPrint('開始 WAV 錄音，參數:');
+      debugPrint('  檔案路徑: $wavPath');
+      debugPrint('  編解碼器: pcm16WAV');
+      debugPrint('  採樣率: 16000 Hz (降低以提高穩定性)');
+      debugPrint('  聲道數: 1');
+      debugPrint('  位元率: 256000 bps');
       
-      // 使用驗證過的 AAC 錄音配置
       await _recorder!.startRecorder(
-        toFile: aacPath,
-        codec: Codec.aacADTS,           // 已驗證正常的 AAC 格式
-        sampleRate: 16000,              // AI 模型需要的採樣率
+        toFile: wavPath,
+        codec: Codec.pcm16WAV,          // 直接錄製 WAV 格式
+        sampleRate: 16000,              // 降低採樣率提高穩定性
         numChannels: 1,                 // 單聲道
-        bitRate: 128000,                // AAC 標準 bitRate
+        bitRate: 256000,                // 16000 * 16 * 1 = 256000 bps
       );
       
-      // 設置狀態，記錄我們將轉換為 WAV
-      debugPrint('✅ AAC 錄音已啟動，錄音後將自動轉換為 WAV');
+      debugPrint('✅ WAV 錄音已啟動，直接錄製為 WAV 格式');
+      debugPrint('📝 錄音中，請對著麥克風說話...');
       
       setState(() {
         isRecording = true;
         _recordingDurationSeconds = 0;
-        _audioPath = null; // 錄音完成後設置
+        _audioPath = wavPath; // 立即設置預期的檔案路徑
         _midiPath = null;  // 清除之前的 MIDI 檔案
       });
       
@@ -200,117 +314,185 @@ class _PracticePageState extends State<PracticePage> {
           setState(() {
             _recordingDurationSeconds++;
           });
+          debugPrint('🔴 錄音中... $_recordingDurationSeconds秒');
+          
+          // 15秒後自動停止錄音（增加時間讓系統有足夠時間寫入數據）
+          if (_recordingDurationSeconds >= 15) {
+            debugPrint('📱 達到最大錄音時間，自動停止錄音');
+            stopRecording();
+          }
         } else {
           timer.cancel();
         }
       });
       
-      debugPrint('✅ WAV 錄音已開始 (flutter_sound PCM16 配置)');
-    } catch (e) {
-      debugPrint('錄音啟動失敗: $e');
+      debugPrint('✅ WAV 錄音已開始，計時器已啟動');
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ 錄音啟動失敗: $e');
+      debugPrint('堆疊追蹤: $stackTrace');
+      
+      // 重設狀態
+      setState(() {
+        isRecording = false;
+        _recordingDurationSeconds = 0;
+      });
+      _recordingTimer?.cancel();
+      
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('錄音啟動失敗: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('錄音啟動失敗: $e\n\n請確保：\n1. 已授權麥克風權限\n2. 沒有其他應用程式使用麥克風'), 
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+        ),
       );
     }
   }
 
   Future<void> stopRecording() async {
+    if (_useAltRecorder) {
+      debugPrint('🛑 (ALT) 停止 record 錄音');
+      final path = await _recordAlt.stop();
+      _recordingTimer?.cancel();
+      setState(() { isRecording = false; });
+      if (path != null) {
+        final f = File(path);
+        if (await f.exists()) {
+          final size = await f.length();
+          debugPrint('✅ (ALT) 錄音完成: $path 大小: $size bytes');
+          _audioPath = path;
+        }
+      }
+      return; // 不執行原 flutter_sound 停止流程
+    }
+    debugPrint('🛱 停止錄音程序...');
+    
     try {
-      if (_recorder == null || !isRecording) {
-        debugPrint('錄音器未在錄音狀態');
+      if (_recorder == null) {
+        debugPrint('❌ 錄音器為 null');
         setState(() { isRecording = false; });
         return;
       }
       
+      if (!isRecording) {
+        debugPrint('⚠️ 未在錄音狀態');
+        return;
+      }
+      
       debugPrint('正在停止 WAV 錄音...');
+      debugPrint('錄音時長: $_recordingDurationSeconds 秒');
+      
+      // 等待一段時間確保錄音數據寫入完成
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
       String? recordedPath = await _recorder!.stopRecorder();
+      debugPrint('錄音器返回的路徑: $recordedPath');
+      
+      // 停止後再等待一段時間確保檔案系統同步
+      await Future.delayed(const Duration(milliseconds: 1500));
       
       // 取消錄音計時器
       _recordingTimer?.cancel();
       _recordingTimer = null;
       
       setState(() { 
-        isRecording = false; 
-        _audioPath = recordedPath; // 直接設置檔案路徑
+        isRecording = false;
       });
       
-      debugPrint('✅ 錄音已停止，檔案路徑: $recordedPath');
+      debugPrint('✅ 錄音器已停止');
       
-      // 檢查是否為 AAC 檔案，需要轉換為 WAV
-      if (recordedPath != null && recordedPath.endsWith('.aac')) {
-        debugPrint('🔄 檢測到 AAC 檔案，開始轉換為 WAV...');
-        
-        try {
-          final aacFile = File(recordedPath);
-          final aacSize = await aacFile.length();
-          debugPrint('AAC 檔案大小: $aacSize bytes');
-          
-          if (aacSize > 1000) { // 確保 AAC 檔案有實際內容
-            final directory = await getApplicationDocumentsDirectory();
-            final wavPath = '${directory.path}/practice_record.wav';
-            
-            // 使用 AI 優化的 WAV 轉換
-            final wavFile = await _convertAACToWAV(aacFile, wavPath);
-            if (wavFile != null) {
-              setState(() {
-                _audioPath = wavFile.path;
-              });
-              debugPrint('✅ AAC→WAV 轉換成功: ${wavFile.path}');
-              
-              // 分析轉換後的 WAV 檔案
-              await _analyzeWAVFile(wavFile.path);
-            } else {
-              debugPrint('❌ AAC→WAV 轉換失敗');
-            }
-          } else {
-            debugPrint('❌ AAC 檔案太小，錄音可能失敗');
-          }
-        } catch (e) {
-          debugPrint('❌ AAC→WAV 轉換錯誤: $e');
-        }
-      } else if (recordedPath != null && recordedPath.endsWith('.wav')) {
-        // 如果是 WAV，進行分析
+      // 檢查錄製的 WAV 檔案
+      if (recordedPath != null && recordedPath.endsWith('.wav')) {
+        debugPrint('✅ 檢測到 WAV 檔案，直接進行分析');
         await _analyzeWAVFile(recordedPath);
+      } else if (recordedPath != null) {
+        debugPrint('⚠️ 錄製的檔案不是 WAV 格式: $recordedPath');
       }
       
-      // 檢查實際產生的檔案
-      final directory = await getApplicationDocumentsDirectory();
-      final basePath = directory.path;
+      // 優先檢查預期路徑
+      String? finalAudioPath;
       
-      // 檢查多種可能的檔案位置（優先 WAV 格式）
-      List<String> possiblePaths = [
-        '$basePath/practice_record.wav',
-        '${directory.path}/flutter_sound.wav',
-        '/data/user/0/com.example.music_practice_app/app_flutter/practice_record.wav',
-        '/data/user/0/com.example.music_practice_app/files/practice_record.wav',
-        '/data/user/0/com.example.music_practice_app/cache/practice_record.wav',
-        '$basePath/practice_record.aac',
-        '${directory.path}/flutter_sound.aac',
-        '/data/user/0/com.example.music_practice_app/app_flutter/practice_record.aac',
-        '/data/user/0/com.example.music_practice_app/files/practice_record.aac',
-        '/data/user/0/com.example.music_practice_app/cache/practice_record.aac',
-      ];
-      
-      // flutter_plugin_record 的檔案路徑會在回調中設置到 _audioPath
-      
-      // 如果我們設定了預期路徑，也加入檢查
-      if (_audioPath != null) {
-        possiblePaths.insert(0, _audioPath!);
-      }
-      
-      debugPrint('正在檢查可能的錄音檔案路徑：');
-      for (String path in possiblePaths) {
-        debugPrint('  檢查: $path');
-        final testFile = File(path);
-        if (await testFile.exists()) {
-          final size = await testFile.length();
-          debugPrint('  ✅ 找到檔案: $path (大小: $size bytes)');
-          _audioPath = path;
-          break;
-        } else {
-          debugPrint('  ❌ 檔案不存在: $path');
+      // 1. 先檢查錄音器返回的路徑
+      if (recordedPath != null) {
+        final recordedFile = File(recordedPath);
+        if (await recordedFile.exists()) {
+          final size = await recordedFile.length();
+          debugPrint('✅ 錄音器返回的檔案: $recordedPath (大小: $size bytes)');
+          if (size > 44) { // 不只是 WAV 標頭
+            finalAudioPath = recordedPath;
+          } else {
+            debugPrint('⚠️ 檔案太小，只有 WAV 標頭: $size bytes');
+          }
         }
+      }
+      
+      // 2. 檢查預期路徑
+      if (finalAudioPath == null && _audioPath != null) {
+        final expectedFile = File(_audioPath!);
+        if (await expectedFile.exists()) {
+          final size = await expectedFile.length();
+          debugPrint('✅ 預期路徑的檔案: $_audioPath (大小: $size bytes)');
+          if (size > 44) {
+            finalAudioPath = _audioPath;
+          }
+        }
+      }
+      
+      // 3. 搜索其他可能的位置
+      if (finalAudioPath == null) {
+        debugPrint('在預期位置未找到檔案，搜索其他位置...');
+        final directory = await getApplicationDocumentsDirectory();
+        
+        List<String> possiblePaths = [
+          '${directory.path}/practice_record.wav',
+          '${directory.path}/flutter_sound.wav',
+          '${directory.path}/temp_sound.wav',
+          '${directory.path}/recording.wav',
+        ];
+        
+        for (String path in possiblePaths) {
+          final testFile = File(path);
+          if (await testFile.exists()) {
+            final size = await testFile.length();
+            debugPrint('✅ 找到檔案: $path (大小: $size bytes)');
+            if (size > 44) {
+              finalAudioPath = path;
+              break;
+            }
+          }
+        }
+      }
+      
+      // 更新狀態和顯示結果
+      if (finalAudioPath != null) {
+        setState(() {
+          _audioPath = finalAudioPath;
+        });
+        
+        final audioFile = File(finalAudioPath);
+        final fileSize = await audioFile.length();
+        
+        debugPrint('✅ 錄音成功！');
+        debugPrint('  檔案路徑: $finalAudioPath');
+        debugPrint('  檔案大小: $fileSize bytes');
+        debugPrint('  錄音時長: $_recordingDurationSeconds 秒');
+        
+        // 驗證 WAV 檔案
+        await _analyzeWAVFile(finalAudioPath);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ 錄音成功！\n時長: $_recordingDurationSeconds 秒\n大小: ${(fileSize / 1024).toStringAsFixed(1)} KB'), 
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        debugPrint('❌ 未找到任何錄音檔案');
+        await _searchForRecordingFiles();
       }
       
       if (_audioPath != null) {
@@ -371,14 +553,25 @@ class _PracticePageState extends State<PracticePage> {
         debugPrint('⚠️ 沒有找到任何錄音檔案，開始搜索...');
         await _searchForRecordingFiles();
       }
-    } catch (e) {
-      debugPrint('停止錄音失敗: $e');
-      setState(() { isRecording = false; });
+    } catch (e, stackTrace) {
+      debugPrint('❌ 停止錄音失敗: $e');
+      debugPrint('堆疊追蹤: $stackTrace');
+      
+      // 重設狀態
+      setState(() { 
+        isRecording = false;
+        _recordingDurationSeconds = 0;
+      });
+      
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
+      
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('停止錄音失敗: $e'),
+          content: Text('停止錄音失敗: $e\n\n請嘗試重新錄音'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -461,6 +654,13 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Future<void> playRecording() async {
+    if (_useAltRecorder && _audioPath != null) {
+      final f = File(_audioPath!);
+      if (await f.exists()) {
+        final size = await f.length();
+        debugPrint('▶️ (ALT) 準備播放檔案: ${f.path} 大小: $size bytes');
+      }
+    }
     if (_audioPath == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -485,17 +685,16 @@ class _PracticePageState extends State<PracticePage> {
     }
     setState(() { isPlaying = true; });
     try {
-      // 根據檔案路徑判斷音訊格式
-      Codec playbackCodec;
-      if (_audioPath!.endsWith('.aac')) {
-        playbackCodec = Codec.aacADTS;
-      } else if (_audioPath!.endsWith('.wav')) {
+      // 優先使用 WAV 格式播放
+      Codec playbackCodec = Codec.pcm16WAV; // 預設使用 WAV
+      
+      if (_audioPath!.endsWith('.wav')) {
         playbackCodec = Codec.pcm16WAV;
-      } else {
-        playbackCodec = Codec.aacADTS; // 預設使用 AAC
+      } else if (_audioPath!.endsWith('.aac')) {
+        playbackCodec = Codec.aacADTS;
       }
       
-      debugPrint('使用播放編碼器: $playbackCodec');
+      debugPrint('使用播放編碼器: $playbackCodec，檔案: $_audioPath');
       
       await _player!.startPlayer(
         fromURI: _audioPath,
@@ -718,9 +917,28 @@ class _PracticePageState extends State<PracticePage> {
           allChunkNoteEvents.add(timeOffsetEvents);
           debugPrint('區塊 ${chunkIndex + 1} 完成：${timeOffsetEvents.length} 個音符事件');
           
-        } catch (e) {
-          debugPrint('區塊 ${chunkIndex + 1} 處理失敗: $e，跳過此區塊');
-          allChunkNoteEvents.add([]); // 添加空結果
+        } catch (e, stackTrace) {
+          debugPrint('❌ 區塊 ${chunkIndex + 1} AI 推論失敗: $e');
+          debugPrint('錯誤堆疊: $stackTrace');
+          
+          // AI 推論失敗，終止轉換並顯示錯誤
+          if (mounted) {
+            setState(() {
+              isConverting = false;
+              conversionProgress = 0.0;
+            });
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('AI 模型推論失敗\n錯誤: ${e.toString()}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+          
+          // 重新拋出錯誤,停止處理
+          throw Exception('AI 推論在區塊 ${chunkIndex + 1} 失敗: $e');
         }
         
         // 小延遲避免 UI 阻塞
@@ -899,8 +1117,8 @@ class _PracticePageState extends State<PracticePage> {
     for (int i = 0; i < fullAudio.length; i += chunkSize) {
       int endIndex = (i + chunkSize < fullAudio.length) ? i + chunkSize : fullAudio.length;
       
-      // 創建區塊
-      List<double> chunkData = fullAudio.sublist(i, endIndex);
+      // 創建可變列表 (避免 fixed-length list 錯誤)
+      List<double> chunkData = List<double>.from(fullAudio.sublist(i, endIndex));
       
       // 如果區塊小於標準大小，用零填充
       while (chunkData.length < chunkSize && i + chunkSize <= fullAudio.length + chunkSize) {
@@ -1011,7 +1229,7 @@ class _PracticePageState extends State<PracticePage> {
     return mergedNotes;
   }
 
-  // 生成完整的 MIDI 檔案（支援時間軸）
+  // 生成完整的 MIDI 檔案（支援時間軌）
   List<int> _generateFullMidiFromAI(List<Map<String, dynamic>> noteEvents, double totalDurationSec) {
     List<int> midiData = [];
     
@@ -1189,10 +1407,33 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('輸入張量類型: ${inputTensor.type}');
       
       // 準備輸入數據
-      List<List<double>> inputData;
+      dynamic inputData;
       
       // 根據模型的輸入形狀調整數據
-      if (inputTensor.shape.length == 2) {
+      if (inputTensor.shape.length == 1) {
+        // 一維輸入 [samples]
+        final expectedLength = inputTensor.shape[0];
+        List<double> processedAudio;
+        
+        debugPrint('模型期望輸入長度: $expectedLength, 實際音頻長度: ${audioData.length}');
+        
+        if (audioData.length > expectedLength) {
+          // 如果音頻太長，截取前面部分
+          processedAudio = audioData.sublist(0, expectedLength);
+          debugPrint('音頻太長，截取到 $expectedLength 樣本');
+        } else {
+          // 如果音頻太短，用零填充
+          processedAudio = List<double>.from(audioData);
+          while (processedAudio.length < expectedLength) {
+            processedAudio.add(0.0);
+          }
+          debugPrint('音頻太短，填充到 $expectedLength 樣本 (添加了 ${expectedLength - audioData.length} 個零)');
+        }
+        
+        inputData = processedAudio;
+        debugPrint('準備一維輸入數據: [$expectedLength]');
+        
+      } else if (inputTensor.shape.length == 2) {
         // 二維輸入 [batch_size, samples]
         final expectedLength = inputTensor.shape[1];
         List<double> processedAudio;
@@ -1281,39 +1522,13 @@ class _PracticePageState extends State<PracticePage> {
       
       return outputData;
       
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ AI 推論失敗: $e');
-      debugPrint('錯誤堆疊: ${StackTrace.current}');
+      debugPrint('錯誤堆疊: $stackTrace');
       
-      // 失敗時返回模擬數據，但要標記為模擬
-      debugPrint('⚠️ 使用模擬數據作為後備方案');
-      return _generateMockAIOutput();
+      // 直接拋出錯誤,不使用假數據
+      rethrow;
     }
-  }
-
-  // 生成模擬 AI 輸出（當 AI 推論失敗時）
-  List<List<double>> _generateMockAIOutput() {
-    debugPrint('⚠️ AI 推論失敗，使用模擬輸出');
-    
-    // 模擬 88 個鋼琴鍵的 onset 和 frame 概率
-    final random = Random();
-    List<double> onsets = List.generate(88, (i) {
-      // 在中間音域 (C4-C6) 添加一些活動
-      if (i >= 39 && i <= 63) {  // C4 到 C6
-        return random.nextDouble() * 0.3; // 低概率
-      }
-      return 0.0;
-    });
-    
-    List<double> frames = List.generate(88, (i) {
-      // 與 onsets 相關的 frame 活動
-      if (onsets[i] > 0.1) {
-        return onsets[i] * 1.5;
-      }
-      return 0.0;
-    });
-    
-    return [onsets, frames];
   }
 
   // 解析 AI 輸出為音符事件 - 動態處理不同的輸出格式
@@ -1595,6 +1810,7 @@ class _PracticePageState extends State<PracticePage> {
         analysis += '• 音符數量: $noteCount\n';
         
         // 檢查音域
+
         List<int> noteRange = _analyzeNoteRange(bytes);
         if (noteRange.isNotEmpty) {
           analysis += '• 音域: ${_noteToString(noteRange[0])} - ${_noteToString(noteRange[1])}\n';
@@ -1913,144 +2129,7 @@ class _PracticePageState extends State<PracticePage> {
       ),
     );
   }
-  
-  // � AAC→WAV 轉換方法（針對 AI 模型優化）
-  Future<File?> _convertAACToWAV(File aacFile, String wavPath) async {
-    // 只使用 FFmpeg 進行真實轉換，不使用備用方案
-    debugPrint('🔥 強制使用 FFmpeg 進行真實 AAC→WAV 轉換（禁用備用模式）');
-    final ffmpegResult = await _convertAACToWAVWithFFmpeg(aacFile, wavPath);
-    
-    if (ffmpegResult != null) {
-      debugPrint('✅ FFmpeg 真實轉換成功');
-      return ffmpegResult;
-    }
-    
-    // 如果 FFmpeg 失敗，直接拋出異常，不使用備用方法
-    debugPrint('❌ FFmpeg 轉換失敗，不使用備用方案');
-    throw Exception('FFmpeg AAC→WAV 轉換失敗。請檢查：\n1. AAC 檔案是否有效\n2. FFmpeg 插件是否正確安裝\n3. 設備權限是否充足');
-  }
-  
-  // FFmpeg AAC→WAV 轉換方法（強化版）
-  Future<File?> _convertAACToWAVWithFFmpeg(File aacFile, String wavPath) async {
-    try {
-      debugPrint('� 開始強化版 FFmpeg AAC→WAV 轉換...');
-      debugPrint('輸入 AAC: ${aacFile.path}');
-      debugPrint('輸出 WAV: $wavPath');
-      
-      // 檢查 AAC 檔案是否存在和有效性
-      if (!await aacFile.exists()) {
-        debugPrint('❌ AAC 檔案不存在: ${aacFile.path}');
-        throw Exception('AAC 檔案不存在');
-      }
-      
-      final aacBytes = await aacFile.readAsBytes();
-      debugPrint('AAC 原始大小: ${aacBytes.length} bytes');
-      
-      if (aacBytes.length < 1000) {
-        debugPrint('⚠️ AAC 檔案可能太小或損壞');
-        throw Exception('AAC 檔案太小或無效');
-      }
-      
-      // 檢查 AAC 檔案魔數（ADTS 或 MP4 容器）
-      final header = aacBytes.take(8).toList();
-      debugPrint('AAC 檔案頭: ${header.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}');
-      
-      // 確保目標目錄存在
-      final wavFile = File(wavPath);
-      final wavDir = wavFile.parent;
-      if (!await wavDir.exists()) {
-        await wavDir.create(recursive: true);
-        debugPrint('創建目標目錄: ${wavDir.path}');
-      }
-      
-      // 刪除舊的 WAV 檔案（如果存在）
-      if (await wavFile.exists()) {
-        await wavFile.delete();
-        debugPrint('刪除舊的 WAV 檔案');
-      }
-      
-      // 使用更完整的 FFmpeg 命令，加入錯誤診斷
-      // -y: 覆蓋輸出檔案 
-      // -hide_banner: 減少輸出
-      // -loglevel info: 顯示詳細信息
-      final ffmpegCommand = '-y -loglevel info -i "${aacFile.path}" -ar 16000 -ac 1 -sample_fmt s16 -acodec pcm_s16le "${wavPath}"';
-      
-      debugPrint('執行 FFmpeg 命令: ffmpeg $ffmpegCommand');
-      
-      // 執行 FFmpeg 轉換
-      final session = await FFmpegKit.execute(ffmpegCommand);
-      final returnCode = await session.getReturnCode();
-      
-      debugPrint('FFmpeg 返回碼: ${returnCode?.getValue()}');
-      
-      // 獲取所有日誌以便調試
-      final logs = await session.getLogs();
-      debugPrint('FFmpeg 日誌條數: ${logs.length}');
-      
-      // 顯示詳細的 FFmpeg 輸出
-      for (final log in logs) {
-        final message = log.getMessage();
-        debugPrint('FFmpeg: $message');
-      }
-      
-      // 檢查轉換是否成功
-      if (ReturnCode.isSuccess(returnCode)) {
-        // 檢查輸出檔案是否存在且有內容
-        if (await wavFile.exists()) {
-          final wavSize = await wavFile.length();
-          debugPrint('🎉 FFmpeg AAC→WAV 轉換成功！');
-          debugPrint('WAV 檔案大小: $wavSize bytes');
-          
-          // 驗證是否為有效的 WAV 檔案（至少有標頭）
-          if (wavSize > 44) {
-            debugPrint('✅ WAV 檔案包含音頻數據，可用於 AI 處理');
-            
-            // 簡單驗證 WAV 格式
-            final wavBytes = await wavFile.readAsBytes();
-            final riffHeader = String.fromCharCodes(wavBytes.take(4));
-            final waveHeader = String.fromCharCodes(wavBytes.skip(8).take(4));
-            
-            if (riffHeader == 'RIFF' && waveHeader == 'WAVE') {
-              debugPrint('✅ WAV 檔案格式驗證通過');
-              return wavFile;
-            } else {
-              debugPrint('❌ WAV 檔案格式無效');
-              throw Exception('生成的 WAV 檔案格式無效');
-            }
-          } else {
-            debugPrint('❌ WAV 檔案太小，只包含標頭');
-            throw Exception('FFmpeg 轉換產生空的音頻數據');
-          }
-        } else {
-          debugPrint('❌ FFmpeg 轉換完成但未找到輸出檔案');
-          throw Exception('FFmpeg 轉換後未找到輸出檔案');
-        }
-      } else {
-        // 轉換失敗，拋出詳細錯誤
-        final errorLogs = <String>[];
-        final logs = await session.getLogs();
-        for (final log in logs) {
-          final message = log.getMessage();
-          if (message.toLowerCase().contains('error') || 
-              message.toLowerCase().contains('failed') ||
-              message.toLowerCase().contains('invalid')) {
-            errorLogs.add(message);
-          }
-        }
-        
-        debugPrint('❌ FFmpeg 轉換失敗，返回碼: ${returnCode?.getValue()}');
-        final errorDetail = errorLogs.isNotEmpty 
-            ? '\n錯誤詳情: ${errorLogs.join('\n')}'
-            : '';
-        
-        throw Exception('FFmpeg 轉換失敗 (返回碼: ${returnCode?.getValue()})$errorDetail');
-      }
-      
-    } catch (e) {
-      debugPrint('❌ FFmpeg AAC→WAV 轉換異常: $e');
-      rethrow; // 重新拋出異常，不要返回 null
-    }
-  }
+
   
 
   
