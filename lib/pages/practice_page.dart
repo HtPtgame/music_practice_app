@@ -1492,35 +1492,90 @@ class _PracticePageState extends State<PracticePage> {
         throw Exception('不支援的輸入張量維度: ${inputTensor.shape.length}');
       }
       
-      // 準備輸出緩衝區
-      List<List<double>> outputData = [];
+      // 準備輸出緩衝區 - 根據張量形狀創建正確的結構
+      Map<int, dynamic> outputBuffers = {};
+      
       for (int i = 0; i < outputTensors.length; i++) {
         final outputTensor = outputTensors[i];
-        final outputSize = outputTensor.shape.reduce((a, b) => a * b);
-        outputData.add(List<double>.filled(outputSize, 0.0));
-        debugPrint('輸出張量 $i 形狀: ${outputTensor.shape}, 大小: $outputSize');
+        final shape = outputTensor.shape;
+        debugPrint('輸出張量 $i 形狀: $shape');
+        
+        // 根據維度創建對應結構
+        if (shape.length == 3) {
+          // 三維輸出 [batch, time, features]
+          final batch = shape[0];
+          final time = shape[1];
+          final features = shape[2];
+          
+          outputBuffers[i] = List.generate(
+            batch,
+            (_) => List.generate(
+              time,
+              (_) => List<double>.filled(features, 0.0)
+            )
+          );
+          debugPrint('  創建三維輸出: [$batch, $time, $features]');
+          
+        } else if (shape.length == 2) {
+          // 二維輸出 [batch, features]
+          final batch = shape[0];
+          final features = shape[1];
+          outputBuffers[i] = List.generate(
+            batch,
+            (_) => List<double>.filled(features, 0.0)
+          );
+          debugPrint('  創建二維輸出: [$batch, $features]');
+          
+        } else if (shape.length == 1) {
+          // 一維輸出
+          outputBuffers[i] = List<double>.filled(shape[0], 0.0);
+          debugPrint('  創建一維輸出: [${shape[0]}]');
+        }
       }
       
       // 執行推論
       debugPrint('🧠 執行 AI 模型推論...');
-      _interpreter!.runForMultipleInputs([inputData], {
-        for (int i = 0; i < outputData.length; i++) i: outputData[i]
-      });
+      _interpreter!.runForMultipleInputs([inputData], outputBuffers as Map<int, Object>);
       
-      debugPrint('✅ AI 推論完成，輸出 ${outputData.length} 個張量');
-      for (int i = 0; i < outputData.length; i++) {
-        debugPrint('  輸出 $i: ${outputData[i].length} 個值');
+      debugPrint('✅ AI 推論完成，輸出 ${outputBuffers.length} 個張量');
+      
+      // 將三維輸出展平為二維 [time, features]
+      List<List<double>> flattenedOutputs = [];
+      
+      for (int i = 0; i < outputBuffers.length; i++) {
+        final output = outputBuffers[i];
         
-        // 顯示一些統計信息
-        if (outputData[i].isNotEmpty) {
-          final max = outputData[i].reduce((a, b) => a > b ? a : b);
-          final min = outputData[i].reduce((a, b) => a < b ? a : b);
-          final avg = outputData[i].reduce((a, b) => a + b) / outputData[i].length;
+        if (output is List<List<List<double>>>) {
+          // 三維: [batch, time, features] -> [time, features]
+          if (output.isNotEmpty) {
+            flattenedOutputs.add(
+              output[0].expand((timeStep) => timeStep).toList()
+            );
+            debugPrint('  輸出 $i: 三維 -> 一維 [${flattenedOutputs.last.length}]');
+          }
+        } else if (output is List<List<double>>) {
+          // 二維: [batch, features] -> [features]
+          if (output.isNotEmpty) {
+            flattenedOutputs.add(output[0]);
+            debugPrint('  輸出 $i: 二維 -> 一維 [${flattenedOutputs.last.length}]');
+          }
+        } else if (output is List<double>) {
+          // 一維: 直接使用
+          flattenedOutputs.add(output);
+          debugPrint('  輸出 $i: 一維 [${output.length}]');
+        }
+        
+        // 顯示統計資訊
+        if (flattenedOutputs.isNotEmpty && flattenedOutputs.last.isNotEmpty) {
+          final values = flattenedOutputs.last;
+          final max = values.reduce((a, b) => a > b ? a : b);
+          final min = values.reduce((a, b) => a < b ? a : b);
+          final avg = values.reduce((a, b) => a + b) / values.length;
           debugPrint('    統計: min=$min, max=$max, avg=${avg.toStringAsFixed(4)}');
         }
       }
       
-      return outputData;
+      return flattenedOutputs;
       
     } catch (e, stackTrace) {
       debugPrint('❌ AI 推論失敗: $e');
