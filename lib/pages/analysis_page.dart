@@ -9,7 +9,7 @@ class AnalysisPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(title: const Text('演奏分析報告', style: TextStyle(fontWeight: FontWeight.bold)), automaticallyImplyLeading: false),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -21,9 +21,9 @@ class AnalysisPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    const Text('本次得分', style: TextStyle(fontSize: 20, color: AppColors.textLight)),
+                    Text('本次得分', style: TextStyle(fontSize: 20, color: AppColors.dynamicTextLight)),
                     const SizedBox(height: 8),
-                    const Text('95', style: TextStyle(fontSize: 80, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    Text('95', style: TextStyle(fontSize: 80, fontWeight: FontWeight.bold, color: AppColors.dynamicPrimary)),
                     const SizedBox(height: 8),
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(5, (index) => Icon(index < 4 ? Icons.star : Icons.star_border, color: Colors.amber, size: 32))),
                   ],
@@ -44,10 +44,10 @@ class AnalysisPage extends StatelessWidget {
                     onPressed: () => context.go('/'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: AppColors.primary),
+                      side:  BorderSide(color: AppColors.dynamicPrimary),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
-                    child: const Text('返回首頁', style: TextStyle(fontSize: 16, color: AppColors.primary)),
+                    child:  Text('返回首頁', style: TextStyle(fontSize: 16, color: AppColors.dynamicPrimary)),
                   ),
                 ),
                 const SizedBox(width: 16),

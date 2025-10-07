@@ -1,5 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
+// 樂譜目錄數據模型
+class MusicSheet {
+  final String name;
+  final List<String> notes;
+  final DateTime createdAt;
+
+  MusicSheet({
+    required this.name,
+    required this.notes,
+    required this.createdAt,
+  });
+
+  // 轉換為 JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'notes': notes,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+    };
+  }
+
+  // 從 JSON 創建 MusicSheet
+  factory MusicSheet.fromJson(Map<String, dynamic> json) {
+    return MusicSheet(
+      name: json['name'] as String,
+      notes: List<String>.from(json['notes'] as List),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int),
+    );
+  }
+}
 
 class NotePage extends StatefulWidget {
   const NotePage({super.key});
@@ -9,178 +43,326 @@ class NotePage extends StatefulWidget {
 }
 
 class _NotePageState extends State<NotePage> {
-  final TextEditingController _noteController = TextEditingController();
-  final List<String> _notes = [];
+  final List<MusicSheet> _musicSheets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMusicSheets();
+  }
 
   @override
   void dispose() {
-    _noteController.dispose();
     super.dispose();
   }
 
-  void _addNote() {
-    if (_noteController.text.isNotEmpty) {
+  // 載入樂譜目錄
+  Future<void> _loadMusicSheets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? musicSheetsJson = prefs.getString('music_sheets');
+      
+      if (musicSheetsJson != null && musicSheetsJson.isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(musicSheetsJson);
+        setState(() {
+          _musicSheets.clear();
+          _musicSheets.addAll(
+            jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
+          );
+        });
+        print('成功載入 ${_musicSheets.length} 個樂譜目錄');
+      } else {
+        print('沒有找到已儲存的樂譜目錄');
+      }
+    } catch (e) {
+      print('載入樂譜目錄時發生錯誤: $e');
+      // 如果載入失敗，確保列表是空的
       setState(() {
-        _notes.add(_noteController.text);
-        _noteController.clear();
+        _musicSheets.clear();
       });
     }
   }
 
-  void _deleteNote(int index) {
-    setState(() {
-      _notes.removeAt(index);
-    });
+  // 儲存樂譜目錄
+  Future<void> _saveMusicSheets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(
+        _musicSheets.map((sheet) => sheet.toJson()).toList(),
+      );
+      await prefs.setString('music_sheets', jsonString);
+      print('成功儲存 ${_musicSheets.length} 個樂譜目錄');
+    } catch (e) {
+      print('儲存樂譜目錄時發生錯誤: $e');
+    }
+  }
+
+  void _showAddMusicSheetDialog() {
+    final TextEditingController nameController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            '新增樂譜目錄',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.dynamicTextDark,
+            ),
+          ),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              labelText: '樂譜名稱',
+              labelStyle: TextStyle(color: AppColors.dynamicTextLight),
+              hintText: '例如：Beethoven op.53、Mozart K.545',
+              hintStyle: TextStyle(color: AppColors.dynamicTextLight),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: AppColors.dynamicPrimary),
+              ),
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: AppColors.dynamicTextLight),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isNotEmpty) {
+                  setState(() {
+                    _musicSheets.add(MusicSheet(
+                      name: nameController.text,
+                      notes: [],
+                      createdAt: DateTime.now(),
+                    ));
+                  });
+                  await _saveMusicSheets();
+                  Navigator.of(context).pop();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.dynamicPrimary,
+              ),
+              child: const Text(
+                '新增',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteMusicSheet(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('確認刪除'),
+          content: Text('確定要刪除「${_musicSheets[index].name}」及其所有筆記嗎？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () async {
+                setState(() {
+                  _musicSheets.removeAt(index);
+                });
+                await _saveMusicSheets();
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                '刪除',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openMusicSheetDetail(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MusicSheetDetailPage(
+          sheetName: _musicSheets[index].name,
+          initialNotes: _musicSheets[index].notes,
+          onNotesChanged: (updatedNotes) async {
+            setState(() {
+              _musicSheets[index].notes.clear();
+              _musicSheets[index].notes.addAll(updatedNotes);
+            });
+            await _saveMusicSheets();
+          },
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: const Text(
-          '練習筆記',
+        title: Text(
+          '樂譜目錄',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
+            color: AppColors.dynamicTextDark,
           ),
         ),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.dynamicBackground,
         elevation: 0,
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // 新增筆記區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '新增練習筆記',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      ),
+      body: _buildMusicSheetsTab(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddMusicSheetDialog,
+        backgroundColor: AppColors.dynamicPrimary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildMusicSheetsTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: _musicSheets.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.library_music_outlined,
+                    size: 80,
+                    color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '還沒有任何樂譜目錄',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.dynamicTextLight.withValues(alpha: 0.7),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _noteController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: '記錄您的練習心得、技巧要點或需要改進的地方...',
-                        hintStyle: const TextStyle(color: AppColors.textLight),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.textLight),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.primary),
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '點擊右下角的 + 按鈕新增樂譜',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _addNote,
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        label: const Text(
-                          '新增筆記',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // 筆記列表
-            Expanded(
-              child: _notes.isEmpty
-                  ? Center(
+            )
+          : GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2,
+              ),
+              itemCount: _musicSheets.length,
+              itemBuilder: (context, index) {
+                final sheet = _musicSheets[index];
+                return Card(
+                  color: AppColors.dynamicCard,
+                  elevation: 2,
+                  child: InkWell(
+                    onTap: () => _openMusicSheetDetail(index),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.note_add_outlined,
-                            size: 80,
-                            color: AppColors.textLight.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '還沒有任何練習筆記',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: AppColors.textLight.withValues(alpha: 0.7),
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Icon(
+                                Icons.music_note,
+                                color: AppColors.dynamicPrimary,
+                                size: 24,
+                              ),
+                              PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'delete') {
+                                    _deleteMusicSheet(index);
+                                  }
+                                },
+                                itemBuilder: (BuildContext context) => [
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text('刪除'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            '開始記錄您的音樂練習心得吧！',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textLight.withValues(alpha: 0.5),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  sheet.name,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.dynamicTextDark,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${sheet.notes.length} 條筆記',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.dynamicTextLight.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${sheet.createdAt.month}/${sheet.createdAt.day}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.dynamicTextLight.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: _notes.length,
-                      itemBuilder: (context, index) {
-                        return Card(
-                          color: AppColors.card,
-                          elevation: 1,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              _notes[index],
-                              style: const TextStyle(
-                                color: AppColors.textDark,
-                                fontSize: 16,
-                              ),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red),
-                              onPressed: () => _deleteNote(index),
-                            ),
-                          ),
-                        );
-                      },
                     ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
     );
   }
 }

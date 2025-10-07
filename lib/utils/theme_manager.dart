@@ -1,0 +1,84 @@
+// lib/utils/theme_manager.dart
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ThemeManager extends ChangeNotifier {
+  static ThemeManager? _instance;
+  static ThemeManager get instance => _instance ??= ThemeManager._();
+  ThemeManager._();
+
+  String _currentTheme = 'default';
+  String get currentTheme => _currentTheme;
+
+  // 主題配置
+  static const Map<String, Map<String, Color>> themes = {
+    'default': {
+      'primary': Color(0xFFCFAB8D),  // 柔和的淺藍
+      'background': Color(0xFFBBDCE5), // 接近白色的淺灰綠
+      'card': Color(0xFFF0F8FF),     // 淺米色/灰褐色
+      'accent': Color(0xFFECEEDF),   // 柔和的土色/淺棕色
+      'textDark': Color(0xFF333333),
+      'textLight': Color(0xFF888888),
+    },
+    'ocean': {
+      'primary': Color(0xFF7FADCC),    // 中度藍 (按鈕/主要操作)
+      'background': Color(0xFFE6F3FF), // ✨ 極淺藍色 (背景藍調強化)
+      'card': Color(0xFFDDE8F4),      // ✨ 柔和淺藍 (卡片背景)
+      'accent': Color(0xFFF2745E),    // 珊瑚橙 (強調/點綴，對比強烈)
+      'textDark': Color(0xFF1C3C5B),   // 深海藍 (主要文字)
+      'textLight': Color(0xFF6A8BAA),  // 中度灰藍 (次要文字)
+    },
+    'forest': {
+      'primary': Color(0xFF708F6B),    // 沉穩橄欖綠 (按鈕/主要操作)
+      'background': Color(0xFFF0FFF0), // 極淺綠色 (背景)
+      'card': Color(0xFFD4EAD9),      // ✨ 柔和淺綠 (卡片背景：加深以增加層次)
+      'accent': Color(0xFFA3C9A8),    // 清新薄荷綠 (強調/點綴)
+      'textDark': Color(0xFF2C3E2D),   // 深墨綠色 (主要文字/森林陰影感)
+      'textLight': Color(0xFF708F6B),  // 沉穩橄欖綠 (次要文字)
+    },
+    'sunset': {
+      'primary': Color(0xFFFFA866),    // 火焰橘 (高飽和按鈕)
+      'background': Color(0xFFFFF1E0), // 極淺米黃 (背景)
+      'card': Color(0xFFFFDCA6),      // 柔和金黃 (卡片背景)
+      'accent': Color(0xFF99BC85),    // 柔和中度綠 (強調/點綴)
+      'textDark': Color(0xFF593C37),   // 深暖棕色 (主要文字/陰影感)
+      'textLight': Color(0xFFA37D5D),  // 中度灰棕 (次要文字)
+    },
+    'lavender': {
+      'primary': Color(0xFFB291C7),    // ✨ 最終調整後的按鈕色：柔和的紫羅蘭
+      'background': Color(0xFFF8F5FF), // 極淺紫羅蘭 (背景)
+      'card': Color(0xFFE8E0F5),      // 柔和淺紫羅蘭 (卡片背景)
+      'accent': Color(0xFF9B59B6),    // 舊 Primary 色轉為強調色
+      'textDark': Color(0xFF333333),   // 標準深色文字
+      'textLight': Color(0xFFA295C0),  // 次要文字
+    },
+  };
+
+  // 初始化主題
+  Future<void> initTheme() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _currentTheme = prefs.getString('selected_theme') ?? 'default';
+    } catch (e) {
+      print('載入主題設定時發生錯誤: $e');
+      _currentTheme = 'default';
+    }
+  }
+
+  // 更改主題
+  Future<void> setTheme(String themeName) async {
+    if (themes.containsKey(themeName)) {
+      _currentTheme = themeName;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('selected_theme', themeName);
+        notifyListeners(); // 通知監聽器主題已更改
+      } catch (e) {
+        print('保存主題設定時發生錯誤: $e');
+      }
+    }
+  }
+
+  // 獲取當前主題顏色
+  Map<String, Color> get currentColors => themes[_currentTheme] ?? themes['default']!;
+}

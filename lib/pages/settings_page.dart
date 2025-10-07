@@ -1,6 +1,7 @@
 // lib/pages/settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/utils/theme_manager.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -55,16 +56,16 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: const Text(
           '設定',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.dynamicBackground,
         elevation: 0,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,17 +89,17 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: AppColors.textDark,
+        color: AppColors.dynamicTextDark,
       ),
     );
   }
 
   Widget _buildLanguageCard() {
     return Card(
-      color: AppColors.card,
+      color: AppColors.dynamicCard,
       elevation: 1.5,
       shadowColor: const Color(0x196A5AE0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -112,12 +113,12 @@ class _SettingsPageState extends State<SettingsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.language,
-                  color: AppColors.primary,
+                  color: AppColors.dynamicPrimary,
                   size: 24,
                 ),
               ),
@@ -126,28 +127,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '語言',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: AppColors.dynamicTextDark,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _languageDescriptions[_selectedLanguage] ?? '繁體中文（台灣）',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
-                color: AppColors.textLight,
+                color: AppColors.dynamicTextLight,
                 size: 16,
               ),
             ],
@@ -165,6 +166,13 @@ class _SettingsPageState extends State<SettingsPage> {
           title: '通知設定',
           subtitle: '管理應用程式通知',
           onTap: () => _showFeatureNotAvailable('通知設定'),
+        ),
+        const SizedBox(height: 12),
+        _buildSettingCard(
+          icon: Icons.palette,
+          title: '主題設定',
+          subtitle: '選擇應用程式主題顏色',
+          onTap: () => _showThemeDialog(),
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
@@ -193,7 +201,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required VoidCallback onTap,
   }) {
     return Card(
-      color: AppColors.card,
+      color: AppColors.dynamicCard,
       elevation: 1.5,
       shadowColor: const Color(0x196A5AE0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -207,12 +215,12 @@ class _SettingsPageState extends State<SettingsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.primary,
+                  color: AppColors.dynamicPrimary,
                   size: 24,
                 ),
               ),
@@ -223,26 +231,26 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: AppColors.dynamicTextDark,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
-                color: AppColors.textLight,
+                color: AppColors.dynamicTextLight,
                 size: 16,
               ),
             ],
@@ -257,7 +265,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: AppColors.card,
+          backgroundColor: AppColors.dynamicCard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -267,20 +275,20 @@ class _SettingsPageState extends State<SettingsPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '選擇語言',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                    color: AppColors.dynamicTextDark,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '請注意：所有語言選項都將顯示繁體中文介面',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textLight,
+                    color: AppColors.dynamicTextLight,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -300,7 +308,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           languageName,
                           style: TextStyle(
                             fontSize: 16,
-                            color: isSelected ? AppColors.primary : AppColors.textDark,
+                            color: isSelected ? AppColors.dynamicPrimary : AppColors.dynamicTextDark,
                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
@@ -308,24 +316,46 @@ class _SettingsPageState extends State<SettingsPage> {
                           _languageDescriptions[languageCode] ?? '',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isSelected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textLight,
+                            color: isSelected ? AppColors.dynamicPrimary.withValues(alpha: 0.7) : AppColors.dynamicTextLight,
                           ),
                         ),
                         trailing: isSelected
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_circle,
-                                color: AppColors.primary,
+                                color: AppColors.dynamicPrimary,
                                 size: 20,
                               )
                             : null,
-                        onTap: () {
-                          setState(() {
-                            _selectedLanguage = languageCode;
-                          });
-                          Navigator.of(context).pop();
-                          
-                          // 使用防重複顯示的方法
-                          _showSuccessMessage('已切換至 $languageName');
+                        onTap: () async {
+                          try {
+                            // 先關閉對話框
+                            if (Navigator.canPop(context)) {
+                              Navigator.of(context).pop();
+                            }
+                            
+                            // 等待對話框關閉完成
+                            await Future.delayed(const Duration(milliseconds: 100));
+                            
+                            if (mounted) {
+                              setState(() {
+                                _selectedLanguage = languageCode;
+                              });
+                              
+                              // 等待 setState 完成
+                              await Future.delayed(const Duration(milliseconds: 50));
+                              
+                              if (mounted) {
+                                _showSuccessMessage('已切換至 $languageName');
+                              }
+                            }
+                          } catch (e) {
+                            // 錯誤處理：至少設定語言
+                            if (mounted) {
+                              setState(() {
+                                _selectedLanguage = languageCode;
+                              });
+                            }
+                          }
                         },
                       );
                     },
@@ -337,9 +367,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text(
+                      child: Text(
                         '關閉',
-                        style: TextStyle(color: AppColors.textLight),
+                        style: TextStyle(color: AppColors.dynamicTextLight),
                       ),
                     ),
                   ],
@@ -359,7 +389,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              backgroundColor: AppColors.card,
+              backgroundColor: AppColors.dynamicCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -369,12 +399,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '音效設定',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                        color: AppColors.dynamicTextDark,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -461,28 +491,37 @@ class _SettingsPageState extends State<SettingsPage> {
                             });
                             setState(() {}); // 更新主頁面
                           },
-                          child: const Text(
+                          child: Text(
                             '重置',
-                            style: TextStyle(color: AppColors.textLight),
+                            style: TextStyle(color: AppColors.dynamicTextLight),
                           ),
                         ),
                         Row(
                           children: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
-                              child: const Text(
+                              child: Text(
                                 '取消',
-                                style: TextStyle(color: AppColors.textLight),
+                                style: TextStyle(color: AppColors.dynamicTextLight),
                               ),
                             ),
                             const SizedBox(width: 8),
                             ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                                _showSuccessMessage('音效設定已儲存');
+                              onPressed: () async {
+                                try {
+                                  if (Navigator.canPop(context)) {
+                                    Navigator.of(context).pop();
+                                  }
+                                  await Future.delayed(const Duration(milliseconds: 100));
+                                  if (mounted) {
+                                    _showSuccessMessage('音效設定已儲存');
+                                  }
+                                } catch (e) {
+                                  // 錯誤處理
+                                }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: AppColors.dynamicPrimary,
                                 foregroundColor: Colors.white,
                               ),
                               child: const Text('確定'),
@@ -510,17 +549,17 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
+                color: AppColors.dynamicTextDark,
               ),
             ),
             Text(
               '${(value * 100).round()}%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.primary,
+                color: AppColors.dynamicPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -529,10 +568,10 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 8),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
-            thumbColor: AppColors.primary,
-            overlayColor: AppColors.primary.withValues(alpha: 0.2),
+            activeTrackColor: AppColors.dynamicPrimary,
+            inactiveTrackColor: AppColors.dynamicPrimary.withValues(alpha: 0.3),
+            thumbColor: AppColors.dynamicPrimary,
+            overlayColor: AppColors.dynamicPrimary.withValues(alpha: 0.2),
             trackHeight: 4.0,
           ),
           child: Slider(
@@ -551,14 +590,14 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.05),
+        color: AppColors.dynamicPrimary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(
             icon,
-            color: AppColors.primary,
+            color: AppColors.dynamicPrimary,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -568,17 +607,17 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
+                    color: AppColors.dynamicTextDark,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textLight,
+                    color: AppColors.dynamicTextLight,
                   ),
                 ),
               ],
@@ -587,10 +626,90 @@ class _SettingsPageState extends State<SettingsPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.dynamicPrimary,
           ),
         ],
       ),
+    );
+  }
+
+  void _showThemeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.dynamicCard,
+          title: Text(
+            '選擇主題',
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildThemeOption('預設', 'default', const Color(0xFFD8AE7E)),
+              _buildThemeOption('海洋', 'ocean', const Color(0xFF4A90E2)),
+              _buildThemeOption('森林', 'forest', const Color(0xFF5CB85C)),
+              _buildThemeOption('夕陽', 'sunset', const Color(0xFFFF8C42)),
+              _buildThemeOption('薰衣草', 'lavender', const Color(0xFF9B59B6)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                '關閉',
+                style: TextStyle(color: AppColors.dynamicPrimary),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeOption(String name, String themeKey, Color color) {
+    final isSelected = ThemeManager.instance.currentTheme == themeKey;
+    return ListTile(
+      leading: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+      ),
+      title: Text(name),
+      trailing: isSelected ? Icon(Icons.check, color: AppColors.dynamicPrimary) : null,
+      onTap: () async {
+        try {
+          // 先關閉對話框，避免 context 問題
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
+          
+          // 等待一小段時間確保對話框完全關閉
+          await Future.delayed(const Duration(milliseconds: 100));
+          
+          // 然後切換主題
+          await ThemeManager.instance.setTheme(themeKey);
+          
+          // 最後刷新頁面並顯示成功訊息
+          if (mounted) {
+            setState(() {});
+            // 再等待一小段時間確保 setState 完成
+            await Future.delayed(const Duration(milliseconds: 50));
+            if (mounted) {
+              _showSuccessMessage('已切換到$name主題');
+            }
+          }
+        } catch (e) {
+          // 如果出現錯誤，至少確保主題被切換
+          await ThemeManager.instance.setTheme(themeKey);
+        }
+      },
     );
   }
 
@@ -604,8 +723,13 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: Colors.orange,
         duration: const Duration(seconds: 2),
       ),
-    ).closed.then((_) {
-      _isShowingSnackBar = false; // 重置狀態
+    );
+    
+    // 使用 Timer 來重置狀態，而不是依賴 .closed
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _isShowingSnackBar = false;
+      }
     });
   }
 
@@ -616,11 +740,16 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.dynamicPrimary,
         duration: const Duration(seconds: 2),
       ),
-    ).closed.then((_) {
-      _isShowingSnackBar = false; // 重置狀態
+    );
+    
+    // 使用 Timer 來重置狀態，而不是依賴 .closed
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        _isShowingSnackBar = false;
+      }
     });
   }
 
@@ -629,40 +758,40 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.card,
-          title: const Text(
+          backgroundColor: AppColors.dynamicCard,
+          title: Text(
             '關於音樂練習應用程式',
             style: TextStyle(
-              color: AppColors.textDark,
+              color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Column(
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 '版本：1.0.0',
-                style: TextStyle(color: AppColors.textDark),
+                style: TextStyle(color: AppColors.dynamicTextDark),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 '這是一個音樂練習應用程式，提供MIDI播放、錄音練習和音樂庫管理功能。',
-                style: TextStyle(color: AppColors.textDark),
+                style: TextStyle(color: AppColors.dynamicTextDark),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 '開發團隊：Music Practice Team',
-                style: TextStyle(color: AppColors.textLight),
+                style: TextStyle(color: AppColors.dynamicTextLight),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
+              child: Text(
                 '確定',
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: AppColors.dynamicPrimary),
               ),
             ),
           ],

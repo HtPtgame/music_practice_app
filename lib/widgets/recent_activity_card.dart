@@ -17,10 +17,9 @@ class RecentActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: AppColors.card,
+      color: AppColors.dynamicCard,
       elevation: 1.5,
-      // 【修正】直接定義帶有透明度的顏色
-      shadowColor: const Color(0x196A5AE0), // AppColors.primary.withOpacity(0.1)
+      shadowColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -31,14 +30,13 @@ class RecentActivityCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
-            subtitle: Text(subtitle, style: const TextStyle(color: AppColors.textLight)),
+            title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.dynamicTextDark)),
+            subtitle: Text(subtitle, style: TextStyle(color: AppColors.dynamicTextLight)),
             trailing: ElevatedButton(
               onPressed: onPressed,
               style: ElevatedButton.styleFrom(
-                // 【修正】直接定義帶有透明度的顏色
-                backgroundColor: const Color(0x196A5AE0), // AppColors.primary.withOpacity(0.1)
-                foregroundColor: AppColors.primary,
+                backgroundColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                foregroundColor: AppColors.dynamicPrimary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),

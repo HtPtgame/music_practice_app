@@ -9,36 +9,36 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold 和 AppBar 已被移除，由 MainShell 提供
+    // Scaffold 和 AppBar 已被移除，由 MainShell 處理
     // SafeArea 已在 MainShell 層級處理
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column( // 將 ListView 改為 Column 以便放置 AppBar
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column( // 從 ListView 改為 Column 以便放置 AppBar
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 我們把 AppBar 的內容手動加到這裡
+            // 我們自己的 AppBar 內容放在這裡
              Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.music_note, color:  Color.fromARGB(255, 90, 157, 224), size: 28),
-                      SizedBox(width: 8),
-                      Text('音樂練習', style: TextStyle(color: AppColors.textDark, fontSize: 20, fontWeight: FontWeight.bold)),
+                      Icon(Icons.music_note, color: AppColors.dynamicPrimary, size: 28),
+                      const SizedBox(width: 8),
+                      Text('音樂練習', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 20, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.person_outline, color: AppColors.textDark, size: 28),
-                    onPressed: null, // 在 Shell 中，這個按鈕可能需要透過狀態管理來觸發行為
+                    icon: Icon(Icons.person_outline, color: AppColors.dynamicTextDark, size: 28),
+                    onPressed: null, // 在 Shell 中這個按鈕可能需要透過狀態管理觸發行為
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             // 主要內容
-            Expanded(
+            const Expanded(
               child: _HomePageContent(),
             ),
           ],
@@ -47,7 +47,7 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// 將原本的 ListView 內容抽出來，方便管理
+// 將原本的 ListView 內容拆出來方便管理
 class _HomePageContent extends StatelessWidget {
   const _HomePageContent();
 
@@ -59,15 +59,15 @@ class _HomePageContent extends StatelessWidget {
         ElevatedButton(
           onPressed: () => context.go('/library'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.dynamicPrimary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-          child: const Text('開始練習（上次的曲目）', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: const Text('開始練習（音檔管理目錄）', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(height: 32),
-        const Text('最近活動', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+        Text('最近活動', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.dynamicTextDark)),
         const SizedBox(height: 16),
         RecentActivityCard(
           title: '小星星',
@@ -78,6 +78,7 @@ class _HomePageContent extends StatelessWidget {
         RecentActivityCard(
           title: '給愛麗絲',
           subtitle: '上次練習: 2025/07/08 - 88分',
+         
           onPressed: () => context.go('/playback'),
         ),
       ],

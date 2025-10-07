@@ -18,7 +18,7 @@ class MainShell extends StatelessWidget {
         child: BottomNavigationBar(
           currentIndex: _calculateSelectedIndex(context),
           onTap: (index) => _onItemTapped(index, context),
-          selectedItemColor: AppColors.primary,
+          selectedItemColor: AppColors.dynamicPrimary,
           unselectedItemColor: Colors.grey,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,

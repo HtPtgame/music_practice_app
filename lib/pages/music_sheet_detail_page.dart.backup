@@ -1,0 +1,264 @@
+import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
+
+// 練�?要�??��?模�?
+class PracticeNote {
+  final int measure;
+  final String content;
+
+  PracticeNote({
+    required this.measure,
+    required this.content,
+  });
+
+  @override
+  String toString() {
+    return '�?{measure}小�?: $content';
+  }
+}
+
+class MusicSheetDetailPage extends StatefulWidget {
+  final String sheetName;
+  final List<String> initialNotes;
+  final Function(List<String>) onNotesChanged;
+
+  const MusicSheetDetailPage({
+    super.key,
+    required this.sheetName,
+    required this.initialNotes,
+    required this.onNotesChanged,
+  });
+
+  @override
+  State<MusicSheetDetailPage> createState() => _MusicSheetDetailPageState();
+}
+
+class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
+  late List<PracticeNote> _notes;
+  final TextEditingController _measureController = TextEditingController();
+  final TextEditingController _contentController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 將�??��?串格式�??�為?��? PracticeNote ?��?
+    _notes = widget.initialNotes.map((noteString) {
+      // ?�試�???�格�?"第X小�?: ?�容"
+      final match = RegExp(r'^�?\d+)小�?:\s*(.+)$').firstMatch(noteString);
+      if (match != null) {
+        return PracticeNote(
+          measure: int.parse(match.group(1)!),
+          content: match.group(2)!,
+        );
+      } else {
+        // 如�?不是?�格式�??�設?�第1小�?
+        return PracticeNote(measure: 1, content: noteString);
+      }
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _measureController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  void _addNote() {
+    _showAddNoteDialog();
+  }
+
+  void _showAddNoteDialog() {
+    _measureController.clear();
+    _contentController.clear();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.card,
+          title: Text(
+            '新增練習筆記',
+            style: TextStyle(color: AppColors.textDark),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _measureController,
+                decoration: InputDecoration(
+                  labelText: '小節數',
+                  labelStyle: TextStyle(color: AppColors.textDark),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: _contentController,
+                decoration: InputDecoration(
+                  labelText: '筆記內容',
+                  labelStyle: TextStyle(color: AppColors.textDark),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final measureText = _measureController.text.trim();
+                final contentText = _contentController.text.trim();
+                
+                if (measureText.isNotEmpty && contentText.isNotEmpty) {
+                  final measure = int.tryParse(measureText);
+                  if (measure != null && measure > 0) {
+                    setState(() {
+                      _notes.add(PracticeNote(
+                        measure: measure,
+                        content: contentText,
+                      ));
+                      // ?��?節?��?�?                      _notes.sort((a, b) => a.measure.compareTo(b.measure));
+                    });
+                    widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
+                    Navigator.of(context).pop();
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text(
+                '?��?',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteNote(int index) {
+    showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.card,
+          title: Text(
+            '確認刪除',
+            style: TextStyle(color: AppColors.textDark),
+          ),
+          content: Text(
+            '確定要刪除這個筆記嗎？',
+            style: TextStyle(color: AppColors.textDark),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                '取消',
+                style: TextStyle(color: AppColors.textDark),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                '刪除',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    ).then((confirmed) {
+      if (confirmed == true) {
+        setState(() {
+          _notes.removeAt(index);
+        });
+        widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
+      }
+    });
+  }
+
+  void _editNote(int index) {
+    final note = _notes[index];
+    _measureController.text = note.measure.toString();
+    _contentController.text = note.content;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.card,
+          title: Text( ,
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final measureText = _measureController.text.trim();
+                final contentText = _contentController.text.trim();
+                
+                if (measureText.isNotEmpty && contentText.isNotEmpty) {
+                  final measure = int.tryParse(measureText);
+                  if (measure != null && measure > 0) {
+                    setState(() {
+                      _notes[index] = PracticeNote(
+                        measure: measure,
+                        content: contentText,
+                      );
+                      // ?�新?��?
+                      _notes.sort((a, b) => a.measure.compareTo(b.measure));
+                    });
+                    widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
+                    Navigator.of(context).pop();
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text(
+                '?��?',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Text(
+          widget.sheetName,
+          style: TextStyle( ,
+                                  onPressed: () => _editNote(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                  onPressed: () => _deleteNote(index),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

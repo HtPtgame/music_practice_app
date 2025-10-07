@@ -101,7 +101,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: Text(
           widget.file?.name ?? 'MIDI 播放器',
@@ -111,7 +111,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/library'),
         ),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.dynamicBackground,
         elevation: 0,
       ),
       body: _isLoading
@@ -131,7 +131,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 child: Column(
                   children: [
                     Card(
-                      color: AppColors.card,
+                      color: AppColors.dynamicCard,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -140,15 +140,15 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
                           children: [
-                            const Icon(Icons.music_note,
-                                size: 80, color: AppColors.primary),
+                            Icon(Icons.music_note,
+                                size: 80, color: AppColors.dynamicPrimary),
                             const SizedBox(height: 16),
                             Text(
                               widget.file?.name ?? '未知檔案',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
+                                color: AppColors.dynamicTextDark,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -156,9 +156,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                               const SizedBox(height: 8),
                               Text(
                                 '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
-                                  color: AppColors.textLight,
+                                  color: AppColors.dynamicTextLight,
                                 ),
                               ),
                             ],
@@ -168,7 +168,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     ),
                     const SizedBox(height: 32),
                     Card(
-                      color: AppColors.card,
+                      color: AppColors.dynamicCard,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -200,7 +200,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     ),
                     const SizedBox(height: 32),
                     Card(
-                      color: AppColors.card,
+                      color: AppColors.dynamicCard,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -214,12 +214,12 @@ class _PlaybackPageState extends State<PlaybackPage> {
                               onPressed: _isLoading ? null : _restart,
                               icon: const Icon(Icons.replay),
                               iconSize: 36,
-                              color: AppColors.textDark,
+                              color: AppColors.dynamicTextDark,
                               tooltip: '重新播放',
                             ),
                             Container(
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
+                              decoration: BoxDecoration(
+                                color: AppColors.dynamicPrimary,
                                 shape: BoxShape.circle,
                               ),
                               child: IconButton(
@@ -235,7 +235,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                               onPressed: _isLoading ? null : _stop,
                               icon: const Icon(Icons.stop),
                               iconSize: 36,
-                              color: AppColors.textDark,
+                              color: AppColors.dynamicTextDark,
                               tooltip: '停止',
                             ),
                           ],
@@ -251,7 +251,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha((0.1 * 255).round()),
+                        color: AppColors.dynamicPrimary.withAlpha((0.1 * 255).round()),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -259,14 +259,14 @@ class _PlaybackPageState extends State<PlaybackPage> {
                         children: [
                           Icon(
                             _isPlaying ? Icons.music_note : Icons.music_off,
-                            color: AppColors.primary,
+                            color: AppColors.dynamicPrimary,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
                           Text(
                             _status,
-                            style: const TextStyle(
-                              color: AppColors.primary,
+                            style: TextStyle(
+                              color: AppColors.dynamicPrimary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

@@ -62,13 +62,13 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background, // 使用您定義的背景色
+      backgroundColor: AppColors.dynamicBackground, // 使用您定義的背景色
       appBar: AppBar(
         title: const Text(
           '我的樂庫',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppColors.background, // AppBar 背景色與頁面背景色一致
+        backgroundColor: AppColors.dynamicBackground, // AppBar 背景色與頁面背景色一致
         elevation: 0, // 移除 AppBar 陰影
       ),
       body: Padding(
@@ -80,7 +80,7 @@ class _LibraryPageState extends State<LibraryPage> {
             const SizedBox(height: 16),
             
             if (MidiFileManager.midiFiles.isEmpty)
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -88,22 +88,22 @@ class _LibraryPageState extends State<LibraryPage> {
                       Icon(
                         Icons.library_music_outlined,
                         size: 64,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text(
                         '尚無音樂檔案',
                         style: TextStyle(
                           fontSize: 18,
-                          color: AppColors.textLight,
+                          color: AppColors.dynamicTextLight,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         '請前往上傳頁面添加MIDI檔案',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textLight,
+                          color: AppColors.dynamicTextLight,
                         ),
                       ),
                     ],
@@ -129,7 +129,7 @@ class _LibraryPageState extends State<LibraryPage> {
           // 點擊按鈕後導航到上傳頁面 (upload_page.dart)
           context.go('/upload');
         },
-        backgroundColor: AppColors.primary, // 使用您定義的主題色
+        backgroundColor: AppColors.dynamicPrimary, // 使用您定義的主題色
         foregroundColor: Colors.white, // 加號圖標
         tooltip: '新增樂曲', // 圖標顏色
         child: const Icon(Icons.add), // 長按提示
@@ -139,7 +139,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Widget _buildMidiFileCard(BuildContext context, MidiFileInfo midiFile, int index) {
     return Card(
-      color: AppColors.card,
+      color: AppColors.dynamicCard,
       elevation: 1.5,
       shadowColor: const Color(0x196A5AE0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -151,9 +151,9 @@ class _LibraryPageState extends State<LibraryPage> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.music_note,
-                color: AppColors.primary,
+                color: AppColors.dynamicPrimary,
                 size: 32,
               ),
               const SizedBox(width: 16),
@@ -163,10 +163,10 @@ class _LibraryPageState extends State<LibraryPage> {
                   children: [
                     Text(
                       midiFile.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: AppColors.dynamicTextDark,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -174,16 +174,16 @@ class _LibraryPageState extends State<LibraryPage> {
                     const SizedBox(height: 4),
                     Text(
                       '大小: ${(midiFile.size / 1024).toStringAsFixed(1)} KB',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                     Text(
                       '上傳時間: ${_formatDate(midiFile.uploadTime)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                   ],
@@ -194,7 +194,7 @@ class _LibraryPageState extends State<LibraryPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.play_arrow),
-                    color: AppColors.primary,
+                    color: AppColors.dynamicPrimary,
                     onPressed: () => _playMidiFile(context, midiFile),
                     tooltip: '播放',
                   ),
@@ -235,18 +235,18 @@ class _LibraryPageState extends State<LibraryPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.card,
-          title: const Text(
+          backgroundColor: AppColors.dynamicCard,
+          title: Text(
             '確認刪除',
             style: TextStyle(
-              color: AppColors.textDark,
+              color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             '確定要刪除「${MidiFileManager.midiFiles[index].name}」嗎？',
-            style: const TextStyle(
-              color: AppColors.textDark,
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
             ),
           ),
           actions: [

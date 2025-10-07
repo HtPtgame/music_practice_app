@@ -766,11 +766,11 @@ class _PracticePageState extends State<PracticePage> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Row(
+                title: Row(
                   children: [
-                    Icon(Icons.music_note, color: AppColors.primary),
-                    SizedBox(width: 8),
-                    Text('音訊轉 MIDI'),
+                    Icon(Icons.music_note, color: AppColors.dynamicPrimary),
+                    const SizedBox(width: 8),
+                    const Text('音訊轉 MIDI'),
                   ],
                 ),
                 content: Column(
@@ -787,8 +787,8 @@ class _PracticePageState extends State<PracticePage> {
                     LinearProgressIndicator(
                       value: conversionProgress,
                       backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.dynamicPrimary),
                     ),
                     const SizedBox(height: 8),
                     Text('${(conversionProgress * 100).toInt()}%'),
@@ -2378,7 +2378,7 @@ class _PracticePageState extends State<PracticePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: Text(widget.file?.name ?? '演奏練習',
             style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -2399,7 +2399,7 @@ class _PracticePageState extends State<PracticePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.piano, size: 80, color: AppColors.primary),
+              Icon(Icons.piano, size: 80, color: AppColors.dynamicPrimary),
               const SizedBox(height: 24),
               const Text('演奏偵測介面',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -2407,7 +2407,7 @@ class _PracticePageState extends State<PracticePage> {
               Text(
                 '即將在此練習：${widget.file?.name ?? '未指定曲目'}',
                 style:
-                    const TextStyle(fontSize: 16, color: AppColors.textLight),
+                    TextStyle(fontSize: 16, color: AppColors.dynamicTextLight),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
@@ -2546,7 +2546,7 @@ class _PracticePageState extends State<PracticePage> {
                             : const Icon(Icons.transform),
                         label: Text(isConverting ? '轉換中...' : '轉換為 MIDI'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: AppColors.dynamicPrimary,
                           foregroundColor: Colors.white,
                         ),
                       ),
