@@ -111,9 +111,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 maxLines: 3,
                 decoration: InputDecoration(
                   labelText: '注意事項',
-                  labelStyle: const TextStyle(color: AppColors.textDark),
+                  labelStyle: TextStyle(color: AppColors.dynamicTextDark),
                   hintText: '記錄需要注意的地方、技巧要點或練習重點...',
-                  hintStyle: const TextStyle(color: AppColors.textLight),
+                  hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),

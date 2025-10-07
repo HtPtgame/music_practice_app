@@ -19,12 +19,12 @@ class UploadPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
               children: [
-                Icon(Icons.upload, color: AppColors.primary, size: 28),
+                Icon(Icons.upload, color: AppColors.dynamicPrimary, size: 28),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   '上傳音樂檔案',
                   style: TextStyle(
-                    color: AppColors.textDark,
+                    color: AppColors.dynamicTextDark,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -58,24 +58,24 @@ class UploadPage extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.card,
-          title: const Text(
+          backgroundColor: AppColors.dynamicCard,
+          title: Text(
             '功能開發中',
             style: TextStyle(
-              color: AppColors.textDark,
+              color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
+          content: Text(
             '此功能正在開發中，敬請期待！',
-            style: TextStyle(color: AppColors.textDark),
+            style: TextStyle(color: AppColors.dynamicTextDark),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
+              child: Text(
                 '確定',
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: AppColors.dynamicPrimary),
               ),
             ),
           ],
@@ -92,7 +92,7 @@ class UploadPage extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      color: AppColors.card,
+      color: AppColors.dynamicCard,
       elevation: 1.5,
       shadowColor: const Color(0x196A5AE0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -106,12 +106,12 @@ class UploadPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.primary,
+                  color: AppColors.dynamicPrimary,
                   size: 32,
                 ),
               ),
@@ -122,26 +122,26 @@ class UploadPage extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: AppColors.dynamicTextDark,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
-                color: AppColors.textLight,
+                color: AppColors.dynamicTextLight,
                 size: 16,
               ),
             ],

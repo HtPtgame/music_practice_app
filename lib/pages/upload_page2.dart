@@ -94,7 +94,7 @@ class _UploadPage2State extends State<UploadPage2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: const Text('從本機上傳 MIDI', style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
@@ -107,10 +107,10 @@ class _UploadPage2State extends State<UploadPage2> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               '請選擇要上傳的 MIDI 檔案',
               style: TextStyle(
-                color: AppColors.textDark,
+                color: AppColors.dynamicTextDark,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -120,8 +120,8 @@ class _UploadPage2State extends State<UploadPage2> {
               kIsWeb 
                 ? '支援格式：.mid, .midi (Web版本使用記憶體載入)'
                 : '支援格式：.mid, .midi',
-              style: const TextStyle(
-                color: AppColors.textLight,
+              style: TextStyle(
+                color: AppColors.dynamicTextLight,
                 fontSize: 14,
               ),
             ),
@@ -129,7 +129,7 @@ class _UploadPage2State extends State<UploadPage2> {
             
             // 文件選擇區域
             Card(
-              color: AppColors.card,
+              color: AppColors.dynamicCard,
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
@@ -139,7 +139,7 @@ class _UploadPage2State extends State<UploadPage2> {
                     Icon(
                       _pickedFile != null ? Icons.music_note : Icons.upload_file,
                       size: 64,
-                      color: _pickedFile != null ? AppColors.primary : AppColors.textLight,
+                      color: _pickedFile != null ? AppColors.dynamicPrimary : AppColors.dynamicTextLight,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -147,7 +147,7 @@ class _UploadPage2State extends State<UploadPage2> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: _pickedFile != null ? AppColors.textDark : AppColors.textLight,
+                        color: _pickedFile != null ? AppColors.dynamicTextDark : AppColors.dynamicTextLight,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -155,9 +155,9 @@ class _UploadPage2State extends State<UploadPage2> {
                       const SizedBox(height: 8),
                       Text(
                         '檔案大小: ${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textLight,
+                          color: AppColors.dynamicTextLight,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -165,9 +165,9 @@ class _UploadPage2State extends State<UploadPage2> {
                         kIsWeb 
                           ? '平台: Web (使用記憶體載入)'
                           : '平台: ${_pickedFile!.path != null ? "本機儲存" : "記憶體載入"}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textLight,
+                          color: AppColors.dynamicTextLight,
                         ),
                       ),
                     ],
@@ -185,7 +185,7 @@ class _UploadPage2State extends State<UploadPage2> {
                         ? '選擇中...'
                         : _pickedFile != null ? '重新選擇' : '選擇檔案'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.dynamicPrimary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

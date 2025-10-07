@@ -29,12 +29,12 @@ class ThemeManager extends ChangeNotifier {
       'textLight': Color(0xFF6A8BAA),  // 中度灰藍 (次要文字)
     },
     'forest': {
-      'primary': Color(0xFF708F6B),    // 沉穩橄欖綠 (按鈕/主要操作)
-      'background': Color(0xFFF0FFF0), // 極淺綠色 (背景)
-      'card': Color(0xFFD4EAD9),      // ✨ 柔和淺綠 (卡片背景：加深以增加層次)
-      'accent': Color(0xFFA3C9A8),    // 清新薄荷綠 (強調/點綴)
+      'primary': Color(0xFF96A78D),    // 沉穩灰綠色 (按鈕/主要操作)
+      'background': Color(0xFFF0F0F0), // 極淺中性灰 (背景)
+      'card': Color(0xFFD9E9CF),      // 極淺薄荷綠 (卡片背景)
+      'accent': Color(0xFFB6CEB4),    // 柔和淺綠 (強調/點綴)
       'textDark': Color(0xFF2C3E2D),   // 深墨綠色 (主要文字/森林陰影感)
-      'textLight': Color(0xFF708F6B),  // 沉穩橄欖綠 (次要文字)
+      'textLight': Color(0xFF96A78D),  // 沉穩灰綠色 (次要文字)
     },
     'sunset': {
       'primary': Color(0xFFFFA866),    // 火焰橘 (高飽和按鈕)

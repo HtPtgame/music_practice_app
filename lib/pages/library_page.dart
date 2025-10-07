@@ -66,8 +66,13 @@ class _LibraryPageState extends State<LibraryPage> {
       appBar: AppBar(
         title: const Text(
           '我的樂庫',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
+        centerTitle: true,
         backgroundColor: AppColors.dynamicBackground, // AppBar 背景色與頁面背景色一致
         elevation: 0, // 移除 AppBar 陰影
       ),

@@ -1,6 +1,5 @@
-// lib/pages/playback_page.dart
+// lib/pages/playback_page_simple.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -17,40 +16,134 @@ class _PlaybackPageState extends State<PlaybackPage> {
   bool _isPlaying = false;
   bool _isPaused = false;
   double _currentPosition = 0.0;
-  final double _totalDuration = 180.0; // 模擬3?��??��??�長�?
+  final double _totalDuration = 180.0; // 模擬3分鐘長度
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: Text(
-          widget.file?.name ?? 'MIDI ?�放??,
-          style: TextStyle( ,
-                        trackHeight: 4.0,
-                      ),
-                      child: Slider(
-                        value: _currentPosition,
-                        max: _totalDuration,
-                        onChanged: _isPlaying ? (value) {
-                          setState(() {
-                            _currentPosition = value;
-                          });
-                        } : null,
-                      ),
+          widget.file?.name ?? 'MIDI 播放器',
+          style: TextStyle(
+            color: AppColors.dynamicTextDark,
+          ),
+        ),
+        backgroundColor: AppColors.dynamicBackground,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: AppColors.dynamicTextDark,
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // 播放進度條
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppColors.dynamicCard,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  // 進度滑桿
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 4.0,
                     ),
-                    
-                    // ?��?顯示
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatTime(_currentPosition),
-                            style: TextStyle( ,
+                    child: Slider(
+                      value: _currentPosition,
+                      max: _totalDuration,
+                      onChanged: _isPlaying ? (value) {
+                        setState(() {
+                          _currentPosition = value;
+                        });
+                      } : null,
+                      activeColor: AppColors.dynamicPrimary,
+                      inactiveColor: AppColors.dynamicTextLight.withOpacity(0.3),
+                    ),
+                  ),
+                  
+                  // 時間顯示
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatTime(_currentPosition),
+                          style: TextStyle(
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                        Text(
+                          _formatTime(_totalDuration),
+                          style: TextStyle(
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // 控制按鈕
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // 重新開始按鈕
+                IconButton(
+                  onPressed: _restart,
+                  icon: Icon(
+                    Icons.replay,
+                    size: 32,
+                    color: AppColors.dynamicTextDark,
+                  ),
+                ),
+                
+                // 播放/暫停按鈕
+                IconButton(
+                  onPressed: _togglePlayPause,
+                  icon: Icon(
+                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                    size: 48,
+                    color: AppColors.dynamicPrimary,
+                  ),
+                ),
+                
+                // 停止按鈕
+                IconButton(
+                  onPressed: _stop,
+                  icon: Icon(
+                    Icons.stop,
+                    size: 32,
+                    color: AppColors.dynamicTextDark,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // 狀態顯示
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppColors.dynamicCard,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _getStatusText(),
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
@@ -67,7 +160,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
       } else {
         _isPlaying = true;
         _isPaused = false;
-        // 模擬?�放?�度
+        // 模擬播放進度
         _simulatePlayback();
       }
     });
@@ -117,13 +210,13 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
   String _getStatusText() {
     if (_isPlaying) {
-      return '?�放�?..';
+      return '播放中...';
     } else if (_isPaused) {
-      return '已暫??;
+      return '已暫停';
     } else if (_currentPosition > 0) {
-      return '已�?�?;
+      return '已停止';
     } else {
-      return '準�??�放';
+      return '準備播放';
     }
   }
 }

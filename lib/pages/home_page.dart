@@ -26,7 +26,7 @@ class HomePage extends StatelessWidget {
                     children: [
                       Icon(Icons.music_note, color: AppColors.dynamicPrimary, size: 28),
                       const SizedBox(width: 8),
-                      Text('音樂練習', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text('音樂練習', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 24, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   IconButton(
