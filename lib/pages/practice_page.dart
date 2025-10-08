@@ -15,11 +15,9 @@ import 'package:music_practice_app/pages/analysis_result_page.dart';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
 import 'dart:typed_data';
 import 'dart:math';
 import 'dart:async';
-import 'package:flutter/services.dart';
 
 class PracticePage extends StatefulWidget {
   final PlatformFile? file;
@@ -47,8 +45,8 @@ class _PracticePageState extends State<PracticePage> {
 
   // 錄音計時器將在錄音過程中自動處理
 
-  // AI 模型相關變數
-  Interpreter? _interpreter;
+  // [已淘汰 2025/10/08] AI 模型相關變數 (保留以避免編譯錯誤,但不會被使用)
+  dynamic _interpreter; // 原本是 Interpreter? 類型
   bool _isModelLoaded = false;
 
   // Week 4 Phase 2: 分析功能狀態
@@ -61,7 +59,7 @@ class _PracticePageState extends State<PracticePage> {
   void initState() {
     super.initState();
     _initAudio();
-    _loadAIModel();
+    // _loadAIModel(); // 已淘汰 2025/10/08
   }
 
   Future<void> _initAudio() async {
@@ -112,58 +110,15 @@ class _PracticePageState extends State<PracticePage> {
     }
   }
 
-  // 載入 AI 模型
-  Future<void> _loadAIModel() async {
-    try {
-      debugPrint('🔄 開始載入 AI 模型: onsets_frames_wavinput.tflite');
-
-      // 方法1：檢查資產是否存在
-      try {
-        final ByteData assetData =
-            await rootBundle.load('assets/onsets_frames_wavinput.tflite');
-        debugPrint('✅ AI 模型檔案確實存在，大小: ${assetData.lengthInBytes} bytes');
-
-        // 方法2：從ByteData創建解釋器
-        _interpreter = Interpreter.fromBuffer(assetData.buffer.asUint8List());
-        _isModelLoaded = true;
-        debugPrint('✅ 使用 fromBuffer 方法載入 AI 模型成功');
-      } catch (bufferError) {
-        debugPrint('❌ 使用 fromBuffer 失敗: $bufferError');
-
-        // 方法3：回退到原始方法（不包含 assets/ 前綴）
-        debugPrint('🔄 嘗試使用 fromAsset 方法...');
-        _interpreter =
-            await Interpreter.fromAsset('onsets_frames_wavinput.tflite');
-        _isModelLoaded = true;
-        debugPrint('✅ 使用 fromAsset 方法載入 AI 模型成功');
-      }
-
-      // 輸出模型信息
-      final inputTensors = _interpreter!.getInputTensors();
-      final outputTensors = _interpreter!.getOutputTensors();
-
-      debugPrint('模型輸入張量信息:');
-      for (int i = 0; i < inputTensors.length; i++) {
-        final tensor = inputTensors[i];
-        debugPrint('  輸入 $i: 形狀=${tensor.shape}, 型別=${tensor.type}');
-      }
-
-      debugPrint('模型輸出張量信息:');
-      for (int i = 0; i < outputTensors.length; i++) {
-        final tensor = outputTensors[i];
-        debugPrint('  輸出 $i: 形狀=${tensor.shape}, 型別=${tensor.type}');
-      }
-    } catch (e) {
-      debugPrint('❌ AI 模型載入失敗: $e');
-      _isModelLoaded = false;
-    }
-  }
+  // [已淘汰 2025/10/08] 載入 AI 模型
+  // 此函數使用 tflite_flutter 依賴,已移除
+  // Future<void> _loadAIModel() async { ... }
 
   @override
   void dispose() {
     _recordingTimer?.cancel();
     _closeAudio();
-    _interpreter?.close();
+    // _interpreter?.close(); // 已淘汰
     super.dispose();
   }
 
@@ -2517,127 +2472,6 @@ class _PracticePageState extends State<PracticePage> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // MIDI 轉換區域
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text('🎵 AI 音訊轉 MIDI',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '🤖 使用 AI 模型分析您的鋼琴演奏\n將音訊轉換為 MIDI 音符數據',
-                        style: TextStyle(fontSize: 12, color: Colors.blue),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: (!isRecording &&
-                                _audioPath != null &&
-                                !isConverting)
-                            ? convertToMidi
-                            : null,
-                        icon: isConverting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.transform),
-                        label: Text(isConverting ? '轉換中...' : '轉換為 MIDI'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.dynamicPrimary,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                      if (_midiPath != null) ...[
-                        const SizedBox(height: 12),
-                        const Text('🤖 AI 分析完成，MIDI 檔案已生成',
-                            style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: Colors.green.withValues(alpha: 0.3)),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text('檔案名稱:',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              Text(
-                                _midiPath!.split('/').last,
-                                style: const TextStyle(
-                                    fontSize: 12, fontFamily: 'monospace'),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                '🎹 基於 AI 音訊分析結果生成的 MIDI',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w500),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                '使用 onsets_frames_wavinput.tflite 模型進行音符檢測',
-                                style:
-                                    TextStyle(fontSize: 10, color: Colors.grey),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                '💡 搜索提示：在檔案管理器中搜索「PracticeMIDI」',
-                                style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: playMidiFile,
-                              icon: const Icon(Icons.play_circle),
-                              label: const Text('播放 MIDI'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: exportMidiFile,
-                              icon: const Icon(Icons.folder_open),
-                              label: const Text('檢視檔案'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ),

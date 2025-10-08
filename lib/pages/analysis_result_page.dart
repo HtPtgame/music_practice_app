@@ -30,32 +30,37 @@ class AnalysisResultPage extends StatelessWidget {
         title: const Text('演奏分析報告'),
         backgroundColor: _getGradeColor(report.grade),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. 總分卡片
-            _buildScoreCard(),
-            const SizedBox(height: 16),
-            
-            // 2. 統計數據
-            _buildStatisticsCard(),
-            const SizedBox(height: 16),
-            
-            // 3. 錯誤詳情
-            if (report.errors.isNotEmpty) ...[
-              _buildErrorsCard(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. 總分卡片
+              _buildScoreCard(),
               const SizedBox(height: 16),
+              
+              // 2. 統計數據
+              _buildStatisticsCard(),
+              const SizedBox(height: 16),
+              
+              // 3. 錯誤詳情
+              if (report.errors.isNotEmpty) ...[
+                _buildErrorsCard(),
+                const SizedBox(height: 16),
+              ],
+              
+              // 4. 練習建議
+              _buildSuggestionCard(),
+              const SizedBox(height: 16),
+              
+              // 5. 操作按鈕
+              _buildActionButtons(context),
+              
+              // 6. 底部安全區域 padding (避免被系統導航欄遮擋)
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
-            
-            // 4. 練習建議
-            _buildSuggestionCard(),
-            const SizedBox(height: 16),
-            
-            // 5. 操作按鈕
-            _buildActionButtons(context),
-          ],
+          ),
         ),
       ),
     );
