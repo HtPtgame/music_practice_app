@@ -9,6 +9,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'dart:io';
 
+// Week 4 Phase 2: 分析功能
+import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:music_practice_app/pages/analysis_result_page.dart';
+
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -46,6 +50,12 @@ class _PracticePageState extends State<PracticePage> {
   // AI 模型相關變數
   Interpreter? _interpreter;
   bool _isModelLoaded = false;
+
+  // Week 4 Phase 2: 分析功能狀態
+  bool _isAnalyzing = false;
+  double _analysisProgress = 0.0;
+  String _analysisPhase = '';
+  final _analyzer = PerformanceAnalyzer();
 
   @override
   void initState() {
@@ -2635,16 +2645,98 @@ class _PracticePageState extends State<PracticePage> {
 
               const SizedBox(height: 24),
 
-              // 完成練習按鈕
-              ElevatedButton.icon(
-                onPressed: () => context.go('/analysis'),
-                icon: const Icon(Icons.analytics),
-                label: const Text('查看分析結果'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              // Week 4 Phase 2: 演奏分析卡片
+              Card(
+                color: Colors.purple.withValues(alpha: 0.05),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.analytics_outlined, color: Colors.purple),
+                          SizedBox(width: 8),
+                          Text(
+                            '🎯 演奏分析',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: (!isRecording && _audioPath != null && !_isAnalyzing && widget.file != null)
+                            ? _analyzePerformance
+                            : null,
+                        icon: _isAnalyzing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.analytics_outlined),
+                        label: Text(_isAnalyzing ? '分析中...' : '分析演奏'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                      ),
+                      // 提示訊息
+                      if (_audioPath == null || widget.file == null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.file == null)
+                                const Row(
+                                  children: [
+                                    Icon(Icons.warning_amber, color: Colors.orange, size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '請先從樂庫選擇 MIDI 曲目',
+                                        style: TextStyle(fontSize: 12, color: Colors.orange),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              if (_audioPath == null)
+                                const Row(
+                                  children: [
+                                    Icon(Icons.mic, color: Colors.orange, size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '請先錄製您的演奏',
+                                        style: TextStyle(fontSize: 12, color: Colors.orange),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -2654,7 +2746,119 @@ class _PracticePageState extends State<PracticePage> {
     );
   }
 
-  // �🔍 WAV 檔案深度分析方法
+  // Week 4 Phase 2: 演奏分析方法
+  Future<void> _analyzePerformance() async {
+    if (_audioPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ 請先錄製您的演奏'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (widget.file == null || widget.file!.path == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ 請先從樂庫選擇 MIDI 曲目'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    final audioFile = File(_audioPath!);
+    if (!await audioFile.exists()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ 錄音文件不存在，請重新錄音'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    final midiFile = File(widget.file!.path!);
+    if (!await midiFile.exists()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ MIDI文件不存在，請重新選擇'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() { _isAnalyzing = true; _analysisProgress = 0.0; _analysisPhase = ''; });
+
+    try {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _buildAnalysisProgressDialog(),
+      );
+
+      final report = await _analyzer.analyze(
+        _audioPath!,
+        widget.file!.path!,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() {
+              _analysisProgress = progress;
+              _analysisPhase = _getAnalysisPhaseDescription(progress);
+            });
+          }
+        },
+      );
+
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => AnalysisResultPage(
+              report: report,
+              midiFileName: widget.file!.name,
+              audioFileName: _audioPath!.split('/').last,
+            ),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ 分析失敗: $e\n$stackTrace');
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('分析失敗: $e'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() { _isAnalyzing = false; _analysisProgress = 0.0; _analysisPhase = ''; });
+    }
+  }
+
+  String _getAnalysisPhaseDescription(double progress) {
+    if (progress < 0.2) return '正在解析 MIDI 標準答案...';
+    if (progress < 0.6) return '正在分析音訊頻譜...';
+    if (progress < 0.8) return '正在驗證音符準確性...';
+    if (progress < 1.0) return '正在分類錯誤類型...';
+    return '分析完成!';
+  }
+
+  Widget _buildAnalysisProgressDialog() {
+    return StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          title: const Row(
+            children: [Icon(Icons.analytics, color: Colors.purple), SizedBox(width: 8), Text('演奏分析中')],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: _analysisProgress,
+                backgroundColor: Colors.grey,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.purple),
+              ),
+              const SizedBox(height: 16),
+              Text('${(_analysisProgress * 100).toInt()}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(_analysisPhase, style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 原有方法
   Future<void> _analyzeWAVFile(String filePath) async {
     try {
       final file = File(filePath);

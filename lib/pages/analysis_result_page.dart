@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
 import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
 
-/// 演奏分析結果頁面
+/// Week 4 Phase 1: 演奏分析結果頁面
 /// 
 /// 顯示完整的分析報告,包括:
-/// - 總分和評級
-/// - 統計數據
-/// - 錯誤詳情
+/// - 總分和評級 (S/A/B/C/D)
+/// - 統計數據 (正確/錯音/漏音/節奏問題)
+/// - 錯誤詳情列表
 /// - 練習建議
+/// 
+/// 使用 Week 3 的頻譜分析結果
 class AnalysisResultPage extends StatelessWidget {
   final AnalysisReport report;
   final String? midiFileName;
