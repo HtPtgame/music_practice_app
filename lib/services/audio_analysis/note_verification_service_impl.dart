@@ -9,7 +9,7 @@ import 'models/note_event.dart';
 class NoteVerificationServiceImpl implements INoteVerifier {
   // 驗證參數
   /// 默認參數
-  static const double energyThreshold = 0.15;  // 能量閾值 (進一步降低以減少漏音)
+  static const double energyThreshold = 0.33;  // 能量閾值 (最終優化 - 2025/10/08)
   static const List<double> harmonicWeights = [1.0, 0.5, 0.25];  // 諧波權重 [基頻, 2倍頻, 3倍頻]
   static const int numHarmonics = 3;  // 檢查的諧波數量
 

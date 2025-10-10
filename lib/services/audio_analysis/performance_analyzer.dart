@@ -14,6 +14,10 @@ import 'package:music_practice_app/services/audio_analysis/models/performance_er
 /// 3. 驗證每個音符是否存在
 /// 4. 分類錯誤類型
 /// 5. 生成分析報告
+/// 
+/// 已知限制:
+/// - 僅驗證音符存在性,不檢查整體序列匹配
+/// - 可能對不同曲目產生誤判 (如果音符集合相似)
 class PerformanceAnalyzer implements IPerformanceAnalyzer {
   final _midiParser = MidiParserService();
   final _audioAnalyzer = AudioAnalyzerServiceImpl();

@@ -23,10 +23,9 @@ dependencies:
   flutter_sound: ^9.28.0
   permission_handler: ^12.0.1
   open_file: ^3.3.2  # 用於開啟檔案/資料夾
-  tflite_flutter: ^0.11.0  # AI 模型推論引擎
   record: ^6.1.1  # 升級修正 linux 平台未實作 startStream 問題
   shared_preferences: ^2.3.2  # 本地儲存套件
-  fftea: ^1.5.0+1  # FFT/STFT 頻譜分析 (新音訊分析系統核心,支援任意大小輸入)
+  fftea: ^1.5.0+1  # FFT/STFT 頻譜分析 (音訊分析系統核心,支援任意大小輸入)
 
 dev_dependencies:
   flutter_test:
@@ -56,7 +55,5 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/ # <--- 宣告整個 assets 資料夾
-    - assets/basic_pitch_model.tflite # Basic Pitch 模型 (主要使用)
-    - assets/onsets_frames_wavinput.tflite # 舊模型 (備用)
-    - assets/TimGM6mb.sf2 # 明確指定 SoundFont 檔案
+    - assets/ # 宣告整個 assets 資料夾
+    - assets/TimGM6mb.sf2 # SoundFont 檔案

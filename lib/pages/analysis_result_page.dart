@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
 import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
 
-/// 演奏分析結果頁面
+/// Week 4 Phase 1: 演奏分析結果頁面
 /// 
 /// 顯示完整的分析報告,包括:
-/// - 總分和評級
-/// - 統計數據
-/// - 錯誤詳情
+/// - 總分和評級 (S/A/B/C/D)
+/// - 統計數據 (正確/錯音/漏音/節奏問題)
+/// - 錯誤詳情列表
 /// - 練習建議
+/// 
+/// 使用 Week 3 的頻譜分析結果
 class AnalysisResultPage extends StatelessWidget {
   final AnalysisReport report;
   final String? midiFileName;
@@ -28,32 +30,37 @@ class AnalysisResultPage extends StatelessWidget {
         title: const Text('演奏分析報告'),
         backgroundColor: _getGradeColor(report.grade),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. 總分卡片
-            _buildScoreCard(),
-            const SizedBox(height: 16),
-            
-            // 2. 統計數據
-            _buildStatisticsCard(),
-            const SizedBox(height: 16),
-            
-            // 3. 錯誤詳情
-            if (report.errors.isNotEmpty) ...[
-              _buildErrorsCard(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. 總分卡片
+              _buildScoreCard(),
               const SizedBox(height: 16),
+              
+              // 2. 統計數據
+              _buildStatisticsCard(),
+              const SizedBox(height: 16),
+              
+              // 3. 錯誤詳情
+              if (report.errors.isNotEmpty) ...[
+                _buildErrorsCard(),
+                const SizedBox(height: 16),
+              ],
+              
+              // 4. 練習建議
+              _buildSuggestionCard(),
+              const SizedBox(height: 16),
+              
+              // 5. 操作按鈕
+              _buildActionButtons(context),
+              
+              // 6. 底部安全區域 padding (避免被系統導航欄遮擋)
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
-            
-            // 4. 練習建議
-            _buildSuggestionCard(),
-            const SizedBox(height: 16),
-            
-            // 5. 操作按鈕
-            _buildActionButtons(context),
-          ],
+          ),
         ),
       ),
     );
