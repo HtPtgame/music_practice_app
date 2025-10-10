@@ -37,20 +37,20 @@ class ThemeManager extends ChangeNotifier {
       'textLight': Color(0xFF96A78D),  // 沉穩灰綠色 (次要文字)
     },
     'sunset': {
-      'primary': Color(0xFFFFA866),    // 火焰橘 (高飽和按鈕)
-      'background': Color(0xFFFFF1E0), // 極淺米黃 (背景)
-      'card': Color(0xFFFFDCA6),      // 柔和金黃 (卡片背景)
-      'accent': Color(0xFF99BC85),    // 柔和中度綠 (強調/點綴)
-      'textDark': Color(0xFF593C37),   // 深暖棕色 (主要文字/陰影感)
-      'textLight': Color(0xFFA37D5D),  // 中度灰棕 (次要文字)
+        'primary': Color(0xFFF6A85B),    // 暖夕橘金
+  'background': Color(0xFFFFF7ED), // 柔霧杏白
+  'card': Color(0xFFFFE3C3),       // 奶杏橙沙
+  'accent': Color(0xFFEFA8A4),     // 夕陽玫瑰粉
+  'textDark': Color(0xFF4A2E05),   // 深焦糖棕
+  'textLight': Color(0xFFB08A6B),  // 淡暖可可
     },
     'lavender': {
-      'primary': Color(0xFFB291C7),    // ✨ 最終調整後的按鈕色：柔和的紫羅蘭
-      'background': Color(0xFFF8F5FF), // 極淺紫羅蘭 (背景)
-      'card': Color(0xFFE8E0F5),      // 柔和淺紫羅蘭 (卡片背景)
-      'accent': Color(0xFF9B59B6),    // 舊 Primary 色轉為強調色
-      'textDark': Color(0xFF333333),   // 標準深色文字
-      'textLight': Color(0xFFA295C0),  // 次要文字
+        'primary': Color(0xFFE6B7BC),    // 柔霧粉
+  'background': Color(0xFFFAF7F0), // 霧奶米白
+  'card': Color(0xFFFFF8F9),       // 微粉暖白
+  'accent': Color(0xFFB6D2CD),     // 柔薄荷灰
+  'textDark': Color(0xFF6A4C52),   // 深霧玫棕
+  'textLight': Color(0xFFA89A9A),  // 灰粉淺棕
     },
   };
 
