@@ -249,9 +249,9 @@ class _NotePageState extends State<NotePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.library_music_outlined,
-                    size: 80,
-                    color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
+                    Icons.library_books_outlined,
+                    size: 64,
+                    color: AppColors.dynamicTextLight,
                   ),
                   const SizedBox(height: 16),
                   Text(

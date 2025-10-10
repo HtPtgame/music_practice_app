@@ -91,7 +91,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.library_music_outlined,
+                        Icons.audio_file_outlined,
                         size: 64,
                         color: AppColors.dynamicTextLight,
                       ),
