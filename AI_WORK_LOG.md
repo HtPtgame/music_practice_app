@@ -7,10 +7,74 @@
 
 ---
 
-## � 最新更新
+## 📰 最新更新
 
+### 2025/10/15 - 功能擴充: 專業節拍器與主題系統 ✅ 完成
 
-### 2025/10/08 - UI 修正與日誌分析  完成
+**新增功能**:
+
+1. **🎯 專業級節拍器功能**:
+   - 檔案: `lib/pages/metronome_page.dart` (526 行)
+   - 功能特色:
+     - BPM 調整: 40-200 可調範圍，支援 ±1 和 ±10 微調
+     - 拍號支援: 2/4、3/4、4/4 時間簽名切換
+     - 視覺回饋: AnimationController 實現的脈衝動畫效果
+     - 音頻生成: 使用 FlutterSoundPlayer 自製正弦波音效
+       - 正拍: 800Hz 基頻 + 1600Hz 諧波
+       - 重拍: 1000Hz 基頻 + 2000Hz 諧波 (音量加強)
+     - 音效控制: 可開關音效和重音功能
+     - 精確計時: Timer.periodic 確保節拍穩定性
+   - 技術實現:
+     - WAV 音頻合成 (44.1kHz, 16-bit PCM, 單聲道)
+     - 包絡淡出效果 (100ms 持續時間)
+     - 動態 BPM 轉換為毫秒間隔
+   - 整合方式:
+     - 加入底部導航欄 (第3個選項)
+     - 使用 SVG 圖標 (`assets/節拍器.svg`)
+     - 路由路徑: `/metronome`
+
+2. **🎨 動態主題切換系統**:
+   - 檔案: 
+     - `lib/utils/theme_manager.dart` (94 行)
+     - `lib/utils/app_colors.dart` (19 行)
+   - 主題選項: 5 種精心設計的配色方案
+     - **預設**: 柔和淺藍系 (原始設計)
+     - **海洋**: 清新藍調 + 珊瑚橙對比
+     - **森林**: 沉穩灰綠 + 薄荷綠
+     - **夕陽**: 暖橘金 + 玫瑰粉
+     - **薰衣草**: 霧粉 + 薄荷灰
+   - 技術架構:
+     - ThemeManager 單例模式 + ChangeNotifier
+     - SharedPreferences 持久化儲存
+     - 動態顏色系統 (靜態常數 + getter 方法)
+   - UI 整合:
+     - 設定頁面新增 "主題設定" 選項
+     - 彈窗式主題選擇器
+     - 圓形色塊預覽 + 選中狀態標示
+     - 即時應用無需重啟
+
+3. **📱 導航系統升級**:
+   - 檔案: `lib/widgets/main_shell.dart`
+   - 改動: 從 4 個導航項目擴充至 5 個
+     - 新增: 節拍器 (位置 3)
+     - SVG 圖標支援 (首頁 + 節拍器)
+   - 路由配置: `lib/router/app_router.dart`
+     - 節拍器加入 ShellRoute (保持底部導航)
+
+**測試結果**: ✅ 所有功能正常運作
+- 節拍器音效清晰準確
+- 主題切換即時生效
+- 設定持久化儲存正常
+- 無編譯警告和錯誤
+
+**使用者體驗提升**:
+- 🎼 練習時可使用內建節拍器，無需外部工具
+- 🎨 個性化界面，提升視覺舒適度
+- 🚀 快速切換主題，適應不同使用場景
+
+---
+
+### 2025/10/08 - UI 修正與日誌分析 ✅ 完成
 
 **修正問題**:
 
@@ -674,6 +738,7 @@ final searchEnd = expectedTime + 0.20;
 | **2025/10/28-31** | 測試與調優 | • 參數調優 (3版本)<br>• 實際演奏測試<br>• 準確率驗證 | ✅ 96.4% 準確率 |
 | **2025/11/01-05** | Phase 3 MIDI播放 | • MIDI → MP3 轉換<br>• SoundFont 合成<br>• **Phase 2 deletion** | ❌ 功能丟失 |
 | **2025/11/06-10** | Phase 3 重建 | • 代碼重建<br>• 功能測試<br>• 穩定性驗證 | ✅ 功能恢復 |
+| **2025/10/15** | 功能擴充 | • 專業節拍器開發<br>• 動態主題系統<br>• 導航系統升級 | ✅ 5主題 + 節拍器 |
 
 ### 代碼演進統計
 
@@ -696,12 +761,148 @@ Phase 3 (MIDI 播放) - 2025/11
 ├── audio_conversion_utils.dart            ~200 行 ✅ (重建)
 └── 總計                                   ~500 行
 
+功能擴充 (節拍器 + 主題) - 2025/10/15
+├── metronome_page.dart                    526 行  ✅
+├── theme_manager.dart                     94 行   ✅
+├── app_colors.dart                        19 行   ✅
+├── 主題系統整合 (settings_page等)        ~50 行  ✅
+└── 總計                                   689 行
+
 【專案總計】
-• 有效代碼: 2,836 行
+• 有效代碼: 3,525 行
 • 廢棄代碼: ~800 行 (AI 轉譯方案)
-• 服務類: 18 個
+• 服務類: 20 個
 • 數據模型: 47 個
+• UI 頁面: 12 個
 ```
+
+---
+
+### 第四階段: 輔助功能擴充 (2025/10/15) ✅
+
+**動機**: 提升用戶體驗，增加應用實用性和個性化
+
+#### 專業節拍器系統
+
+**核心技術**:
+```dart
+// 1. 音頻合成引擎
+class _MetronomePageState {
+  FlutterSoundPlayer? _audioPlayer;
+  
+  // 生成 WAV 音效 (44.1kHz, 16-bit, Mono)
+  Uint8List _generateBeepSound(bool isAccent) {
+    // 重拍: 1000Hz 基頻 + 2000Hz 諧波
+    // 正拍: 800Hz 基頻 + 1600Hz 諧波
+    final frequency = isAccent ? 1000.0 : 800.0;
+    final amplitude = isAccent ? 0.8 : 0.6;
+    
+    // 正弦波合成 + 包絡淡出
+    for (int i = 0; i < numSamples; i++) {
+      final t = i / sampleRate;
+      final envelope = 1.0 - (t / duration);
+      final sample = amplitude * envelope * 
+          (0.7 * sin(2*π*frequency*t) + 
+           0.3 * sin(2*π*frequency*2*t)); // 諧波
+    }
+  }
+}
+```
+
+**精確計時機制**:
+```dart
+// Timer.periodic 確保穩定性
+int intervalMs = (60000 / _bpm).round();
+_timer = Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
+  _playBeat();
+});
+
+// 範例: BPM=120 → intervalMs=500ms → 每秒2拍
+```
+
+**動畫系統**:
+```dart
+// AnimationController + Curves.elasticOut
+_pulseAnimation = Tween<double>(
+  begin: 1.0,
+  end: 1.3,  // 30% 放大
+).animate(CurvedAnimation(
+  parent: _pulseController,
+  curve: Curves.elasticOut,
+));
+```
+
+**功能特色**:
+- BPM 範圍: 40-200 (支援極慢到極快)
+- 微調按鈕: ±1 和 ±10 BPM
+- 拍號: 2/4、3/4、4/4 循環切換
+- 重音開關: 可自定義是否強調第一拍
+- 視覺指示器: 圓形節拍燈 + 脈衝動畫
+
+#### 動態主題系統
+
+**架構設計**:
+```dart
+// 單例模式 + ChangeNotifier
+class ThemeManager extends ChangeNotifier {
+  String _currentTheme = 'default';
+  
+  // 5種精心配色
+  static const Map<String, Map<String, Color>> themes = {
+    'default': {...},  // 柔和淺藍
+    'ocean': {...},    // 清新海洋
+    'forest': {...},   // 沉穩森林
+    'sunset': {...},   // 暖夕橘金
+    'lavender': {...}, // 霧粉薰衣草
+  };
+}
+```
+
+**持久化儲存**:
+```dart
+// SharedPreferences 保存用戶偏好
+Future<void> setTheme(String themeName) async {
+  _currentTheme = themeName;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('selected_theme', themeName);
+  notifyListeners(); // 即時更新 UI
+}
+```
+
+**顏色系統雙層架構**:
+```dart
+// app_colors.dart
+class AppColors {
+  // 靜態常數 (const 構造函數使用)
+  static const Color primary = Color(0xFFD8AE7E);
+  
+  // 動態 getter (主題切換使用)
+  static Color get dynamicPrimary => 
+    ThemeManager.instance.currentColors['primary']!;
+}
+```
+
+**UI 整合**:
+- 設定頁面新增"主題設定"選項
+- Material Design 3 對話框
+- 圓形色塊預覽 (直徑 40px)
+- 選中狀態: 白色勾選圖標
+- 點擊後即時應用 + 自動保存
+
+**主題配色理念**:
+| 主題 | 視覺風格 | 適用場景 |
+|------|---------|---------|
+| 預設 | 柔和淺藍，專業穩重 | 日常練習 |
+| 海洋 | 清新活力，對比強烈 | 精神充沛時 |
+| 森林 | 沉穩自然，護眼舒適 | 長時間使用 |
+| 夕陽 | 溫暖柔和，情感豐富 | 傍晚練習 |
+| 薰衣草 | 優雅夢幻，柔和溫馨 | 放鬆練習 |
+
+**技術優勢**:
+- ✅ 零重啟切換 (ChangeNotifier 驅動)
+- ✅ 持久化儲存 (SharedPreferences)
+- ✅ 全局一致性 (單例模式)
+- ✅ 向後兼容 (靜態顏色保留)
 
 ---
 
@@ -1212,7 +1413,8 @@ debugPrint('✅ 選擇 ${strategyNames[bestIndex]}，產生 ${strategyResults[be
 | 階段 2.1 | 服務架構搭建 | 548行 | 548 |
 | 階段 2.2 | 核心驗證算法 | 587行 | 1,135 |
 | 階段 2.3 | 錯誤分類與整合 | 472行 | 1,607 |
-| 階段 2.4 | UI 整合 | 729行 | **2,336** |
+| 階段 2.4 | UI 整合 | 729行 | 2,336 |
+| **功能擴充** | **節拍器 + 主題系統** | **639行** | **2,975** |
 
 ### 核心模組
 
@@ -1223,6 +1425,9 @@ debugPrint('✅ 選擇 ${strategyNames[bestIndex]}，產生 ${strategyResults[be
 | 錯誤分類 | error_classification_service_impl_v2.dart | Onset Detection |
 | 分析協調 | performance_analyzer.dart | 流程整合 |
 | UI 呈現 | analysis_result_page.dart | 結果展示 |
+| **節拍器** | **metronome_page.dart** | **專業節拍器 (526行)** |
+| **主題管理** | **theme_manager.dart** | **動態主題切換 (94行)** |
+| **顏色系統** | **app_colors.dart** | **主題顏色定義 (19行)** |
 
 ---
 
