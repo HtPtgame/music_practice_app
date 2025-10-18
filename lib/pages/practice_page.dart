@@ -31,7 +31,7 @@ class _PracticePageState extends State<PracticePage> {
   FlutterSoundRecorder? _recorder; // 使用 flutter_sound 進行錄音
   FlutterSoundPlayer? _player; // 保留 flutter_sound 用於播放
   final AudioRecorder _recordAlt = AudioRecorder(); // 新增：替代錄音器
-  bool _useAltRecorder = true; // 新增：預設啟用替代方案
+  final bool _useAltRecorder = true; // 新增：預設啟用替代方案
   String? _audioPath;
   String? _midiPath; // 新增：儲存轉換後的 MIDI 檔案路徑
   bool isPlaying = false;
@@ -47,7 +47,7 @@ class _PracticePageState extends State<PracticePage> {
 
   // [已淘汰 2025/10/08] AI 模型相關變數 (保留以避免編譯錯誤,但不會被使用)
   dynamic _interpreter; // 原本是 Interpreter? 類型
-  bool _isModelLoaded = false;
+  final bool _isModelLoaded = false;
 
   // Week 4 Phase 2: 分析功能狀態
   bool _isAnalyzing = false;
@@ -2110,7 +2110,7 @@ class _PracticePageState extends State<PracticePage> {
       final midiPro = MidiPro();
       
       // 載入音色庫 (SoundFont) - 鋼琴音色
-      final soundfontPath = 'assets/TimGM6mb.sf2';
+      const soundfontPath = 'assets/TimGM6mb.sf2';
       final sfId = await midiPro.loadSoundfont(
         path: soundfontPath,
         bank: 0,
@@ -2596,6 +2596,7 @@ class _PracticePageState extends State<PracticePage> {
     }
     final audioFile = File(_audioPath!);
     if (!await audioFile.exists()) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('❌ 錄音文件不存在，請重新錄音'), backgroundColor: Colors.red),
       );
@@ -2603,6 +2604,7 @@ class _PracticePageState extends State<PracticePage> {
     }
     final midiFile = File(widget.file!.path!);
     if (!await midiFile.exists()) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('❌ MIDI文件不存在，請重新選擇'), backgroundColor: Colors.red),
       );

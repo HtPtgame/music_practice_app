@@ -58,9 +58,15 @@ class ThemeManager extends ChangeNotifier {
   Future<void> initTheme() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _currentTheme = prefs.getString('selected_theme') ?? 'default';
+      final savedTheme = prefs.getString('selected_theme');
+      if (savedTheme != null && themes.containsKey(savedTheme)) {
+        _currentTheme = savedTheme;
+      } else {
+        _currentTheme = 'default';
+      }
+      debugPrint('主題初始化完成: $_currentTheme');
     } catch (e) {
-      print('載入主題設定時發生錯誤: $e');
+      debugPrint('載入主題設定時發生錯誤: $e');
       _currentTheme = 'default';
     }
   }
@@ -72,9 +78,10 @@ class ThemeManager extends ChangeNotifier {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('selected_theme', themeName);
+        debugPrint('主題已更改為: $themeName');
         notifyListeners(); // 通知監聽器主題已更改
       } catch (e) {
-        print('保存主題設定時發生錯誤: $e');
+        debugPrint('保存主題設定時發生錯誤: $e');
       }
     }
   }

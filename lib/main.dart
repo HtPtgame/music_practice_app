@@ -6,9 +6,6 @@ import 'package:music_practice_app/utils/theme_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 初始化主題管理器
-  await ThemeManager.instance.initTheme();
-  
   // 鎖定螢幕方向為直立模式，防止旋轉破圖
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -26,11 +23,24 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  bool _themeLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    // 監聽主題變化
-    ThemeManager.instance.addListener(_onThemeChanged);
+    _initializeTheme();
+  }
+
+  Future<void> _initializeTheme() async {
+    // 確保主題管理器已完全初始化
+    await ThemeManager.instance.initTheme();
+    if (mounted) {
+      setState(() {
+        _themeLoaded = true;
+      });
+      // 監聽主題變化
+      ThemeManager.instance.addListener(_onThemeChanged);
+    }
   }
 
   @override
@@ -47,6 +57,18 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 顯示載入畫面直到主題完全載入
+    if (!_themeLoaded) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     final themeColors = ThemeManager.instance.currentColors;
     
     return MaterialApp.router(
@@ -56,7 +78,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: themeColors['primary']!,
-          background: themeColors['background']!,
+          brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: themeColors['background'],
         cardColor: themeColors['card'],

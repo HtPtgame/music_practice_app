@@ -12,31 +12,46 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.dynamicBackground,
       body: SafeArea(
+        bottom: false, // 底部不使用 SafeArea,讓我們自己控制
         child: child,
       ),
       bottomNavigationBar: SafeArea(
         child: BottomNavigationBar(
+          backgroundColor: AppColors.dynamicCard,
           currentIndex: _calculateSelectedIndex(context),
           onTap: (index) => _onItemTapped(index, context),
           selectedItemColor: AppColors.dynamicPrimary,
           unselectedItemColor: Colors.grey,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
+          elevation: 8, // 增加陰影
           items: [
             BottomNavigationBarItem(
               icon: _buildHomeIcon(context, false),
               activeIcon: _buildHomeIcon(context, true),
               label: '首頁',
             ),
-            const BottomNavigationBarItem(icon: Icon(Icons.library_music), label: '我的樂庫'),
+            BottomNavigationBarItem(
+              icon: _buildLibraryIcon(context, false),
+              activeIcon: _buildLibraryIcon(context, true),
+              label: '我的樂庫',
+            ),
             BottomNavigationBarItem(
               icon: _buildMetronomeIcon(context, false),
               activeIcon: _buildMetronomeIcon(context, true),
               label: '節拍器',
             ),
-            const BottomNavigationBarItem(icon: Icon(Icons.note_alt), label: '筆記'),
-            const BottomNavigationBarItem(icon: Icon(Icons.settings), label: '設定'),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.note_alt, size: 35),
+              label: '筆記',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildSettingsIcon(context, false),
+              activeIcon: _buildSettingsIcon(context, true),
+              label: '設定',
+            ),
           ],
         ),
       ),
@@ -45,11 +60,23 @@ class MainShell extends StatelessWidget {
 
   Widget _buildHomeIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
-      'assets/首頁-_1_.svg',
-      width: 24,
-      height: 24,
+      'assets/首頁.svg',
+      width: 35,
+      height: 35,
       colorFilter: ColorFilter.mode(
-        isActive ? const Color(0xFF2E7D32) : Colors.grey[600]!,
+        isActive ? AppColors.dynamicPrimary : Colors.grey[600]!,
+        BlendMode.srcIn,
+      ),
+    );
+  }
+
+  Widget _buildLibraryIcon(BuildContext context, bool isActive) {
+    return SvgPicture.asset(
+      'assets/音樂庫.svg',
+      width: 35,
+      height: 35,
+      colorFilter: ColorFilter.mode(
+        isActive ? AppColors.dynamicPrimary : Colors.grey[600]!,
         BlendMode.srcIn,
       ),
     );
@@ -58,10 +85,22 @@ class MainShell extends StatelessWidget {
   Widget _buildMetronomeIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
       'assets/節拍器.svg',
-      width: 24,
-      height: 24,
+      width: 35,
+      height: 35,
       colorFilter: ColorFilter.mode(
-        isActive ? const Color(0xFF2E7D32) : Colors.grey[600]!,
+        isActive ? AppColors.dynamicPrimary : Colors.grey[600]!,
+        BlendMode.srcIn,
+      ),
+    );
+  }
+
+  Widget _buildSettingsIcon(BuildContext context, bool isActive) {
+    return SvgPicture.asset(
+      'assets/設定.svg',
+      width: 35,
+      height: 35,
+      colorFilter: ColorFilter.mode(
+        isActive ? AppColors.dynamicPrimary : Colors.grey[600]!,
         BlendMode.srcIn,
       ),
     );
