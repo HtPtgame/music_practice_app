@@ -6,19 +6,20 @@
 /// 3. 驗證音符準確性
 /// 4. 分類錯誤類型
 /// 5. 生成完整報告
+library;
 
 import 'dart:io';
 import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
 
 void main() async {
-  print('\n' + '═' * 60);
+  print('\n${'═' * 60}');
   print('階段 2.4 完整分析測試 - 桌面 test.wav');
   print('═' * 60 + '\n');
 
   // 檔案路徑
   final desktopPath = Platform.environment['USERPROFILE']! + r'\Desktop';
   final wavPath = '$desktopPath\\test.wav';
-  final midiPath = 'assets/測試.mid';
+  const midiPath = 'assets/測試.mid';
 
   // 檢查檔案
   print('📁 檢查測試檔案...');
@@ -70,7 +71,7 @@ void main() async {
     stopwatch.stop();
 
     // 顯示結果
-    print('\n' + '═' * 60);
+    print('\n${'═' * 60}');
     print('分析完成!');
     print('═' * 60 + '\n');
 

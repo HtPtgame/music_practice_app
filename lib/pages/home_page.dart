@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/widgets/recent_activity_card.dart';
+import 'package:music_practice_app/widgets/check_in_card.dart';
+import 'package:music_practice_app/widgets/practice_timer_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -56,6 +58,17 @@ class _HomePageContent extends StatelessWidget {
     return ListView(
       children: [
         const SizedBox(height: 8),
+        
+        // 打卡卡片
+        const CheckInCard(),
+        
+        const SizedBox(height: 16),
+        
+        // 練習計時卡片
+        const PracticeTimerCard(),
+        
+        const SizedBox(height: 24),
+        
         ElevatedButton(
           onPressed: () => context.go('/library'),
           style: ElevatedButton.styleFrom(

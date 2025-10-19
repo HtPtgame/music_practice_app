@@ -37,7 +37,7 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
   late Animation<double> _pendulumAnimation;
   
   // 音效
-  bool _soundEnabled = true;
+  final bool _soundEnabled = true;
   bool _accentEnabled = true; // 重音節拍
   
   @override
@@ -313,8 +313,8 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
-    final bottomNavHeight = 80.0; // 底部導覽欄高度
-    final bottomPadding = 24.0; // 與導覽欄保持的安全距離（增加）
+    const bottomNavHeight = 80.0; // 底部導覽欄高度
+    const bottomPadding = 24.0; // 與導覽欄保持的安全距離（增加）
     final availableHeight = screenHeight - appBarHeight - bottomNavHeight - bottomPadding - MediaQuery.of(context).padding.bottom;
     
     return Scaffold(
@@ -422,8 +422,8 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
                           builder: (context, constraints) {
                             // 計算擺錘桿的實際可用長度
                             final pendulumAreaHeight = constraints.maxHeight;
-                            final pivotBottomPadding = 40.0;
-                            final weightRadius = 32.0;
+                            const pivotBottomPadding = 40.0;
+                            const weightRadius = 32.0;
                             final rodLength = (pendulumAreaHeight - pivotBottomPadding - weightRadius - 50).clamp(60.0, 250.0);
                           
                             return Stack(
@@ -1067,7 +1067,7 @@ class MetronomeScalePainter extends CustomPainter {
       // 轉換為弧度，0度向上
       final angleRadians = (angleDegrees) * pi / 180;
       
-      final tickLength = 15.0; // 刻度線長度
+      const tickLength = 15.0; // 刻度線長度
       final startRadius = scaleRadius - tickLength;
       final endRadius = scaleRadius;
       

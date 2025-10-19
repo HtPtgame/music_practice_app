@@ -44,6 +44,7 @@ class NotePage extends StatefulWidget {
 
 class _NotePageState extends State<NotePage> {
   final List<MusicSheet> _musicSheets = [];
+  bool _isLoading = true; // 添加加載狀態
 
   @override
   void initState() {
@@ -69,16 +70,21 @@ class _NotePageState extends State<NotePage> {
           _musicSheets.addAll(
             jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
           );
+          _isLoading = false; // 載入完成
         });
         print('成功載入 ${_musicSheets.length} 個樂譜目錄');
       } else {
         print('沒有找到已儲存的樂譜目錄');
+        setState(() {
+          _isLoading = false; // 載入完成（無數據）
+        });
       }
     } catch (e) {
       print('載入樂譜目錄時發生錯誤: $e');
       // 如果載入失敗，確保列表是空的
       setState(() {
         _musicSheets.clear();
+        _isLoading = false; // 載入完成（錯誤）
       });
     }
   }
@@ -196,9 +202,10 @@ class _NotePageState extends State<NotePage> {
   }
 
   void _openMusicSheetDetail(int index) {
-    Navigator.push(
-      context,
+    // 使用 rootNavigator: true 完全脫離 ShellRoute，隱藏底部導覽欄
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
+        fullscreenDialog: true, // 全螢幕對話框模式
         builder: (context) => MusicSheetDetailPage(
           sheetName: _musicSheets[index].name,
           initialNotes: _musicSheets[index].notes,
@@ -241,6 +248,28 @@ class _NotePageState extends State<NotePage> {
   }
 
   Widget _buildMusicSheetsTab() {
+    // 如果正在載入，顯示加載指示器
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: AppColors.dynamicPrimary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '載入中...',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.dynamicTextLight,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: _musicSheets.isEmpty

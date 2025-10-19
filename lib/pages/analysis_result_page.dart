@@ -17,11 +17,11 @@ class AnalysisResultPage extends StatelessWidget {
   final String? audioFileName;
 
   const AnalysisResultPage({
-    Key? key,
+    super.key,
     required this.report,
     this.midiFileName,
     this.audioFileName,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +296,7 @@ class AnalysisResultPage extends StatelessWidget {
               final index = entry.key;
               final error = entry.value;
               return _buildErrorItem(index + 1, error);
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -319,7 +319,7 @@ class AnalysisResultPage extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              _getErrorIcon(error.type) + ' ' + error.message,
+              '${_getErrorIcon(error.type)} ${error.message}',
               style: TextStyle(
                 fontSize: 14,
                 color: _getErrorColor(error.type),
@@ -364,7 +364,7 @@ class AnalysisResultPage extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
-            )).toList(),
+            )),
           ],
         ),
       ),

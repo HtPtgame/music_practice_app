@@ -2,6 +2,7 @@
 /// 
 /// 使用動態時間規整 (Dynamic Time Warping, DTW) 或序列對齊算法
 /// 確保演奏的音符序列與標準答案匹配,而不僅僅是音高匹配
+library;
 
 import 'dart:math';
 import 'models/note_event.dart';

@@ -181,7 +181,7 @@ void main(List<String> args) async {
       print('   ❌ 漏音: ${report.missedNotes}');
       print('   ⏱️  時間: ${report.processingTime}ms');
       
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('');
       print('❌ 測試失敗: $e');
       results.add({
@@ -212,7 +212,7 @@ void main(List<String> args) async {
 
   // 表格標題
   print('${_pad('測試音檔', 25)} ${_pad('類型', 12)} ${_pad('準確率', 10)} ${_pad('評級', 6)} ${_pad('狀態', 10)}');
-  print('${'─' * 70}');
+  print('─' * 70);
 
   // 表格內容
   for (final result in results) {

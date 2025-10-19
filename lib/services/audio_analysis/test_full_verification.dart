@@ -143,7 +143,7 @@ void main() async {
       
       print('   ${(count + 1).toString().padLeft(2)}. $icon ${note.noteName.padRight(4)} '
             '│ ${note.startTime.toStringAsFixed(2)}s '
-            '│ ${status}');
+            '│ $status');
       
       count++;
     }
