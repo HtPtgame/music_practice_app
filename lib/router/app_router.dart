@@ -12,6 +12,7 @@ import 'package:music_practice_app/pages/upload_page2.dart';
 import 'package:music_practice_app/pages/library_page.dart';
 import 'package:music_practice_app/pages/settings_page.dart';
 import 'package:music_practice_app/pages/note_page.dart';
+import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
 import 'package:music_practice_app/pages/metronome_page.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 
@@ -65,6 +66,22 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) => const NoTransitionPage(
             child: NotePage(),
           ),
+          routes: [
+            // 樂曲詳情頁面作為筆記頁面的子路由,保留底部導航欄
+            GoRoute(
+              path: 'detail/:sheetIndex',
+              pageBuilder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>;
+                return NoTransitionPage(
+                  child: MusicSheetDetailPage(
+                    sheetName: extra['sheetName'] as String,
+                    initialNotes: extra['initialNotes'] as List<String>,
+                    onNotesChanged: extra['onNotesChanged'] as Function(List<String>),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ],
     ),

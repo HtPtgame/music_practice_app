@@ -181,7 +181,7 @@ void main(List<String> args) async {
       print('   ❌ 漏音: ${report.missedNotes}');
       print('   ⏱️  時間: ${report.processingTime}ms');
       
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('');
       print('❌ 測試失敗: $e');
       results.add({
@@ -225,7 +225,6 @@ void main(List<String> args) async {
       final grade = result['grade'] as String;
       print('${_pad(name, 25)} ${_pad(type, 12)} ${_pad('${accuracy.toStringAsFixed(1)}%', 10)} ${_pad(grade, 6)} ${_pad('✅ PASS', 10)}');
     } else {
-      final error = result['error'] as String;
       print('${_pad(name, 25)} ${_pad(type, 12)} ${_pad('N/A', 10)} ${_pad('N/A', 6)} ${_pad('❌ FAIL', 10)}');
     }
   }

@@ -1,5 +1,4 @@
 /// 快速測試名偵探柯南
-import 'dart:io';
 import 'lib/services/audio_analysis/performance_analyzer.dart';
 
 void main() async {

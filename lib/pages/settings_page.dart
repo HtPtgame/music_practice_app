@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/utils/theme_manager.dart';
+import 'package:music_practice_app/services/settings_service.dart';
+import 'package:music_practice_app/services/haptic_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -11,17 +13,24 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final SettingsService _settingsService = SettingsService();
+  final HapticService _hapticService = HapticService();
+  
   String _selectedLanguage = 'zh_TW'; // 預設選擇繁體中文
   
   // 音效設定相關變數
   double _masterVolume = 0.8; // 主音量 (0.0 - 1.0)
   double _midiVolume = 0.7; // MIDI 播放音量
   double _recordingVolume = 0.9; // 錄音音量
+  double _metronomeVolume = 0.6; // 節拍器音量
   bool _soundEnabled = true; // 是否啟用音效
   bool _vibrationEnabled = true; // 是否啟用震動
   
   // 防止重複顯示 SnackBar
   bool _isShowingSnackBar = false;
+  
+  // 載入狀態
+  bool _isLoading = true;
 
   final Map<String, String> _languages = {
     'zh_TW': '繁體中文',
@@ -54,7 +63,67 @@ class _SettingsPageState extends State<SettingsPage> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  /// 從持久化儲存載入所有設定
+  Future<void> _loadSettings() async {
+    try {
+      final settings = await _settingsService.getAllSettings();
+      
+      if (mounted) {
+        setState(() {
+          _masterVolume = settings['masterVolume'] as double;
+          _midiVolume = settings['midiVolume'] as double;
+          _recordingVolume = settings['recordingVolume'] as double;
+          _metronomeVolume = settings['metronomeVolume'] as double;
+          _soundEnabled = settings['soundEnabled'] as bool;
+          _vibrationEnabled = settings['vibrationEnabled'] as bool;
+          _selectedLanguage = settings['selectedLanguage'] as String;
+          _isLoading = false;
+        });
+      }
+      
+      debugPrint('SettingsPage: ✅ Settings loaded successfully');
+    } catch (e) {
+      debugPrint('SettingsPage: ⚠️ Failed to load settings: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.dynamicBackground,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                color: AppColors.dynamicPrimary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '載入設定中...',
+                style: TextStyle(
+                  color: AppColors.dynamicTextLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       body: SingleChildScrollView(
@@ -66,6 +135,12 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionTitle('語言設定'),
             const SizedBox(height: 16),
             _buildLanguageCard(),
+            const SizedBox(height: 32),
+            
+            // 音效設定區塊
+            _buildSectionTitle('音效設定'),
+            const SizedBox(height: 16),
+            _buildSoundSettingsCard(),
             const SizedBox(height: 32),
             
             // 其他設定區塊
@@ -150,6 +225,266 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _buildSoundSettingsCard() {
+    return Card(
+      color: AppColors.dynamicCard,
+      elevation: 2,
+      shadowColor: const Color(0x196A5AE0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 標題與重置按鈕
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '音量控制',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.dynamicTextDark,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _resetVolumesToDefault,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('重置'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.dynamicPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // 主音量
+            _buildVolumeSlider(
+              icon: Icons.volume_up,
+              title: '主音量',
+              value: _masterVolume,
+              onChanged: (value) async {
+                setState(() => _masterVolume = value);
+                await _settingsService.setMasterVolume(value);
+                _hapticService.selectionClick();
+              },
+            ),
+            const SizedBox(height: 20),
+            
+            // MIDI 音量
+            _buildVolumeSlider(
+              icon: Icons.piano,
+              title: 'MIDI 音量',
+              value: _midiVolume,
+              onChanged: (value) async {
+                setState(() => _midiVolume = value);
+                await _settingsService.setMidiVolume(value);
+                _hapticService.selectionClick();
+              },
+            ),
+            const SizedBox(height: 20),
+            
+            // 節拍器音量
+            _buildVolumeSlider(
+              icon: Icons.av_timer,
+              title: '節拍器音量',
+              value: _metronomeVolume,
+              onChanged: (value) async {
+                setState(() => _metronomeVolume = value);
+                await _settingsService.setMetronomeVolume(value);
+                _hapticService.selectionClick();
+              },
+            ),
+            const SizedBox(height: 20),
+            
+            // 錄音音量
+            _buildVolumeSlider(
+              icon: Icons.mic,
+              title: '錄音音量',
+              value: _recordingVolume,
+              onChanged: (value) async {
+                setState(() => _recordingVolume = value);
+                await _settingsService.setRecordingVolume(value);
+                _hapticService.selectionClick();
+              },
+            ),
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 12),
+            
+            // 音效開關
+            _buildSwitchTile(
+              icon: Icons.music_note,
+              title: '音效',
+              subtitle: _soundEnabled ? '已啟用' : '已關閉',
+              value: _soundEnabled,
+              onChanged: (value) async {
+                setState(() => _soundEnabled = value);
+                await _settingsService.setSoundEnabled(value);
+                _hapticService.lightImpact();
+              },
+            ),
+            const SizedBox(height: 12),
+            
+            // 震動開關
+            _buildSwitchTile(
+              icon: Icons.vibration,
+              title: '震動回饋',
+              subtitle: _vibrationEnabled ? '已啟用' : '已關閉',
+              value: _vibrationEnabled,
+              onChanged: (value) async {
+                setState(() => _vibrationEnabled = value);
+                await _settingsService.setVibrationEnabled(value);
+                _hapticService.lightImpact();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 重置所有音量到預設值
+  Future<void> _resetVolumesToDefault() async {
+    try {
+      // 震動回饋
+      await _hapticService.mediumImpact();
+      
+      // 重置到預設值
+      setState(() {
+        _masterVolume = 0.8;
+        _midiVolume = 0.7;
+        _recordingVolume = 0.9;
+        _metronomeVolume = 0.6;
+      });
+      
+      // 儲存設定
+      await _settingsService.setMasterVolume(0.8);
+      await _settingsService.setMidiVolume(0.7);
+      await _settingsService.setRecordingVolume(0.9);
+      await _settingsService.setMetronomeVolume(0.6);
+      
+      if (mounted) {
+        _showSuccessMessage('已重置所有音量至標準值');
+      }
+    } catch (e) {
+      debugPrint('重置音量失敗: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('重置失敗，請重試'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildVolumeSlider({
+    required IconData icon,
+    required String title,
+    required double value,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.dynamicPrimary, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.dynamicTextDark,
+                    ),
+                  ),
+                  Text(
+                    '${(value * 100).round()}%',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.dynamicPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              SliderTheme(
+                data: SliderThemeData(
+                  trackHeight: 4,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                  activeTrackColor: AppColors.dynamicPrimary,
+                  inactiveTrackColor: AppColors.dynamicPrimary.withValues(alpha: 0.2),
+                  thumbColor: AppColors.dynamicPrimary,
+                  overlayColor: AppColors.dynamicPrimary.withValues(alpha: 0.2),
+                ),
+                child: Slider(
+                  value: value,
+                  onChanged: onChanged,
+                  min: 0.0,
+                  max: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.dynamicPrimary, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.dynamicTextDark,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.dynamicTextLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: AppColors.dynamicPrimary,
+        ),
+      ],
+    );
+  }
+
   Widget _buildOtherSettingsCards() {
     return Column(
       children: [
@@ -165,13 +500,6 @@ class _SettingsPageState extends State<SettingsPage> {
           title: '主題設定',
           subtitle: '選擇應用程式主題顏色',
           onTap: () => _showThemeDialog(),
-        ),
-        const SizedBox(height: 12),
-        _buildSettingCard(
-          icon: Icons.volume_up,
-          title: '音效設定',
-          subtitle: '主音量：${(_masterVolume * 100).round()}%，音效：${_soundEnabled ? "開啟" : "關閉"}',
-          onTap: () => _showSoundSettingsDialog(),
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
@@ -320,6 +648,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             : null,
                         onTap: () async {
                           try {
+                            // 震動回饋
+                            await _hapticService.selectionClick();
+                            
                             // 先關閉對話框
                             if (Navigator.canPop(context)) {
                               Navigator.of(context).pop();
@@ -332,6 +663,9 @@ class _SettingsPageState extends State<SettingsPage> {
                               setState(() {
                                 _selectedLanguage = languageCode;
                               });
+                              
+                              // 儲存設定
+                              await _settingsService.setSelectedLanguage(languageCode);
                               
                               // 等待 setState 完成
                               await Future.delayed(const Duration(milliseconds: 50));
@@ -346,6 +680,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               setState(() {
                                 _selectedLanguage = languageCode;
                               });
+                              await _settingsService.setSelectedLanguage(languageCode);
                             }
                           }
                         },
@@ -374,256 +709,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showSoundSettingsDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: AppColors.dynamicCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '音效設定',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.dynamicTextDark,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // 主音量控制
-                    _buildVolumeSlider(
-                      '主音量',
-                      _masterVolume,
-                      (value) {
-                        setDialogState(() {
-                          _masterVolume = value;
-                        });
-                        setState(() {}); // 更新主頁面狀態
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // MIDI 播放音量
-                    _buildVolumeSlider(
-                      'MIDI 播放音量',
-                      _midiVolume,
-                      (value) {
-                        setDialogState(() {
-                          _midiVolume = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // 錄音音量
-                    _buildVolumeSlider(
-                      '錄音監聽音量',
-                      _recordingVolume,
-                      (value) {
-                        setDialogState(() {
-                          _recordingVolume = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // 音效開關
-                    _buildSwitchTile(
-                      '啟用音效',
-                      '開啟或關閉應用程式音效',
-                      Icons.volume_up,
-                      _soundEnabled,
-                      (value) {
-                        setDialogState(() {
-                          _soundEnabled = value;
-                        });
-                        setState(() {}); // 更新主頁面狀態
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // 震動開關
-                    _buildSwitchTile(
-                      '啟用震動',
-                      '按鈕操作和通知震動回饋',
-                      Icons.vibration,
-                      _vibrationEnabled,
-                      (value) {
-                        setDialogState(() {
-                          _vibrationEnabled = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // 按鈕區域
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            // 重置為預設值
-                            setDialogState(() {
-                              _masterVolume = 0.8;
-                              _midiVolume = 0.7;
-                              _recordingVolume = 0.9;
-                              _soundEnabled = true;
-                              _vibrationEnabled = true;
-                            });
-                            setState(() {}); // 更新主頁面
-                          },
-                          child: Text(
-                            '重置',
-                            style: TextStyle(color: AppColors.dynamicTextLight),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: Text(
-                                '取消',
-                                style: TextStyle(color: AppColors.dynamicTextLight),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  if (Navigator.canPop(context)) {
-                                    Navigator.of(context).pop();
-                                  }
-                                  await Future.delayed(const Duration(milliseconds: 100));
-                                  if (mounted) {
-                                    _showSuccessMessage('音效設定已儲存');
-                                  }
-                                } catch (e) {
-                                  // 錯誤處理
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.dynamicPrimary,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('確定'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
-  Widget _buildVolumeSlider(String title, double value, ValueChanged<double> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.dynamicTextDark,
-              ),
-            ),
-            Text(
-              '${(value * 100).round()}%',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.dynamicPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: AppColors.dynamicPrimary,
-            inactiveTrackColor: AppColors.dynamicPrimary.withValues(alpha: 0.3),
-            thumbColor: AppColors.dynamicPrimary,
-            overlayColor: AppColors.dynamicPrimary.withValues(alpha: 0.2),
-            trackHeight: 4.0,
-          ),
-          child: Slider(
-            value: value,
-            onChanged: onChanged,
-            min: 0.0,
-            max: 1.0,
-            divisions: 20,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSwitchTile(String title, String subtitle, IconData icon, bool value, ValueChanged<bool> onChanged) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.dynamicPrimary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: AppColors.dynamicPrimary,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.dynamicTextDark,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.dynamicTextLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.dynamicPrimary,
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showThemeDialog() {
     showDialog(

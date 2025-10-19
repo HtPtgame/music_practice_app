@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro.dart';
 import 'package:music_practice_app/utils/midi_parser.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:music_practice_app/services/settings_service.dart';
 
 class MidiPlayerService {
   static final MidiPlayerService _instance = MidiPlayerService._internal();
@@ -12,6 +13,8 @@ class MidiPlayerService {
   MidiPlayerService._internal();
 
   final MidiPro _midiPro = MidiPro();
+  final SettingsService _settingsService = SettingsService();
+  
   bool _isInitialized = false;
   int? _soundfontId;
 
@@ -325,27 +328,34 @@ class MidiPlayerService {
     return totalMs;
   }
 
-  void _playSingleNote(MidiNoteEvent event) {
+  void _playSingleNote(MidiNoteEvent event) async {
     if (_soundfontId == null) return;
     
     try {
+      // 取得音量設定
+      final midiVolume = await _settingsService.getMidiVolume();
+      final masterVolume = await _settingsService.getMasterVolume();
+      final soundEnabled = await _settingsService.isSoundEnabled();
+      
+      // 如果音效未啟用，則不播放
+      if (!soundEnabled) return;
+      
+      // 計算最終音量（結合 MIDI 音量和主音量）
+      final finalVelocity = (event.velocity * midiVolume * masterVolume).round().clamp(0, 127);
+      
       if (event.isNoteOn) {
         _midiPro.playNote(
           sfId: _soundfontId!, 
           key: event.noteNumber, 
-          velocity: event.velocity
+          velocity: finalVelocity
         );
-        // 手機調試：減少日誌輸出，避免性能影響
-        if (kDebugMode) {
-          debugPrint('MidiPlayerService: Note ${event.noteNumber} ON');
-        }
       } else {
         _midiPro.stopNote(sfId: _soundfontId!, key: event.noteNumber);
       }
     } catch (e) {
       // 手機優化：簡化錯誤日誌
       if (kDebugMode) {
-        debugPrint('MidiPlayerService: Note error: $e');
+        debugPrint('MidiPlayerService: ⚠️ Note playback error: $e');
       }
     }
   }

@@ -14,45 +14,66 @@ class MainShell extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       body: SafeArea(
-        bottom: false, // 底部不使用 SafeArea,讓我們自己控制
-        child: child,
+        child: RepaintBoundary(
+          child: child,
+        ),
       ),
       bottomNavigationBar: SafeArea(
-        child: BottomNavigationBar(
-          backgroundColor: AppColors.dynamicCard,
-          currentIndex: _calculateSelectedIndex(context),
-          onTap: (index) => _onItemTapped(index, context),
-          selectedItemColor: AppColors.dynamicPrimary,
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-          type: BottomNavigationBarType.fixed,
-          elevation: 8, // 增加陰影
-          items: [
-            BottomNavigationBarItem(
-              icon: _buildHomeIcon(context, false),
-              activeIcon: _buildHomeIcon(context, true),
-              label: '首頁',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildLibraryIcon(context, false),
-              activeIcon: _buildLibraryIcon(context, true),
-              label: '我的樂庫',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildMetronomeIcon(context, false),
-              activeIcon: _buildMetronomeIcon(context, true),
-              label: '節拍器',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.note_alt, size: 35),
-              label: '筆記',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildSettingsIcon(context, false),
-              activeIcon: _buildSettingsIcon(context, true),
-              label: '設定',
-            ),
-          ],
+        child: RepaintBoundary(
+          child: BottomNavigationBar(
+            backgroundColor: AppColors.dynamicCard,
+            currentIndex: _calculateSelectedIndex(context),
+            onTap: (index) => _onItemTapped(index, context),
+            selectedItemColor: AppColors.dynamicPrimary,
+            unselectedItemColor: Colors.grey,
+            showUnselectedLabels: true,
+            type: BottomNavigationBarType.fixed,
+            elevation: 8,
+            items: [
+              BottomNavigationBarItem(
+                icon: RepaintBoundary(
+                  child: _buildHomeIcon(context, false),
+                ),
+                activeIcon: RepaintBoundary(
+                  child: _buildHomeIcon(context, true),
+                ),
+                label: '首頁',
+              ),
+              BottomNavigationBarItem(
+                icon: RepaintBoundary(
+                  child: _buildLibraryIcon(context, false),
+                ),
+                activeIcon: RepaintBoundary(
+                  child: _buildLibraryIcon(context, true),
+                ),
+                label: '我的樂庫',
+              ),
+              BottomNavigationBarItem(
+                icon: RepaintBoundary(
+                  child: _buildMetronomeIcon(context, false),
+                ),
+                activeIcon: RepaintBoundary(
+                  child: _buildMetronomeIcon(context, true),
+                ),
+                label: '節拍器',
+              ),
+              const BottomNavigationBarItem(
+                icon: RepaintBoundary(
+                  child: Icon(Icons.note_alt, size: 35),
+                ),
+                label: '筆記',
+              ),
+              BottomNavigationBarItem(
+                icon: RepaintBoundary(
+                  child: _buildSettingsIcon(context, false),
+                ),
+                activeIcon: RepaintBoundary(
+                  child: _buildSettingsIcon(context, true),
+                ),
+                label: '設定',
+              ),
+            ],
+          ),
         ),
       ),
     );

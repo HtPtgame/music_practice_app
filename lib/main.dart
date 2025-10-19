@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:music_practice_app/router/app_router.dart';
 import 'package:music_practice_app/utils/theme_manager.dart';
+import 'package:music_practice_app/services/settings_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 初始化設定服務
+  await SettingsService().initialize();
   
   // 鎖定螢幕方向為直立模式，防止旋轉破圖
   await SystemChrome.setPreferredOrientations([

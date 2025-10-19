@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:convert';
 
 // 樂譜目錄數據模型
@@ -44,6 +44,7 @@ class NotePage extends StatefulWidget {
 
 class _NotePageState extends State<NotePage> {
   final List<MusicSheet> _musicSheets = [];
+  bool _isLoading = true; // 新增載入狀態
 
   @override
   void initState() {
@@ -64,22 +65,33 @@ class _NotePageState extends State<NotePage> {
       
       if (musicSheetsJson != null && musicSheetsJson.isNotEmpty) {
         final List<dynamic> jsonList = jsonDecode(musicSheetsJson);
-        setState(() {
-          _musicSheets.clear();
-          _musicSheets.addAll(
-            jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
-          );
-        });
+        if (mounted) {
+          setState(() {
+            _musicSheets.clear();
+            _musicSheets.addAll(
+              jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
+            );
+            _isLoading = false; // 載入完成
+          });
+        }
         print('成功載入 ${_musicSheets.length} 個樂譜目錄');
       } else {
         print('沒有找到已儲存的樂譜目錄');
+        if (mounted) {
+          setState(() {
+            _isLoading = false; // 載入完成(無資料)
+          });
+        }
       }
     } catch (e) {
       print('載入樂譜目錄時發生錯誤: $e');
       // 如果載入失敗，確保列表是空的
-      setState(() {
-        _musicSheets.clear();
-      });
+      if (mounted) {
+        setState(() {
+          _musicSheets.clear();
+          _isLoading = false; // 載入完成(失敗)
+        });
+      }
     }
   }
 
@@ -196,22 +208,17 @@ class _NotePageState extends State<NotePage> {
   }
 
   void _openMusicSheetDetail(int index) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MusicSheetDetailPage(
-          sheetName: _musicSheets[index].name,
-          initialNotes: _musicSheets[index].notes,
-          onNotesChanged: (updatedNotes) async {
-            setState(() {
-              _musicSheets[index].notes.clear();
-              _musicSheets[index].notes.addAll(updatedNotes);
-            });
-            await _saveMusicSheets();
-          },
-        ),
-      ),
-    );
+    context.go('/notes/detail/$index', extra: {
+      'sheetName': _musicSheets[index].name,
+      'initialNotes': _musicSheets[index].notes,
+      'onNotesChanged': (List<String> updatedNotes) async {
+        setState(() {
+          _musicSheets[index].notes.clear();
+          _musicSheets[index].notes.addAll(updatedNotes);
+        });
+        await _saveMusicSheets();
+      },
+    });
   }
 
   @override
@@ -241,6 +248,15 @@ class _NotePageState extends State<NotePage> {
   }
 
   Widget _buildMusicSheetsTab() {
+    // 載入中顯示進度指示器
+    if (_isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: AppColors.dynamicPrimary,
+        ),
+      );
+    }
+    
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: _musicSheets.isEmpty
@@ -275,10 +291,11 @@ class _NotePageState extends State<NotePage> {
           : GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.35,
               ),
+              padding: const EdgeInsets.only(bottom: 80),
               itemCount: _musicSheets.length,
               itemBuilder: (context, index) {
                 final sheet = _musicSheets[index];
@@ -289,7 +306,7 @@ class _NotePageState extends State<NotePage> {
                     onTap: () => _openMusicSheetDetail(index),
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(10.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -299,9 +316,11 @@ class _NotePageState extends State<NotePage> {
                               Icon(
                                 Icons.music_note,
                                 color: AppColors.dynamicPrimary,
-                                size: 24,
+                                size: 22,
                               ),
                               PopupMenuButton<String>(
+                                padding: EdgeInsets.zero,
+                                iconSize: 20,
                                 onSelected: (value) {
                                   if (value == 'delete') {
                                     _deleteMusicSheet(index);
@@ -312,9 +331,9 @@ class _NotePageState extends State<NotePage> {
                                     value: 'delete',
                                     child: Row(
                                       children: [
-                                        Icon(Icons.delete, color: Colors.red),
+                                        Icon(Icons.delete, color: Colors.red, size: 18),
                                         SizedBox(width: 8),
-                                        Text('刪除'),
+                                        Text('刪除', style: TextStyle(fontSize: 14)),
                                       ],
                                     ),
                                   ),
@@ -322,30 +341,33 @@ class _NotePageState extends State<NotePage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  sheet.name,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.dynamicTextDark,
+                                Flexible(
+                                  child: Text(
+                                    sheet.name,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.dynamicTextDark,
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${sheet.notes.length} 條筆記',
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     color: AppColors.dynamicTextLight.withValues(alpha: 0.8),
                                   ),
                                 ),
-                                const Spacer(),
                                 Text(
                                   '${sheet.createdAt.month}/${sheet.createdAt.day}',
                                   style: TextStyle(
