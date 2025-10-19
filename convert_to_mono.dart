@@ -1,6 +1,7 @@
 /// WAV 立體聲轉單聲道工具
 /// 
 /// 將雙聲道 WAV 轉換為單聲道,混音方式為平均左右聲道
+library;
 
 import 'dart:io';
 import 'dart:typed_data';

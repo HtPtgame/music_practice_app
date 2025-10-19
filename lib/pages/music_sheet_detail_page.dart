@@ -13,7 +13,7 @@ class PracticeNote {
 
   @override
   String toString() {
-    return '第${measure}小節: $content';
+    return '第$measure小節: $content';
   }
 }
 
@@ -314,150 +314,169 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
-      appBar: AppBar(
-        title: Text(
-          widget.sheetName,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: AppColors.dynamicTextDark,
-          ),
-        ),
-        backgroundColor: AppColors.dynamicBackground,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: AppColors.dynamicTextDark),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // 新增筆記區域
-            Card(
-              color: AppColors.dynamicCard,
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '點擊下方按鈕新增練習要點',
+      // 移除 AppBar，改為全螢幕
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // 自訂頂部區域：左上返回鍵 + 標題
+              Row(
+                children: [
+                  // 返回鍵
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: AppColors.dynamicTextDark,
+                      size: 28,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 8),
+                  // 標題
+                  Expanded(
+                    child: Text(
+                      widget.sheetName,
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
                         color: AppColors.dynamicTextDark,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '可以針對特定小節記錄需要注意的地方',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.dynamicTextLight,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _addNote,
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        label: const Text(
-                          '新增筆記',
-                          style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // 新增筆記區域
+              Card(
+                color: AppColors.dynamicCard,
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '點擊下方按鈕新增練習要點',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.dynamicTextDark,
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.dynamicPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '可以針對特定小節記錄需要注意的地方',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.dynamicTextLight,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _addNote,
+                          icon: const Icon(Icons.add, color: Colors.white),
+                          label: const Text(
+                            '新增筆記',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.dynamicPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // 筆記列表
-            Expanded(
-              child: _notes.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.music_note_outlined,
-                            size: 80,
-                            color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '還沒有任何練習要點',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: AppColors.dynamicTextLight.withValues(alpha: 0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '開始記錄這首曲子的練習重點吧！',
-                            style: TextStyle(
-                              fontSize: 14,
+              const SizedBox(height: 20),
+              
+              // 筆記列表
+              Expanded(
+                child: _notes.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.music_note_outlined,
+                              size: 80,
                               color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _notes.length,
-                      itemBuilder: (context, index) {
-                        return Card(
-                          color: AppColors.dynamicCard,
-                          elevation: 1,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
-                              child: Text(
-                                '${_notes[index].measure}',
-                                style: TextStyle(
-                                  color: AppColors.dynamicPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              _notes[index].content,
+                            const SizedBox(height: 16),
+                            Text(
+                              '還沒有任何練習要點',
                               style: TextStyle(
-                                color: AppColors.dynamicTextDark,
-                                fontSize: 16,
+                                fontSize: 18,
+                                color: AppColors.dynamicTextLight.withValues(alpha: 0.7),
                               ),
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit_outlined, color: AppColors.dynamicPrimary),
-                                  onPressed: () => _editNote(index),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  onPressed: () => _deleteNote(index),
-                                ),
-                              ],
+                            const SizedBox(height: 8),
+                            Text(
+                              '開始記錄這首曲子的練習重點吧！',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _notes.length,
+                        itemBuilder: (context, index) {
+                          return Card(
+                            color: AppColors.dynamicCard,
+                            elevation: 1,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                                child: Text(
+                                  '${_notes[index].measure}',
+                                  style: TextStyle(
+                                    color: AppColors.dynamicPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                _notes[index].content,
+                                style: TextStyle(
+                                  color: AppColors.dynamicTextDark,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit_outlined, color: AppColors.dynamicPrimary),
+                                    onPressed: () => _editNote(index),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    onPressed: () => _deleteNote(index),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

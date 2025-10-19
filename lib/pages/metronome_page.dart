@@ -322,8 +322,8 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
     final bottomNavHeight = 80.0; // 底部導覽欄高度
-    final bottomPadding = 24.0; // 與導覽欄保持的安全距離
-    final availableHeight = screenHeight - appBarHeight - bottomNavHeight - bottomPadding;
+    final bottomPadding = 24.0; // 與導覽欄保持的安全距離（增加）
+    final availableHeight = screenHeight - appBarHeight - bottomNavHeight - bottomPadding - MediaQuery.of(context).padding.bottom;
     
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
@@ -363,305 +363,291 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
                     ],
                   ),
                   child: Column(
-                    children: [
-                      // BPM控制區 - 固定在頂部，縮小間距
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                        child: Column(
-                          children: [
-                            // BPM Display (可點擊輸入)
-                            GestureDetector(
-                              onTap: () => _showBPMInputDialog(context),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    '$_bpm',
-                                    style: TextStyle(
-                                      fontSize: 56,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.dynamicPrimary,
-                                    ),
-                                  ),
-                                  Text(
-                                    'BPM (點擊輸入)',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.dynamicTextLight,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            
-                            // BPM Control Buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // BPM控制區 - 固定在頂部，縮小間距
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Column(
+                        children: [
+                          // BPM Display (可點擊輸入)
+                          GestureDetector(
+                            onTap: () => _showBPMInputDialog(context),
+                            child: Column(
                               children: [
-                                _buildCircularButton(
-                                  icon: Icons.remove,
-                                  onPressed: () => _changeBPM(-1),
-                                  size: 45,
+                                Text(
+                                  '$_bpm',
+                                  style: TextStyle(
+                                    fontSize: 56,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.dynamicPrimary,
+                                  ),
                                 ),
-                                const SizedBox(width: 50),
-                                _buildCircularButton(
-                                  icon: Icons.add,
-                                  onPressed: () => _changeBPM(1),
-                                  size: 45,
+                                Text(
+                                  'BPM (點擊輸入)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.dynamicTextLight,
+                                  ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 8),
+                          
+                          // BPM Control Buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildCircularButton(
+                                icon: Icons.remove,
+                                onPressed: () => _changeBPM(-1),
+                                size: 45,
+                              ),
+                              const SizedBox(width: 50),
+                              _buildCircularButton(
+                                icon: Icons.add,
+                                onPressed: () => _changeBPM(1),
+                                size: 45,
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      
-                      // 分隔線 - 縮小邊距
-                      Container(
-                        height: 1,
-                        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                        color: AppColors.dynamicTextLight.withOpacity(0.1),
-                      ),
-                      
-                      // Pendulum Area - 佔據剩餘空間
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              // 計算擺錘桿的實際可用長度
-                              final pendulumAreaHeight = constraints.maxHeight;
-                              final pivotBottomPadding = 40.0;
-                              final weightRadius = 32.0;
-                              final rodLength = (pendulumAreaHeight - pivotBottomPadding - weightRadius - 50).clamp(60.0, 250.0);
-                            
-                              return Stack(
-                                children: [
-                                // Scale marks background - 固定在擺錘軸心上方
-                                Positioned(
-                                  bottom: pivotBottomPadding,
-                                  left: 0,
-                                  right: 0,
-                                  height: rodLength + weightRadius + 50, // 刻度高度 = 桿長 + 重錘 + 額外空間
-                                  child: CustomPaint(
-                                    painter: MetronomeScalePainter(
-                                      color: AppColors.dynamicTextLight.withOpacity(0.3),
-                                      rodLength: rodLength,
-                                    ),
+                    ),
+                    
+                    // 分隔線 - 縮小邊距
+                    Container(
+                      height: 1,
+                      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                      color: AppColors.dynamicTextLight.withOpacity(0.1),
+                    ),
+                    
+                    // Pendulum Area - 佔據剩餘空間
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // 計算擺錘桿的實際可用長度
+                            final pendulumAreaHeight = constraints.maxHeight;
+                            final pivotBottomPadding = 40.0;
+                            final weightRadius = 32.0;
+                            final rodLength = (pendulumAreaHeight - pivotBottomPadding - weightRadius - 50).clamp(60.0, 250.0);
+                          
+                            return Stack(
+                              children: [
+                              // Scale marks background - 固定在擺錘軸心上方
+                              Positioned(
+                                bottom: pivotBottomPadding,
+                                left: 0,
+                                right: 0,
+                                height: rodLength + weightRadius + 50, // 刻度高度 = 桿長 + 重錘 + 額外空間
+                                child: CustomPaint(
+                                  painter: MetronomeScalePainter(
+                                    color: AppColors.dynamicTextLight.withOpacity(0.3),
+                                    rodLength: rodLength,
                                   ),
                                 ),
-                                // Pendulum with pivot at bottom (軸心在下方)
-                                Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(bottom: pivotBottomPadding),
-                                    child: AnimatedBuilder(
-                                      animation: _pendulumAnimation,
-                                      builder: (context, child) {
-                                        return Transform.rotate(
-                                          angle: _isPlaying ? _pendulumAnimation.value : 0,
-                                          alignment: Alignment.bottomCenter, // 軸心在底部
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // Top weight
-                                              Container(
-                                                width: weightRadius,
-                                                height: weightRadius,
-                                                decoration: BoxDecoration(
-                                                  color: _currentBeat == 1 && _isPlaying
-                                                      ? Colors.red
-                                                      : AppColors.dynamicPrimary,
-                                                  shape: BoxShape.circle,
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: (_currentBeat == 1 && _isPlaying
-                                                          ? Colors.red
-                                                          : AppColors.dynamicPrimary)
-                                                          .withOpacity(0.5),
-                                                      blurRadius: 10,
-                                                      spreadRadius: 3,
-                                                    ),
+                              ),
+                              // Pendulum with pivot at bottom (軸心在下方)
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Padding(
+                                  padding: EdgeInsets.only(bottom: pivotBottomPadding),
+                                  child: AnimatedBuilder(
+                                    animation: _pendulumAnimation,
+                                    builder: (context, child) {
+                                      return Transform.rotate(
+                                        angle: _isPlaying ? _pendulumAnimation.value : 0,
+                                        alignment: Alignment.bottomCenter, // 軸心在底部
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Top weight
+                                            Container(
+                                              width: weightRadius,
+                                              height: weightRadius,
+                                              decoration: BoxDecoration(
+                                                color: _currentBeat == 1 && _isPlaying
+                                                    ? Colors.red
+                                                    : AppColors.dynamicPrimary,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: (_currentBeat == 1 && _isPlaying
+                                                        ? Colors.red
+                                                        : AppColors.dynamicPrimary)
+                                                        .withOpacity(0.5),
+                                                    blurRadius: 10,
+                                                    spreadRadius: 3,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            // Rod - 動態高度基於實際可用空間
+                                            Container(
+                                              width: 5,
+                                              height: rodLength, // 使用計算好的長度
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    AppColors.dynamicPrimary,
+                                                    AppColors.dynamicPrimary.withOpacity(0.6),
                                                   ],
                                                 ),
+                                                borderRadius: BorderRadius.circular(2.5),
                                               ),
-                                              // Rod - 動態高度基於實際可用空間
-                                              Container(
-                                                width: 5,
-                                                height: rodLength, // 使用計算好的長度
-                                                decoration: BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    begin: Alignment.topCenter,
-                                                    end: Alignment.bottomCenter,
-                                                    colors: [
-                                                      AppColors.dynamicPrimary,
-                                                      AppColors.dynamicPrimary.withOpacity(0.6),
-                                                    ],
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(2.5),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                                // Pivot point indicator (軸心指示器)
-                                Positioned(
-                                  bottom: pivotBottomPadding - 10,
-                                  left: 0,
-                                  right: 0,
-                                  child: Center(
-                                    child: Container(
-                                      width: 16,
-                                      height: 16,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.dynamicTextDark,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: AppColors.dynamicPrimary,
-                                          width: 2,
-                                        ),
+                              ),
+                              // Pivot point indicator (軸心指示器)
+                              Positioned(
+                                bottom: pivotBottomPadding - 10,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.dynamicTextDark,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.dynamicPrimary,
+                                        width: 2,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // Bottom Controls Card - 拍號控制與播放
+          Expanded(
+              flex: 3,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.dynamicCard,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center, // 垂直置中
+                  children: [
+                    // Beat indicators
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_timeSignature, (index) {
+                        bool isActive = _isPlaying && (index + 1) == _currentBeat;
+                        bool isAccent = index == 0;
+                        
+                        return AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            double scale = isActive ? _pulseAnimation.value : 1.0;
+                            
+                            return Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isActive 
+                                      ? (isAccent && _accentEnabled ? Colors.red : AppColors.dynamicPrimary)
+                                      : AppColors.dynamicTextLight.withOpacity(0.2),
+                                ),
+                              ),
                             );
                           },
+                        );
+                      }),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Control buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Time Signature (點擊彈窗選擇)
+                        _buildControlCard(
+                          icon: Icons.music_note,
+                          label: '$_timeSignature/4',
+                          onTap: () => _showTimeSignatureDialog(context),
                         ),
-                      ),
+                        // Play/Stop (大按鈕)
+                        GestureDetector(
+                          onTap: _startStopMetronome,
+                          child: Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _isPlaying ? Colors.red : const Color(0xFF2E7D32),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isPlaying ? Colors.red : const Color(0xFF2E7D32))
+                                      .withOpacity(0.3),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _isPlaying ? Icons.stop : Icons.play_arrow,
+                              size: 36,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        // Accent toggle
+                        _buildControlCard(
+                          icon: Icons.volume_up,
+                          label: '重音',
+                          onTap: () {
+                            setState(() {
+                              _accentEnabled = !_accentEnabled;
+                            });
+                          },
+                          isActive: _accentEnabled,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            
-            const SizedBox(height: 8),
-            
-            // Bottom Controls Card - 拍號控制與播放
-            Expanded(
-                flex: 3,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.dynamicCard,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center, // 垂直置中
-                    children: [
-                      // Beat indicators
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_timeSignature, (index) {
-                          bool isActive = _isPlaying && (index + 1) == _currentBeat;
-                          bool isAccent = index == 0;
-                          
-                          return AnimatedBuilder(
-                            animation: _pulseAnimation,
-                            builder: (context, child) {
-                              double scale = isActive ? _pulseAnimation.value : 1.0;
-                              
-                              return Transform.scale(
-                                scale: scale,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: isActive 
-                                        ? (isAccent && _accentEnabled ? Colors.red : AppColors.dynamicPrimary)
-                                        : AppColors.dynamicTextLight.withOpacity(0.2),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        }),
-                      ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Control buttons - 使用 Wrap 避免溢出
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.spaceEvenly,
-                        children: [
-                          // Time Signature (點擊彈窗選擇)
-                          _buildControlCard(
-                            icon: Icons.music_note,
-                            label: '$_timeSignature/4',
-                            onTap: () => _showTimeSignatureDialog(context),
-                          ),
-                          // Accent toggle
-                          _buildControlCard(
-                            icon: Icons.volume_up,
-                            label: '重音',
-                            onTap: () {
-                              setState(() {
-                                _accentEnabled = !_accentEnabled;
-                              });
-                            },
-                            isActive: _accentEnabled,
-                          ),
-                          // Play/Stop (大按鈕)
-                          GestureDetector(
-                            onTap: _startStopMetronome,
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _isPlaying ? Colors.red : const Color(0xFF2E7D32),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (_isPlaying ? Colors.red : const Color(0xFF2E7D32))
-                                        .withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                _isPlaying ? Icons.stop : Icons.play_arrow,
-                                size: 30,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          // Sound toggle
-                          _buildControlCard(
-                            icon: _soundEnabled ? Icons.volume_up : Icons.volume_off,
-                            label: '音效',
-                            onTap: () {
-                              setState(() {
-                                _soundEnabled = !_soundEnabled;
-                              });
-                            },
-                            isActive: _soundEnabled,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
-    );
+    ));
   }
   
   Widget _buildCircularButton({
@@ -1093,7 +1079,7 @@ class MetronomeScalePainter extends CustomPainter {
       // 轉換為弧度，0度向上
       final angleRadians = (angleDegrees) * pi / 180;
       
-      final tickLength = 15.0; // 刻度線長度
+      const tickLength = 15.0; // 刻度線長度
       final startRadius = scaleRadius - tickLength;
       final endRadius = scaleRadius;
       

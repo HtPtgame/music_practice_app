@@ -61,7 +61,7 @@ class ErrorClassificationServiceImpl {
             expectedTime: expectedNote.startTime,
             actualTime: actualOnset,
             timingOffset: timeOffset,
-            message: '節奏偏差: ${expectedNote.noteName} ${direction} ${offsetMs}ms',
+            message: '節奏偏差: ${expectedNote.noteName} $direction ${offsetMs}ms',
             confidence: 0.8,
           ));
         }

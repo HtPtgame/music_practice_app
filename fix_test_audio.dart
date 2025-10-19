@@ -1,5 +1,6 @@
 /// 修正測試音檔格式
 /// 將所有測試音檔轉換為: 單聲道, 44100Hz, 16-bit PCM
+library;
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -182,5 +183,5 @@ Future<void> processWavFile(String inputPath) async {
   await File(inputPath).writeAsBytes(outputBytes);
   
   final newSize = (outputBytes.length / 1024 / 1024).toStringAsFixed(2);
-  print('   ✅ 轉換完成! (新格式: 1 聲道, 44100 Hz, ${newSize} MB)');
+  print('   ✅ 轉換完成! (新格式: 1 聲道, 44100 Hz, $newSize MB)');
 }

@@ -85,7 +85,7 @@ class _NotePageState extends State<NotePage> {
       }
     } catch (e) {
       print('載入樂譜目錄時發生錯誤: $e');
-      // 如果載入失敗，確保列表是空的
+      // 如果載入失敗,確保列表是空的
       if (mounted) {
         setState(() {
           _musicSheets.clear();

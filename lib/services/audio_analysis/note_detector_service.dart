@@ -2,6 +2,7 @@
 /// 
 /// 從頻譜圖中檢測所有存在的音符 (peak picking)
 /// 而不是僅驗證特定音符是否存在
+library;
 
 import 'dart:math';
 import 'models/spectrogram.dart';
