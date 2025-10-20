@@ -1,8 +1,6 @@
 // lib/pages/home_page.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/widgets/recent_activity_card.dart';
 import 'package:music_practice_app/widgets/check_in_card.dart';
 import 'package:music_practice_app/widgets/practice_timer_card.dart';
 
@@ -28,7 +26,7 @@ class HomePage extends StatelessWidget {
                     children: [
                       Icon(Icons.music_note, color: AppColors.dynamicPrimary, size: 28),
                       const SizedBox(width: 8),
-                      Text('音樂練習', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text('音靈偵探', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 24, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   IconButton(
@@ -67,33 +65,7 @@ class _HomePageContent extends StatelessWidget {
         // 練習計時卡片
         const PracticeTimerCard(),
         
-        const SizedBox(height: 24),
-        
-        ElevatedButton(
-          onPressed: () => context.go('/library'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.dynamicPrimary,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-          child: const Text('開始練習（音檔管理目錄）', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        const SizedBox(height: 32),
-        Text('最近活動', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.dynamicTextDark)),
-        const SizedBox(height: 16),
-        RecentActivityCard(
-          title: '小星星',
-          subtitle: '上次練習: 2025/07/11 - 95分',
-          onPressed: () => context.go('/playback'),
-        ),
-        const SizedBox(height: 12),
-        RecentActivityCard(
-          title: '給愛麗絲',
-          subtitle: '上次練習: 2025/07/08 - 88分',
-         
-          onPressed: () => context.go('/playback'),
-        ),
+        const SizedBox(height: 100), // 底部間距
       ],
     );
   }

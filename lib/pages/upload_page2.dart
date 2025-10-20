@@ -102,11 +102,12 @@ class _UploadPage2State extends State<UploadPage2> {
           onPressed: () => context.go('/library'),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text(
               '請選擇要上傳的 MIDI 檔案',
               style: TextStyle(
@@ -200,23 +201,27 @@ class _UploadPage2State extends State<UploadPage2> {
             
             // 儲存按鈕
             if (_pickedFile != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _saveToLibrary, // 儲存到樂庫
-                    icon: const Icon(Icons.save, size: 28),
-                    label: const Text('儲存到樂庫', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _saveToLibrary, // 儲存到樂庫
+                      icon: const Icon(Icons.save, size: 28),
+                      label: const Text('儲存到樂庫', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

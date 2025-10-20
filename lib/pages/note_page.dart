@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:go_router/go_router.dart';
 import 'dart:convert';
 
 // 樂譜目錄數據模型
@@ -44,7 +44,9 @@ class NotePage extends StatefulWidget {
 
 class _NotePageState extends State<NotePage> {
   final List<MusicSheet> _musicSheets = [];
-  bool _isLoading = true; // 新增載入狀態
+  bool _isLoading = true; // 添加加載狀態
+  bool _isEditMode = false; // 編輯模式
+  final Set<int> _selectedIndices = {}; // 選中的索引
 
   @override
   void initState() {
@@ -65,33 +67,27 @@ class _NotePageState extends State<NotePage> {
       
       if (musicSheetsJson != null && musicSheetsJson.isNotEmpty) {
         final List<dynamic> jsonList = jsonDecode(musicSheetsJson);
-        if (mounted) {
-          setState(() {
-            _musicSheets.clear();
-            _musicSheets.addAll(
-              jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
-            );
-            _isLoading = false; // 載入完成
-          });
-        }
+        setState(() {
+          _musicSheets.clear();
+          _musicSheets.addAll(
+            jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
+          );
+          _isLoading = false; // 載入完成
+        });
         print('成功載入 ${_musicSheets.length} 個樂譜目錄');
       } else {
         print('沒有找到已儲存的樂譜目錄');
-        if (mounted) {
-          setState(() {
-            _isLoading = false; // 載入完成(無資料)
-          });
-        }
+        setState(() {
+          _isLoading = false; // 載入完成（無數據）
+        });
       }
     } catch (e) {
       print('載入樂譜目錄時發生錯誤: $e');
-      // 如果載入失敗,確保列表是空的
-      if (mounted) {
-        setState(() {
-          _musicSheets.clear();
-          _isLoading = false; // 載入完成(失敗)
-        });
-      }
+      // 如果載入失敗，確保列表是空的
+      setState(() {
+        _musicSheets.clear();
+        _isLoading = false; // 載入完成（錯誤）
+      });
     }
   }
 
@@ -176,13 +172,24 @@ class _NotePageState extends State<NotePage> {
     );
   }
 
-  void _deleteMusicSheet(int index) {
+  void _toggleEditMode() {
+    setState(() {
+      _isEditMode = !_isEditMode;
+      if (!_isEditMode) {
+        _selectedIndices.clear();
+      }
+    });
+  }
+
+  void _deleteSelectedSheets() {
+    if (_selectedIndices.isEmpty) return;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('確認刪除'),
-          content: Text('確定要刪除「${_musicSheets[index].name}」及其所有筆記嗎？'),
+          content: Text('確定要刪除 ${_selectedIndices.length} 個樂譜及其所有筆記嗎？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -190,8 +197,14 @@ class _NotePageState extends State<NotePage> {
             ),
             TextButton(
               onPressed: () async {
+                // 從大到小排序索引,避免刪除時索引錯亂
+                final sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
                 setState(() {
-                  _musicSheets.removeAt(index);
+                  for (final index in sortedIndices) {
+                    _musicSheets.removeAt(index);
+                  }
+                  _selectedIndices.clear();
+                  _isEditMode = false;
                 });
                 await _saveMusicSheets();
                 Navigator.of(context).pop();
@@ -208,17 +221,23 @@ class _NotePageState extends State<NotePage> {
   }
 
   void _openMusicSheetDetail(int index) {
-    context.go('/notes/detail/$index', extra: {
-      'sheetName': _musicSheets[index].name,
-      'initialNotes': _musicSheets[index].notes,
-      'onNotesChanged': (List<String> updatedNotes) async {
-        setState(() {
-          _musicSheets[index].notes.clear();
-          _musicSheets[index].notes.addAll(updatedNotes);
-        });
-        await _saveMusicSheets();
-      },
-    });
+    // 使用 rootNavigator: true 完全脫離 ShellRoute，隱藏底部導覽欄
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        fullscreenDialog: true, // 全螢幕對話框模式
+        builder: (context) => MusicSheetDetailPage(
+          sheetName: _musicSheets[index].name,
+          initialNotes: _musicSheets[index].notes,
+          onNotesChanged: (updatedNotes) async {
+            setState(() {
+              _musicSheets[index].notes.clear();
+              _musicSheets[index].notes.addAll(updatedNotes);
+            });
+            await _saveMusicSheets();
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -227,7 +246,7 @@ class _NotePageState extends State<NotePage> {
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: Text(
-          '樂譜目錄',
+          _isEditMode ? '選擇要刪除的樂譜' : '樂譜目錄',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -237,9 +256,29 @@ class _NotePageState extends State<NotePage> {
         backgroundColor: AppColors.dynamicBackground,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          if (_musicSheets.isNotEmpty)
+            TextButton(
+              onPressed: _isEditMode ? _toggleEditMode : _toggleEditMode,
+              child: Text(
+                _isEditMode ? '取消' : '編輯',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          if (_isEditMode && _selectedIndices.isNotEmpty)
+            IconButton(
+              onPressed: _deleteSelectedSheets,
+              icon: const Icon(Icons.delete, color: Colors.red),
+              tooltip: '刪除選中項',
+            ),
+        ],
       ),
       body: _buildMusicSheetsTab(),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _isEditMode ? null : FloatingActionButton(
         onPressed: _showAddMusicSheetDialog,
         backgroundColor: AppColors.dynamicPrimary,
         child: const Icon(Icons.add, color: Colors.white),
@@ -248,11 +287,24 @@ class _NotePageState extends State<NotePage> {
   }
 
   Widget _buildMusicSheetsTab() {
-    // 載入中顯示進度指示器
+    // 如果正在載入，顯示加載指示器
     if (_isLoading) {
       return Center(
-        child: CircularProgressIndicator(
-          color: AppColors.dynamicPrimary,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: AppColors.dynamicPrimary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '載入中...',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.dynamicTextLight,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -291,95 +343,109 @@ class _NotePageState extends State<NotePage> {
           : GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1.35,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2,
               ),
-              padding: const EdgeInsets.only(bottom: 80),
               itemCount: _musicSheets.length,
               itemBuilder: (context, index) {
                 final sheet = _musicSheets[index];
+                final isSelected = _selectedIndices.contains(index);
+                
                 return Card(
                   color: AppColors.dynamicCard,
                   elevation: 2,
                   child: InkWell(
-                    onTap: () => _openMusicSheetDetail(index),
+                    onTap: () {
+                      if (_isEditMode) {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedIndices.remove(index);
+                          } else {
+                            _selectedIndices.add(index);
+                          }
+                        });
+                      } else {
+                        _openMusicSheetDetail(index);
+                      }
+                    },
                     borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.music_note,
-                                color: AppColors.dynamicPrimary,
-                                size: 22,
-                              ),
-                              PopupMenuButton<String>(
-                                padding: EdgeInsets.zero,
-                                iconSize: 20,
-                                onSelected: (value) {
-                                  if (value == 'delete') {
-                                    _deleteMusicSheet(index);
-                                  }
-                                },
-                                itemBuilder: (BuildContext context) => [
-                                  const PopupMenuItem<String>(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete, color: Colors.red, size: 18),
-                                        SizedBox(width: 8),
-                                        Text('刪除', style: TextStyle(fontSize: 14)),
-                                      ],
+                              // 標題行: 音符符號 + 樂曲名稱
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.music_note,
+                                    color: AppColors.dynamicPrimary,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      sheet.name,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.dynamicTextDark,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    sheet.name,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.dynamicTextDark,
-                                      height: 1.2,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
+                              const SizedBox(height: 8),
+                              // 筆記數量
+                              Padding(
+                                padding: const EdgeInsets.only(left: 32),
+                                child: Text(
                                   '${sheet.notes.length} 條筆記',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     color: AppColors.dynamicTextLight.withValues(alpha: 0.8),
                                   ),
                                 ),
-                                Text(
-                                  '${sheet.createdAt.month}/${sheet.createdAt.day}',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.dynamicTextLight.withValues(alpha: 0.6),
-                                  ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 編輯模式: 顯示勾選框
+                        if (_isEditMode)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: isSelected 
+                                    ? AppColors.dynamicPrimary 
+                                    : Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected 
+                                      ? AppColors.dynamicPrimary 
+                                      : AppColors.dynamicTextLight,
+                                  width: 2,
                                 ),
-                              ],
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 18,
+                                    )
+                                  : null,
                             ),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
                 );

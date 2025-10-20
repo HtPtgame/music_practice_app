@@ -830,9 +830,9 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                   ),
                   // BPM 顯示
                   Container(
-                    width: 200, // 固定寬度
-                    height: 100, // 固定高度
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                    width: 240, // 固定寬度
+                    height: 80, // 固定高度
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.dynamicPrimary, width: 2),
                       borderRadius: BorderRadius.circular(16),
@@ -841,7 +841,7 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                     child: Text(
                       inputValue,
                       style: TextStyle(
-                        fontSize: 56,
+                        fontSize: 48,
                         fontWeight: FontWeight.bold,
                         color: AppColors.dynamicPrimary,
                       ),
@@ -852,26 +852,26 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                   GridView.count(
                     shrinkWrap: true,
                     crossAxisCount: 3,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.3,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.2,
                     children: [
                       for (int i = 1; i <= 9; i++)
                         _buildNumberButton(i.toString()),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   // 0, 清除, 刪除 (橫排顯示)
                   Row(
                     children: [
                       Expanded(
                         child: _buildNumberButton('清除', isSpecial: true),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _buildNumberButton('0'),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _buildNumberButton('⌫', isSpecial: true),
                       ),
@@ -908,26 +908,29 @@ class _BPMInputPageState extends State<_BPMInputPage> {
   }
 
   Widget _buildNumberButton(String text, {bool isSpecial = false}) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isSpecial
-            ? Colors.red.withOpacity(0.1)
-            : AppColors.dynamicPrimary.withOpacity(0.1),
-        foregroundColor: isSpecial ? Colors.red : AppColors.dynamicPrimary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+    return SizedBox(
+      height: 56, // 固定高度
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isSpecial
+              ? Colors.red.withOpacity(0.1)
+              : AppColors.dynamicPrimary.withOpacity(0.1),
+          foregroundColor: isSpecial ? Colors.red : AppColors.dynamicPrimary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         ),
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      ),
-      onPressed: () => _handleNumberInput(text),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: text == '清除' || text == '⌫' ? 18 : 28,
-            fontWeight: FontWeight.bold,
+        onPressed: () => _handleNumberInput(text),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: text == '清除' || text == '⌫' ? 16 : 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

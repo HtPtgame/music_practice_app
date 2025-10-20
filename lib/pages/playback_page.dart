@@ -126,9 +126,13 @@ class _PlaybackPageState extends State<PlaybackPage> {
               ),
             )
           : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: MediaQuery.of(context).padding.bottom + 100, // 避免底部導航欄遮擋
+              ),
+              child: Column(
                   children: [
                     Card(
                       color: AppColors.dynamicCard,
@@ -277,7 +281,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
                   ],
                 ),
               ),
-            ),
     );
   }
 }

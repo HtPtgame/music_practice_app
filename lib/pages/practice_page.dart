@@ -2358,9 +2358,14 @@ class _PracticePageState extends State<PracticePage> {
           },
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: MediaQuery.of(context).padding.bottom + 100, // 避免底部導航欄遮擋
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -2501,9 +2506,13 @@ class _PracticePageState extends State<PracticePage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 13, 
+                          color: AppColors.dynamicTextDark.withOpacity(0.7),
+                          fontWeight: FontWeight.w500,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),

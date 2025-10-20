@@ -322,7 +322,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final today = DateTime.now();
     
     return SizedBox(
-      height: 200,
+      height: 180,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -330,7 +330,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
           final date = weekDates[index];
           final minutes = _getPracticeMinutes(date);
           final heightRatio = minutes / maxMinutes;
-          final barHeight = heightRatio * 150; // 最大高度 150
+          final barHeight = heightRatio * 120; // 降低最大高度到 120
           final isToday = date.year == today.year && 
                          date.month == today.month && 
                          date.day == today.day;
@@ -341,26 +341,27 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // 時長文字
-                  if (minutes > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        '${minutes}分',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: AppColors.dynamicTextLight,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    )
-                  else
-                    const SizedBox(height: 14),
+                  // 時長文字（限制高度）
+                  SizedBox(
+                    height: 16,
+                    child: minutes > 0
+                        ? Text(
+                            '${minutes}分',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: AppColors.dynamicTextLight,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  
+                  const SizedBox(height: 4),
                   
                   // 長條
                   Container(
                     width: double.infinity,
-                    height: barHeight.clamp(0, 150),
+                    height: barHeight.clamp(0, 120),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
@@ -376,26 +377,17 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                     ),
                   ),
                   
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   
-                  // 日期文字（實際日期）
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                    decoration: BoxDecoration(
+                  // 日期文字（實際日期）- 移除裝飾容器減少高度
+                  Text(
+                    '${date.month}/${date.day}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                       color: isToday 
-                          ? AppColors.dynamicPrimary 
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${date.month}/${date.day}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                        color: isToday 
-                            ? Colors.white 
-                            : AppColors.dynamicTextDark,
-                      ),
+                          ? AppColors.dynamicPrimary
+                          : AppColors.dynamicTextDark,
                     ),
                   ),
                 ],
