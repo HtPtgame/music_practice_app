@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
 import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
+import 'package:music_practice_app/utils/app_colors.dart';
 
 /// Week 4 Phase 1: 演奏分析結果頁面
 /// 
@@ -27,8 +28,9 @@ class AnalysisResultPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('演奏分析報告'),
-        backgroundColor: _getGradeColor(report.grade),
+        title: const Text('演奏分析報告', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.dynamicPrimary,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -70,7 +72,6 @@ class AnalysisResultPage extends StatelessWidget {
   Widget _buildScoreCard() {
     return Card(
       elevation: 4,
-      color: _getGradeColor(report.grade).withOpacity(0.1),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -186,44 +187,42 @@ class AnalysisResultPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '📊 統計數據',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            const Center(
+              child: Text(
+                '⭐ 統計數據 ⭐',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            const Divider(height: 20, thickness: 1),
+            const SizedBox(height: 4),
             _buildStatRow(
               '✅ 正確',
               '${report.correctNotes}/${report.totalNotes}',
-              Colors.green,
+              Colors.green[700]!,
             ),
             _buildStatRow(
               '❌ 漏音',
               '${report.missedNotes}',
-              Colors.red,
+              Colors.red[700]!,
             ),
             _buildStatRow(
               '🔴 錯音',
               '${report.wrongNotes}',
-              Colors.orange,
+              Colors.red[700]!,
             ),
             _buildStatRow(
               '⏪ 搶拍',
               '${report.earlyNotes}',
-              Colors.blue,
+              Colors.blue[700]!,
             ),
             _buildStatRow(
               '⏩ 拖拍',
               '${report.lateNotes}',
-              Colors.purple,
-            ),
-            const Divider(height: 24),
-            _buildStatRow(
-              '⏱️ 處理時間',
-              '${report.processingTime.inMilliseconds}ms',
-              Colors.grey,
+              Colors.blue[700]!,
             ),
           ],
         ),
@@ -291,7 +290,9 @@ class AnalysisResultPage extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            const Divider(height: 20, thickness: 1),
+            const SizedBox(height: 4),
             ...displayErrors.asMap().entries.map((entry) {
               final index = entry.key;
               final error = entry.value;
@@ -335,16 +336,15 @@ class AnalysisResultPage extends StatelessWidget {
   Widget _buildSuggestionCard() {
     return Card(
       elevation: 2,
-      color: Colors.blue.shade50,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.lightbulb, color: Colors.orange),
-                SizedBox(width: 8),
+                Icon(Icons.lightbulb, color: Colors.orange[700]),
+                const SizedBox(width: 8),
                 Text(
                   '練習建議',
                   style: TextStyle(
@@ -355,6 +355,8 @@ class AnalysisResultPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            const Divider(height: 20, thickness: 1),
+            const SizedBox(height: 4),
             ...report.generateSuggestions().map((suggestion) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
@@ -376,18 +378,18 @@ class AnalysisResultPage extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton.icon(
+          child: ElevatedButton.icon(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.refresh),
             label: const Text('重新練習'),
-            style: OutlinedButton.styleFrom(
+            style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: ElevatedButton.icon(
+          child: OutlinedButton.icon(
             onPressed: () {
               // TODO: 導航到樂譜頁面
               ScaffoldMessenger.of(context).showSnackBar(
@@ -396,8 +398,7 @@ class AnalysisResultPage extends StatelessWidget {
             },
             icon: const Icon(Icons.music_note),
             label: const Text('查看樂譜'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _getGradeColor(report.grade),
+            style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
@@ -410,16 +411,16 @@ class AnalysisResultPage extends StatelessWidget {
   Color _getGradeColor(String grade) {
     switch (grade) {
       case 'S':
-        return Colors.purple;
+        return Colors.purple[700]!;
       case 'A':
-        return Colors.green;
+        return Colors.green[700]!;
       case 'B':
-        return Colors.blue;
+        return Colors.blue[700]!;
       case 'C':
-        return Colors.orange;
+        return Colors.orange[700]!;
       case 'D':
       default:
-        return Colors.red;
+        return Colors.red[700]!;
     }
   }
 
@@ -443,15 +444,15 @@ class AnalysisResultPage extends StatelessWidget {
   Color _getErrorColor(ErrorType type) {
     switch (type) {
       case ErrorType.missedNote:
-        return Colors.red;
+        return Colors.red[700]!;
       case ErrorType.wrongNote:
-        return Colors.orange;
+        return Colors.red[700]!;
       case ErrorType.earlyTiming:
-        return Colors.blue;
+        return Colors.blue[700]!;
       case ErrorType.lateTiming:
-        return Colors.purple;
+        return Colors.blue[700]!;
       default:
-        return Colors.grey;
+        return Colors.grey[700]!;
     }
   }
 }

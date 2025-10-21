@@ -54,7 +54,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
     if (mounted) {
       setState(() {
         _isLoading = false;
-        _status = '準備播放';
+        _status = '';
       });
     }
   }
@@ -103,12 +103,15 @@ class _PlaybackPageState extends State<PlaybackPage> {
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(
-          widget.file?.name ?? 'MIDI 播放器',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: const Text(
+          '播放 MIDI',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => context.go('/library'),
         ),
         backgroundColor: AppColors.dynamicBackground,
@@ -248,36 +251,38 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     ),
                     const SizedBox(height: 20),
                     // ...已移除『開始演奏』按鈕區塊...
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.dynamicPrimary.withAlpha((0.1 * 255).round()),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _isPlaying ? Icons.music_note : Icons.music_off,
-                            color: AppColors.dynamicPrimary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _status,
-                            style: TextStyle(
+                    if (_status.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.dynamicPrimary.withAlpha((0.1 * 255).round()),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isPlaying ? Icons.music_note : Icons.music_off,
                               color: AppColors.dynamicPrimary,
-                              fontWeight: FontWeight.w500,
+                              size: 20,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Text(
+                              _status,
+                              style: TextStyle(
+                                color: AppColors.dynamicPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
+                    ],
                   ],
                 ),
               ),

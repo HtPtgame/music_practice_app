@@ -216,7 +216,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
     } else if (_currentPosition > 0) {
       return '已停止';
     } else {
-      return '準備播放';
+      return '';
     }
   }
 }

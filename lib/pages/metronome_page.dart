@@ -66,8 +66,8 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
     );
     
     _pendulumAnimation = Tween<double>(
-      begin: -0.4, // 左側 -23度
-      end: 0.4,    // 右側 +23度
+      begin: -0.7, // 左側 -40度
+      end: 0.7,    // 右側 +40度
     ).animate(CurvedAnimation(
       parent: _pendulumController,
       curve: Curves.easeInOut,
@@ -377,7 +377,7 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
                                 Text(
                                   '$_bpm',
                                   style: TextStyle(
-                                    fontSize: 56,
+                                    fontSize: 42,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.dynamicPrimary,
                                   ),
@@ -385,7 +385,7 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
                                 Text(
                                   'BPM (點擊輸入)',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     color: AppColors.dynamicTextLight,
                                   ),
                                 ),
@@ -401,13 +401,13 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
                               _buildCircularButton(
                                 icon: Icons.remove,
                                 onPressed: () => _changeBPM(-1),
-                                size: 45,
+                                size: 36,
                               ),
                               const SizedBox(width: 50),
                               _buildCircularButton(
                                 icon: Icons.add,
                                 onPressed: () => _changeBPM(1),
-                                size: 45,
+                                size: 36,
                               ),
                             ],
                           ),
@@ -431,8 +431,9 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
                             // 計算擺錘桿的實際可用長度
                             final pendulumAreaHeight = constraints.maxHeight;
                             final pivotBottomPadding = 40.0;
-                            final weightRadius = 32.0;
-                            final rodLength = (pendulumAreaHeight - pivotBottomPadding - weightRadius - 50).clamp(60.0, 250.0);
+                            // 根據可用高度動態調整重錘半徑 (響應式設計)
+                            final weightRadius = (pendulumAreaHeight * 0.08).clamp(24.0, 40.0);
+                            final rodLength = (pendulumAreaHeight - pivotBottomPadding - weightRadius - 30).clamp(80.0, 300.0);
                           
                             return Stack(
                               children: [
@@ -1073,7 +1074,7 @@ class MetronomeScalePainter extends CustomPainter {
     final centerY = size.height; // 軸心位置在底部
     
     // 刻度弧形的半徑 = 擺錘桿長度 + 重錘半徑的一半
-    final scaleRadius = rodLength + 17.5; // 17.5 = 重錘半徑的一半
+    final scaleRadius = rodLength + 16.0; // 16.0 = 重錘半徑的一半
     
     // 繪製扇形刻度線（從左 -40° 到右 +40°）
     for (int i = -4; i <= 4; i++) {

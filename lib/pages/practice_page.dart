@@ -2342,13 +2342,26 @@ class _PracticePageState extends State<PracticePage> {
 
   @override
   Widget build(BuildContext context) {
+    // 獲取檔案名稱（不包含副檔名）
+    String getFileNameWithoutExtension() {
+      if (widget.file?.name == null) return '未指定曲目';
+      final fileName = widget.file!.name;
+      final lastDot = fileName.lastIndexOf('.');
+      if (lastDot != -1) {
+        return fileName.substring(0, lastDot);
+      }
+      return fileName;
+    }
+
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(widget.file?.name ?? '演奏練習',
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('演奏偵錯頁面',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: AppColors.dynamicPrimary,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -2369,74 +2382,91 @@ class _PracticePageState extends State<PracticePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.piano, size: 80, color: AppColors.dynamicPrimary),
-              const SizedBox(height: 24),
-              const Text('演奏偵測介面',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Text(
-                '即將在此練習：${widget.file?.name ?? '未指定曲目'}',
-                style:
-                    TextStyle(fontSize: 16, color: AppColors.dynamicTextLight),
+                '正在練習: ${getFileNameWithoutExtension()}',
+                style: TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.dynamicTextDark,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
 
               // 錄音控制區域
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      const Text('🎤 錄音控制',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.mic, color: AppColors.dynamicPrimary, size: 28),
+                          const SizedBox(width: 8),
+                          const Text('錄音控制',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton.icon(
-                            onPressed: isRecording ? null : startRecording,
-                            icon: const Icon(Icons.fiber_manual_record),
-                            label: const Text('開始錄音'),
+                            onPressed: isRecording ? stopRecording : startRecording,
+                            icon: Icon(isRecording ? Icons.stop : Icons.fiber_manual_record),
+                            label: Text(isRecording 
+                                ? '停止' 
+                                : (_audioPath != null ? '重新錄音' : '開始')),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
+                              backgroundColor: isRecording ? Colors.grey : Colors.red,
                               foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             ),
                           ),
-                          ElevatedButton.icon(
-                            onPressed: isRecording ? stopRecording : null,
-                            icon: const Icon(Icons.stop),
-                            label: const Text('停止錄音'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Column(
-                        children: [
-                          Text(
-                            isRecording
-                                ? '🔴 正在錄音... ${_recordingDurationSeconds}s'
-                                : (_audioPath != null
-                                    ? '✅ 錄音完成，可播放'
-                                    : '⏺️ 未錄音'),
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: isRecording ? Colors.red : Colors.green,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          if (isRecording && _recordingDurationSeconds < 3)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 4),
-                              child: Text(
-                                '建議錄音至少 3 秒以獲得更好的轉換效果',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.orange),
+                          const SizedBox(width: 20),
+                          Row(
+                            children: [
+                              Icon(
+                                isRecording ? Icons.fiber_manual_record : Icons.stop_circle_outlined,
+                                color: isRecording ? Colors.red : Colors.green,
+                                size: 20,
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isRecording
+                                    ? '正在錄音... ${_recordingDurationSeconds}s'
+                                    : (_audioPath != null
+                                        ? '錄音完成'
+                                        : '未錄音'),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: isRecording ? Colors.red : (_audioPath != null ? Colors.green : Colors.grey),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
+                      if (isRecording && _recordingDurationSeconds < 3)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '建議錄音至少 3 秒以獲得更好的轉換效果',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -2447,13 +2477,20 @@ class _PracticePageState extends State<PracticePage> {
               // 播放控制區域
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      const Text('🔊 播放控制',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.volume_up, color: AppColors.dynamicPrimary, size: 28),
+                          const SizedBox(width: 8),
+                          const Text('播放控制',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -2464,7 +2501,7 @@ class _PracticePageState extends State<PracticePage> {
                                 ? playRecording
                                 : null,
                             icon: const Icon(Icons.play_arrow),
-                            label: const Text('播放錄音'),
+                            label: const Text('播放'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
@@ -2473,7 +2510,7 @@ class _PracticePageState extends State<PracticePage> {
                           ElevatedButton.icon(
                             onPressed: isPlaying ? stopPlaying : null,
                             icon: const Icon(Icons.stop),
-                            label: const Text('停止播放'),
+                            label: const Text('停止'),
                           ),
                         ],
                       ),
@@ -2486,21 +2523,23 @@ class _PracticePageState extends State<PracticePage> {
 
               // Week 4 Phase 2: 演奏分析卡片
               Card(
-                color: Colors.purple.withValues(alpha: 0.05),
+                color: (_audioPath != null && widget.file != null) 
+                    ? null 
+                    : Colors.purple.withValues(alpha: 0.05),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.analytics_outlined, color: Colors.purple),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.analytics_outlined, color: Colors.purple, size: 28),
                           SizedBox(width: 8),
                           Text(
-                            '🎯 演奏分析',
+                            '演奏分析',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.purple,
                             ),
                           ),
                         ],
@@ -2535,49 +2574,6 @@ class _PracticePageState extends State<PracticePage> {
                           minimumSize: const Size(double.infinity, 50),
                         ),
                       ),
-                      // 提示訊息
-                      if (_audioPath == null || widget.file == null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (widget.file == null)
-                                const Row(
-                                  children: [
-                                    Icon(Icons.warning_amber, color: Colors.orange, size: 16),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '請先從樂庫選擇 MIDI 曲目',
-                                        style: TextStyle(fontSize: 12, color: Colors.orange),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              if (_audioPath == null)
-                                const Row(
-                                  children: [
-                                    Icon(Icons.mic, color: Colors.orange, size: 16),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '請先錄製您的演奏',
-                                        style: TextStyle(fontSize: 12, color: Colors.orange),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
