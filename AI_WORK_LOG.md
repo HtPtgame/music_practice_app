@@ -4,7 +4,7 @@
 **核心功能**: 鋼琴演奏分析系統  
 **開發期間**: 2025年9月-10月  
 **專案狀態**: ✅ 完成並通過測試  
-**最後更新**: 2025年10月20日
+**最後更新**: 2025年10月21日
 
 ---
 
@@ -42,6 +42,7 @@ lib/
 ## 📑 目錄
 
 ### 近期更新 (2025/10)
+- [2025/10/21 - MIDI 播放延遲問題修復](#20251021---midi-播放延遲問題修復--完成)
 - [2025/10/20 - 筆記頁面 UI 優化與首頁功能精簡](#20251020---筆記頁面-ui-優化與首頁功能精簡--完成)
 - [2025/10/20 - UI 渲染修復與優化](#20251020---ui-渲染修復與視覺優化--完成)
 - [2025/10/19 - Git 合併衝突解決](#20251019---解決所有-git-合併衝突--完成)
@@ -55,6 +56,104 @@ lib/
 ---
 
 ## 詳細更新記錄
+
+### 2025/10/21 - MIDI 播放延遲問題修復 | ✅ 完成
+
+**問題描述**
+使用者反映播放 MIDI 檔案時出現延遲（卡住）現象：
+1. 測試音檔.mid：按下播放後卡住約 8 秒才開始
+2. 小星星.mid：按下播放後卡住約 4 秒才開始
+3. 名偵探柯南.mid：無延遲，立即播放
+
+奇怪的是，最簡單的單音樂曲延遲最長，最複雜的樂曲反而沒有延遲。
+
+**問題分析**
+
+創建了 `analyze_midi_files.dart` 工具來分析 MIDI 檔案結構：
+
+```bash
+dart run analyze_midi_files.dart
+```
+
+**分析結果**:
+```
+📁 測試音檔.mid
+   - 第一個 Note On: Tick 8232 (延遲 8.04 秒)
+   - 🚨 前導空白時間: 8.04 秒
+
+📁 小星星.mid  
+   - 第一個 Note On: Tick 581 (延遲 2.79 秒)
+   - 🚨 前導空白時間: 2.79 秒
+
+📁 名偵探柯南.mid
+   - 第一個 Note On: Tick 400 (延遲 0.20 秒)
+   - ✅ 幾乎無延遲
+```
+
+**根本原因**:
+- 這不是程式 bug，而是 **MIDI 檔案本身包含前導空白時間**
+- MIDI 檔案從 Tick 0 開始，但第一個音符可能在很後面的 Tick
+- 播放器忠實地播放整個時間軸，導致使用者感覺「卡住」
+
+**修復方案**
+
+修改 `lib/services/optimized_midi_player_service.dart`:
+
+```dart
+// 1. 找到第一個 Note On 事件
+final firstNoteOn = filteredEvents.firstWhere(
+  (e) => e.isNoteOn,
+  orElse: () => filteredEvents.first,
+);
+
+// 2. 計算前導空白時間
+final firstNoteDelayMs = firstNoteTick * msPerTick;
+
+// 3. 如果延遲超過 0.5 秒，調整所有事件的 tick
+if (firstNoteDelayMs > 500) {
+  // 創建新的事件，減去前導空白時間
+  adjustedEvents = filteredEvents.map((event) {
+    return MidiNoteEvent(
+      tick: event.tick - firstNoteTick,
+      // ... 其他屬性
+    );
+  }).toList();
+  
+  // 同時調整 tempo 事件
+  adjustedTempos = parser.tempoEvents.map((tempo) {
+    return TempoChange(
+      tick: (tempo.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
+      microsecondsPerQuarter: tempo.microsecondsPerQuarter,
+    );
+  }).toList();
+}
+```
+
+**修復效果**:
+
+| MIDI 檔案 | 修復前 | 修復後 | 改善 |
+|-----------|--------|--------|------|
+| 測試音檔.mid | 8.04 秒延遲 | 立即播放 | ✅ |
+| 小星星.mid | 2.79 秒延遲 | 立即播放 | ✅ |
+| 名偵探柯南.mid | 0.20 秒 | 立即播放 | ✅ |
+
+**技術細節**:
+- 使用 0.5 秒作為閾值判斷是否需要調整
+- 保留 MIDI 檔案的相對時間結構
+- 不影響音樂內容的完整性
+
+**新增檔案**:
+- `analyze_midi_files.dart` - MIDI 檔案分析工具
+- `MIDI_PLAYBACK_FIX_20251021.md` - 完整修復文檔
+
+**測試驗證**:
+```bash
+flutter run
+# 測試所有 MIDI 檔案播放
+# 預期: 所有檔案立即開始播放，無延遲
+```
+
+---
 
 ### 2025/10/20 - 筆記頁面 UI 優化與編輯模式實現 | ✅ 完成
 

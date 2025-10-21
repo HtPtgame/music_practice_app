@@ -186,8 +186,57 @@ class MidiPlayerService {
         return;
       }
 
-      _events = filteredEvents;
-      _tempoChanges = parser.tempoEvents;
+      // 🔧 修復：找到第一個 Note On 事件，跳過前導空白時間
+      final firstNoteOn = filteredEvents.firstWhere(
+        (e) => e.isNoteOn,
+        orElse: () => filteredEvents.first,
+      );
+      final firstNoteTick = firstNoteOn.tick;
+      
+      // 如果第一個音符延遲超過 0.5 秒，調整所有事件的 tick
+      final msPerTick = parser.tempoEvents.isNotEmpty 
+          ? parser.tempoEvents.first.msPerTick(_tpq)
+          : (500000 / 1000.0 / _tpq);
+      final firstNoteDelayMs = firstNoteTick * msPerTick;
+      
+      debugPrint('🎵 MIDI Analysis:');
+      debugPrint('   Total events: ${filteredEvents.length}');
+      debugPrint('   First Note On tick: $firstNoteTick');
+      debugPrint('   TPQ: $_tpq');
+      debugPrint('   Ms per tick: ${msPerTick.toStringAsFixed(3)}');
+      debugPrint('   First note delay: ${firstNoteDelayMs.toStringAsFixed(0)}ms (${(firstNoteDelayMs/1000).toStringAsFixed(2)}s)');
+      
+      List<MidiNoteEvent> adjustedEvents = filteredEvents;
+      List<TempoChange> adjustedTempos = parser.tempoEvents;
+      
+      if (firstNoteDelayMs > 500) {
+        // 將所有事件的 tick 減去前導空白時間
+        debugPrint('🔧 Adjusting: Removing ${firstNoteDelayMs.toStringAsFixed(0)}ms leading silence...');
+        
+        adjustedEvents = filteredEvents.map((event) {
+          return MidiNoteEvent(
+            tick: event.tick - firstNoteTick,
+            noteNumber: event.noteNumber,
+            velocity: event.velocity,
+            isNoteOn: event.isNoteOn,
+          );
+        }).toList();
+        
+        // 同時調整 tempo 事件
+        adjustedTempos = parser.tempoEvents.map((tempo) {
+          return TempoChange(
+            tick: (tempo.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
+            microsecondsPerQuarter: tempo.microsecondsPerQuarter,
+          );
+        }).toList();
+        
+        debugPrint('✅ Adjusted! New first note tick: ${adjustedEvents.first.tick}');
+      } else {
+        debugPrint('✅ No adjustment needed (delay < 500ms)');
+      }
+
+      _events = adjustedEvents;
+      _tempoChanges = adjustedTempos;
       _currentIndex = 0;
       _startTime = DateTime.now().millisecondsSinceEpoch;
       _isPaused = false;
