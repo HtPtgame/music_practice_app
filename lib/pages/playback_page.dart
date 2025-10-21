@@ -169,21 +169,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Card(
-                      color: AppColors.dynamicCard,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
+                            const SizedBox(height: 32),
                             Slider(
                               value: _currentPosition,
                               max: _totalDuration,
@@ -201,49 +187,39 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Card(
-                      color: AppColors.dynamicCard,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            IconButton(
-                              onPressed: _isLoading ? null : _restart,
-                              icon: const Icon(Icons.replay),
-                              iconSize: 36,
-                              color: AppColors.dynamicTextDark,
-                              tooltip: '重新播放',
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.dynamicPrimary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                onPressed: _isLoading ? null : _togglePlayPause,
-                                icon: Icon(
-                                    _isPlaying ? Icons.pause : Icons.play_arrow),
-                                iconSize: 48,
-                                color: Colors.white,
-                                tooltip: _isPlaying ? '暫停' : '播放',
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: _isLoading ? null : _stop,
-                              icon: const Icon(Icons.stop),
-                              iconSize: 36,
-                              color: AppColors.dynamicTextDark,
-                              tooltip: '停止',
+                            const SizedBox(height: 32),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                IconButton(
+                                  onPressed: _isLoading ? null : _restart,
+                                  icon: const Icon(Icons.replay),
+                                  iconSize: 36,
+                                  color: AppColors.dynamicTextDark,
+                                  tooltip: '重新播放',
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.dynamicPrimary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    onPressed: _isLoading ? null : _togglePlayPause,
+                                    icon: Icon(
+                                        _isPlaying ? Icons.pause : Icons.play_arrow),
+                                    iconSize: 48,
+                                    color: Colors.white,
+                                    tooltip: _isPlaying ? '暫停' : '播放',
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: _isLoading ? null : _stop,
+                                  icon: const Icon(Icons.stop),
+                                  iconSize: 36,
+                                  color: AppColors.dynamicTextDark,
+                                  tooltip: '停止',
+                                ),
+                              ],
                             ),
                           ],
                         ),
