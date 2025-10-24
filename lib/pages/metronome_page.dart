@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:logger/logger.dart' show Level;
 import 'package:music_practice_app/services/settings_service.dart';
 import 'dart:async';
 import 'dart:math';
@@ -101,15 +102,16 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
   Future<void> _initAudioPlayer() async {
     try {
       _audioPlayer = FlutterSoundPlayer();
+      // 關閉 flutter_sound 的內部日誌
+      _audioPlayer!.setLogLevel(Level.error);
       await _audioPlayer!.openPlayer();
       if (mounted) {
         setState(() {
           _audioPlayerReady = true;
         });
       }
-      debugPrint('音效播放器初始化成功');
     } catch (e) {
-      debugPrint('音效播放器初始化失敗: $e');
+      debugPrint('❌ 音效播放器初始化失敗: $e');
       if (mounted) {
         setState(() {
           _audioPlayerReady = false;
@@ -210,11 +212,15 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
       final metronomeVolume = await _settingsService.getMetronomeVolume();
       final masterVolume = await _settingsService.getMasterVolume();
       
-      // 調試：輸出音量值
-      debugPrint('🔊 節拍器音量: metronome=$metronomeVolume, master=$masterVolume, 最終=${metronomeVolume * masterVolume}');
+      // 計算最終音量
+      final double finalVolume = metronomeVolume * masterVolume;
+      debugPrint('🔊 節拍器音量: metronome=$metronomeVolume, master=$masterVolume, 最終=$finalVolume');
       
-      // 生成節拍音效（應用音量設定）
-      final audioData = _generateBeepSound(isAccent, metronomeVolume, masterVolume);
+      // ✅ 先設置音量(範圍 0.0-1.0)
+      await _audioPlayer!.setVolume(finalVolume);
+      
+      // 生成節拍音效(音量固定為最大值,實際音量由 setVolume 控制)
+      final audioData = _generateBeepSound(isAccent);
       await _audioPlayer!.startPlayer(
         fromDataBuffer: audioData,
         codec: Codec.pcm16WAV,
@@ -233,7 +239,7 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
     }
   }
   
-  Uint8List _generateBeepSound(bool isAccent, double metronomeVolume, double masterVolume) {
+  Uint8List _generateBeepSound(bool isAccent) {
     // 生成節拍音效 - 簡單的嗶聲
     const int sampleRate = 44100;
     const double duration = 0.1; // 100ms
@@ -241,10 +247,7 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
     
     // 重音用更高頻率和音量
     final double frequency = isAccent ? 1000.0 : 800.0; // Hz
-    final double baseAmplitude = isAccent ? 0.8 : 0.6;
-    
-    // 應用音量設定（節拍器音量 × 主音量）
-    final double amplitude = baseAmplitude * metronomeVolume * masterVolume;
+    final double baseAmplitude = isAccent ? 0.8 : 0.6; // 音量由 setVolume() 控制
     
     final List<int> samples = [];
     
@@ -267,7 +270,7 @@ class _MetronomePageState extends State<MetronomePage> with TickerProviderStateM
     for (int i = 0; i < numSamples; i++) {
       final double t = i / sampleRate;
       final double envelope = 1.0 - (t / duration); // 淡出效果
-      final double sample = amplitude * envelope * 
+      final double sample = baseAmplitude * envelope * 
           (0.7 * sin(2 * pi * frequency * t) + 
            0.3 * sin(2 * pi * frequency * 2 * t)); // 添加諧波
       

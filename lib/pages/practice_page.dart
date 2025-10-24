@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:logger/logger.dart' show Level;
 import 'package:record/record.dart'; // 新增：record 套件
 import 'package:flutter_midi_pro/flutter_midi_pro.dart'; // 新增：MIDI 播放
 
@@ -64,46 +65,41 @@ class _PracticePageState extends State<PracticePage> {
 
   Future<void> _initAudio() async {
     try {
-      debugPrint('🔄 開始初始化音訊系統...');
-
       _recorder = FlutterSoundRecorder();
       _player = FlutterSoundPlayer();
+      
+      // 關閉 flutter_sound 的內部日誌
+      _recorder!.setLogLevel(Level.error);
+      _player!.setLogLevel(Level.error);
 
       // 先檢查麥克風權限
       final micPermission = await Permission.microphone.status;
-      debugPrint('麥克風權限狀態: $micPermission');
 
       if (micPermission != PermissionStatus.granted) {
         debugPrint('⚠️ 麥克風權限未授權，將在錄音時請求');
       }
 
-      // 初始化錄音器
-      debugPrint('初始化錄音器...');
+      // 初始化錄音器和播放器
       await _recorder!.openRecorder();
-      debugPrint('✅ 錄音器初始化成功');
-
-      // 初始化播放器
-      debugPrint('初始化播放器...');
       await _player!.openPlayer();
-      debugPrint('✅ 播放器初始化成功');
 
-      debugPrint('✅ 音訊系統初始化完成');
     } catch (e, stackTrace) {
       debugPrint('❌ 音訊初始化失敗: $e');
       debugPrint('堆疊追蹤: $stackTrace');
 
       // 嘗試重新初始化
       try {
-        debugPrint('嘗試重新初始化...');
         await Future.delayed(const Duration(milliseconds: 1000));
 
         _recorder = FlutterSoundRecorder();
         _player = FlutterSoundPlayer();
+        
+        _recorder!.setLogLevel(Level.error);
+        _player!.setLogLevel(Level.error);
 
         await _recorder!.openRecorder();
         await _player!.openPlayer();
 
-        debugPrint('✅ 重新初始化成功');
       } catch (retryError) {
         debugPrint('❌ 重新初始化也失敗: $retryError');
       }

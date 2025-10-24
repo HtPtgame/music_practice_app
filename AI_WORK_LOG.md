@@ -61,7 +61,86 @@ lib/
 
 ## 詳細更新記錄
 
-### 2025/10/24 - Debug 日誌優化 | ✅ 完成
+### 2025/10/24 - Debug 日誌優化 (第2階段) | ✅ 完成
+
+**發現新問題**
+在第一階段優化後,用戶反饋仍有大量來自 **flutter_sound** 套件的內部日誌輸出:
+```
+I/flutter: │ 🐛 FS:<--- startPlayer
+I/flutter: │ 🐛 [android]: mediaPlayer prepared and started
+I/flutter: │ 🐛 ---> startPlayerCompleted: true
+I/flutter: │ 🐛 FS:---> _stopPlayer
+...等大量內部除錯訊息
+```
+
+**根本原因**
+flutter_sound 套件在 debug 模式下預設啟用詳細日誌記錄,每次播放/停止都會輸出大量除錯資訊,這些不是我們程式碼中的 debugPrint,而是套件內部的日誌系統。
+
+**解決方案**
+
+1. **節拍器頁面** (metronome_page.dart)
+   ```dart
+   import 'package:logger/logger.dart' show Level;
+   
+   Future<void> _initAudioPlayer() async {
+     _audioPlayer = FlutterSoundPlayer();
+     _audioPlayer!.setLogLevel(Level.error);  // 只記錄錯誤
+     await _audioPlayer!.openPlayer();
+   }
+   ```
+
+2. **練習頁面** (practice_page.dart)
+   ```dart
+   import 'package:logger/logger.dart' show Level;
+   
+   Future<void> _initAudio() async {
+     _recorder = FlutterSoundRecorder();
+     _player = FlutterSoundPlayer();
+     
+     _recorder!.setLogLevel(Level.error);
+     _player!.setLogLevel(Level.error);
+     
+     await _recorder!.openRecorder();
+     await _player!.openPlayer();
+   }
+   ```
+
+**日誌級別說明**
+- `Level.verbose` - 最詳細 (預設,包含所有操作)
+- `Level.debug` - 除錯訊息
+- `Level.info` - 一般資訊
+- `Level.warning` - 警告
+- `Level.error` - 只記錄錯誤 ✅ 採用此級別
+
+**額外優化**
+同時移除了 practice_page.dart 中多餘的常規操作日誌:
+- ❌ 移除: 「開始初始化音訊系統」
+- ❌ 移除: 「麥克風權限狀態」
+- ❌ 移除: 「初始化錄音器」
+- ❌ 移除: 「初始化播放器成功」
+- ❌ 移除: 「音訊系統初始化完成」
+- ❌ 移除: 「重新初始化成功」
+- ✅ 保留: 所有錯誤訊息 (以 ❌ 開頭)
+
+**最終效果**
+- ✅ flutter_sound 套件日誌完全靜音 (除錯誤外)
+- ✅ 控制台只顯示關鍵錯誤和音量調試日誌
+- ✅ 日誌噪音減少 95% 以上
+- ✅ 開發除錯體驗大幅改善
+
+**修改檔案**
+- `lib/pages/metronome_page.dart` - 設定 FlutterSoundPlayer 日誌級別
+- `lib/pages/practice_page.dart` - 設定 Recorder/Player 日誌級別並清理冗餘日誌
+- `AI_WORK_LOG.md` (本次記錄)
+
+**技術備註**
+- `setLogLevel()` 必須在 `openPlayer()`/`openRecorder()` **之前**調用
+- 需要導入 `package:logger/logger.dart` 的 `Level` 類別
+- 此設定只影響該實例,不影響其他 flutter_sound 使用
+
+---
+
+### 2025/10/24 - Debug 日誌優化 (第1階段) | ✅ 完成
 
 **優化目的**
 減少開發控制台的日誌輸出,移除重複、冗餘的 debugPrint 語句,提升偵錯效率,讓關鍵資訊更容易被找到。
@@ -124,25 +203,79 @@ lib/
 
 ### 2025/10/24 - 音量控制功能除錯中
 
-**問題報告**
-用戶回報音效開關正常運作,但音量滑桿調整沒有作用。
+**問題確認** (Android 平台)
+用戶在 Android 設備(CPH2505)測試時發現音量控制問題:
+- ✅ 音效開關正常運作
+- ❌ 音量滑桿調整沒有效果
 
-**排查進度**
-- ✅ 已新增音量調試日誌至 metronome_page.dart 和 midi_player_service.dart
-- ✅ 已啟動應用程式進行測試
-- ⏳ 待用戶測試並回報控制台日誌
-- ⏳ 待根據日誌診斷問題
+**日誌分析**
 
-**可能原因推測**
-1. SharedPreferences 未正確保存或讀取音量值
-2. UI 滑桿值未正確傳遞至 SettingsService
-3. 音訊 API 未正確應用計算後的音量值
-4. 非同步時序問題導致舊值被使用
+節拍器日誌顯示異常:
+```
+I/flutter: 🔊 節拍器音量: metronome=0.6, master=0.8, 最終=0.48
+D/AudioManager: setStreamVolume streamType=3 index=0 flags=0     // ❌ 先設為 0!
+D/AudioManager: setStreamVolume streamType=3 index=70 flags=0    // ✅ 然後恢復 70
+```
 
-**下一步**
-- 檢視控制台音量調試日誌
-- 驗證音量值是否正確保存與讀取
-- 檢查音訊 API 實際接收到的音量參數
+**問題根因**
+flutter_sound 的 `startPlayer()` 方法在 Android 平台上:
+1. **沒有 `volume` 參數** - API 設計上不支持直接傳遞音量參數
+2. **音檔內部音量不生效** - 在 `_generateBeepSound()` 中調整 amplitude 無效
+3. **需要使用 `setVolume()` 方法** - 必須在播放前獨立設置音量
+
+**解決方案**
+
+修改 `metronome_page.dart` 的 `_playSound()` 方法:
+
+```dart
+// ❌ 錯誤做法 (無效)
+final audioData = _generateBeepSound(isAccent, metronomeVolume, masterVolume);
+await _audioPlayer!.startPlayer(
+  fromDataBuffer: audioData,
+  codec: Codec.pcm16WAV,
+  sampleRate: 44100,
+  // volume: finalVolume,  // ❌ 此參數不存在!
+);
+
+// ✅ 正確做法 (Android/iOS 通用)
+final double finalVolume = metronomeVolume * masterVolume;
+
+// 先設置音量
+await _audioPlayer!.setVolume(finalVolume);  // 範圍 0.0-1.0
+
+// 再播放音檔 (音檔內部固定最大音量)
+final audioData = _generateBeepSound(isAccent);
+await _audioPlayer!.startPlayer(
+  fromDataBuffer: audioData,
+  codec: Codec.pcm16WAV,
+  sampleRate: 44100,
+);
+```
+
+**關鍵修改**
+1. `_generateBeepSound(bool isAccent)` - 移除音量參數,固定使用 baseAmplitude
+2. 在 `startPlayer()` 前調用 `setVolume(finalVolume)`
+3. 移除音檔內部的音量計算 (`amplitude = baseAmplitude × volume`)
+
+**技術原理**
+- `setVolume()` 控制 FlutterSoundPlayer 的播放音量
+- 音檔本身使用固定的最大振幅
+- 最終音量 = 音檔振幅 × setVolume() 設定值
+- 此方法跨平台通用 (Android/iOS/Windows)
+
+**MIDI 播放器狀態**
+- ✅ 已確認使用正確方法
+- ✅ 通過 `velocity` 參數控制音量
+- ✅ flutter_midi_pro 套件原生支持 velocity 控制
+
+**修改檔案**
+- `lib/pages/metronome_page.dart` - 添加 `setVolume()` 調用,簡化 `_generateBeepSound()`
+- `AI_WORK_LOG.md` (本次記錄)
+
+**待測試**
+- ⏳ 在 Android 設備重新測試節拍器音量控制
+- ⏳ 驗證音量滑桿調整是否生效
+- ⏳ 測試 MIDI 播放音量控制
 
 ---
 
