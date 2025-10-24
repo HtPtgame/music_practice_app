@@ -727,11 +727,11 @@ class _SettingsPageState extends State<SettingsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildThemeOption('預設', 'default', const Color(0xFFD8AE7E)),
-              _buildThemeOption('海洋', 'ocean', const Color(0xFF4A90E2)),
-              _buildThemeOption('森林', 'forest', const Color(0xFF5CB85C)),
-              _buildThemeOption('夕陽', 'sunset', const Color(0xFFFF8C42)),
-              _buildThemeOption('薰衣草', 'lavender', const Color(0xFF9B59B6)),
+              _buildThemeOption('晨曦', 'default', const Color(0xFFCFAB8D)),
+              _buildThemeOption('海洋', 'ocean', const Color(0xFF7FADCC)),
+              _buildThemeOption('森林', 'forest', const Color(0xFF96A78D)),
+              _buildThemeOption('夕陽', 'sunset', const Color(0xFFF6A85B)),
+              _buildThemeOption('櫻雪', 'lavender', const Color(0xFFE6B7BC)),
             ],
           ),
           actions: [
