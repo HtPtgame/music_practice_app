@@ -3,15 +3,27 @@ import 'note_verification_service.dart';
 import 'models/spectrogram.dart';
 import 'models/note_event.dart';
 
-/// 音符驗證服務實現
+/// 音符驗證服務實現 (動態參數版 - 2025/10/26)
 /// 
 /// 使用頻譜模板匹配 + 諧波驗證來判斷音符是否存在
+/// Round 9: 支援根據樂曲難度動態調整 energyThreshold (0.30~0.40)
 class NoteVerificationServiceImpl implements INoteVerifier {
-  // 驗證參數
-  /// 默認參數
-  static const double energyThreshold = 0.33;  // 能量閾值 (最終優化 - 2025/10/08)
+  // 驗證參數 (固定部分)
   static const List<double> harmonicWeights = [1.0, 0.5, 0.25];  // 諧波權重 [基頻, 2倍頻, 3倍頻]
   static const int numHarmonics = 3;  // 檢查的諧波數量
+
+  // Round 9: 動態參數
+  /// 動態能量閾值 (預設 0.38，可根據樂曲難度調整 0.30~0.40)
+  double _energyThreshold = 0.38;
+  
+  /// 設定動態 energyThreshold (Round 9)
+  void setEnergyThreshold(double threshold) {
+    _energyThreshold = threshold.clamp(0.30, 0.40);
+    print('🎚️ [Verifier] energyThreshold 已更新: ${_energyThreshold.toStringAsFixed(2)}');
+  }
+  
+  /// 取得當前 energyThreshold
+  double get energyThreshold => _energyThreshold;
 
   @override
   Future<bool> verifyNote(
@@ -147,9 +159,7 @@ class NoteVerificationServiceImpl implements INoteVerifier {
     );
   }
 
-  /// 設置自定義閾值 (用於參數調優)
-  static double customEnergyThreshold = energyThreshold;
-  
+  /// 設置自定義閾值 (用於參數調優) - 已移除，請使用 setEnergyThreshold()
   /// 設置自定義諧波權重
   static List<double> customHarmonicWeights = [...harmonicWeights];
 }

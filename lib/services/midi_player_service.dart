@@ -7,6 +7,33 @@ import 'package:music_practice_app/utils/midi_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:music_practice_app/services/settings_service.dart';
 
+/// 預排程音符 - 用於 look-ahead scheduling
+class _ScheduledNote {
+  final MidiNoteEvent event;
+  final int scheduledTimeMs;
+  bool played;
+
+  _ScheduledNote({
+    required this.event,
+    required this.scheduledTimeMs,
+  }) : played = false;
+}
+
+/// Tempo 段快取 - 預計算累積時間
+class _CachedTempo {
+  final int startTick;
+  final int endTick;
+  final double msPerTick;
+  final double cumulativeMs;
+
+  _CachedTempo({
+    required this.startTick,
+    required this.endTick,
+    required this.msPerTick,
+    required this.cumulativeMs,
+  });
+}
+
 class MidiPlayerService {
   static final MidiPlayerService _instance = MidiPlayerService._internal();
   factory MidiPlayerService() => _instance;
@@ -18,17 +45,21 @@ class MidiPlayerService {
   bool _isInitialized = false;
   int? _soundfontId;
 
+  // 高精度時間追蹤
   Timer? _playbackLoop;
+  final Stopwatch _stopwatch = Stopwatch();
+  
+  // 播放狀態
   int _currentIndex = 0;
   List<MidiNoteEvent> _events = [];
-  int _startTime = 0;
-  double _msPerTick = 0;
+  List<_ScheduledNote> _scheduledNotes = [];
   String? _currentMidiPath;
-
   bool _isPaused = false;
-  int _pauseTime = 0;
+  int _pausedElapsedMs = 0;
 
+  // Tempo 管理
   List<TempoChange> _tempoChanges = [];
+  List<_CachedTempo> _cachedTempos = [];
   int _tpq = 480;
 
   final _playingStateController = StreamController<bool>.broadcast();
@@ -37,34 +68,22 @@ class MidiPlayerService {
   final _progressController = StreamController<double>.broadcast();
   Stream<double> get progressStream => _progressController.stream;
 
-  // 效能優化：限制每次處理的音符數量，避免累積
-  static const int _maxBatchSize = 3; // 手機優化：減少到 3 個
-  
-  // 效能優化：手機優化的播放頻率
-  static const int _playbackIntervalMs = 12; // 手機優化：調整為 12ms
+  // 音量快取 (減少重複讀取 SharedPreferences)
+  double _cachedMidiVolume = 0.7;
+  double _cachedMasterVolume = 0.8;
+  bool _cachedSoundEnabled = true;
+
+  // 效能參數
+  static const int _playbackIntervalMs = 8; // 125 Hz 更新率
+  static const int _lookAheadMs = 50; // 預先排程 50ms
+  static const int _maxNotesPerCycle = 10; // 每週期最多處理音符數
 
   int get totalDurationMs {
     if (_events.isEmpty) return 0;
-    final lastTick = _events.last.tick;
-    if (_tempoChanges.isEmpty) return (lastTick * _msPerTick).round();
-
-    double totalMs = 0;
-    int prevTick = 0;
-    double currentMsPerTick = _tempoChanges.first.msPerTick(_tpq);
-    int tempoIdx = 0;
-
-    for (final event in _events) {
-      while (tempoIdx + 1 < _tempoChanges.length &&
-          _tempoChanges[tempoIdx + 1].tick <= event.tick) {
-        final nextTempo = _tempoChanges[tempoIdx + 1];
-        totalMs += (nextTempo.tick - prevTick) * currentMsPerTick;
-        currentMsPerTick = nextTempo.msPerTick(_tpq);
-        prevTick = nextTempo.tick;
-        tempoIdx++;
-      }
-    }
-    totalMs += (lastTick - prevTick) * currentMsPerTick;
-    return totalMs.round();
+    if (_cachedTempos.isEmpty) return 0;
+    
+    final lastEvent = _events.last;
+    return _getEventTimeMs(lastEvent.tick).round();
   }
 
   Future<void> initialize() async {
@@ -134,6 +153,7 @@ class MidiPlayerService {
       }
       
       _isInitialized = true;
+      await _loadVolumeSettings();
     } catch (e, s) {
       debugPrint('❌ MidiPlayerService: Initialization FAILED: $e\n$s');
       _isInitialized = false;
@@ -141,6 +161,17 @@ class MidiPlayerService {
       
       // 如果 SoundFont 完全失敗，提供視覺模式
       _isInitialized = true; // 允許視覺播放
+    }
+  }
+
+  /// 載入音量設定到快取
+  Future<void> _loadVolumeSettings() async {
+    try {
+      _cachedMidiVolume = await _settingsService.getMidiVolume();
+      _cachedMasterVolume = await _settingsService.getMasterVolume();
+      _cachedSoundEnabled = await _settingsService.isSoundEnabled();
+    } catch (e) {
+      debugPrint('⚠️ Failed to load volume settings: $e');
     }
   }
 
@@ -156,6 +187,8 @@ class MidiPlayerService {
 
     _currentMidiPath = midiPath;
     _tempoChanges.clear();
+    _cachedTempos.clear();
+    _scheduledNotes.clear();
 
     try {
       final file = File(midiPath);
@@ -165,81 +198,117 @@ class MidiPlayerService {
       final events = parser.parse(bytes);
       _tpq = parser.ticksPerQuarterNote;
 
-      // 過濾有效事件，只保留鋼琴相關音符
+      // 過濾有效事件，只保留鋼琴音域
       final filteredEvents = events.where((e) {
         return e.tick >= 0 && 
                e.tick < 10000000 && 
-               e.noteNumber >= 21 &&  // 鋼琴最低音 A0
-               e.noteNumber <= 108;   // 鋼琴最高音 C8
+               e.noteNumber >= 21 &&  // A0
+               e.noteNumber <= 108;   // C8
       }).toList();
 
       if (filteredEvents.isEmpty) {
-        debugPrint('⚠️ MidiPlayerService: No valid piano events found.');
+        debugPrint('⚠️ No valid piano events found');
         return;
       }
 
-      // 🔧 修復：找到第一個 Note On 事件，跳過前導空白時間
+      // 移除前導空白時間
       final firstNoteOn = filteredEvents.firstWhere(
         (e) => e.isNoteOn,
         orElse: () => filteredEvents.first,
       );
       final firstNoteTick = firstNoteOn.tick;
       
-      // 如果第一個音符延遲超過 0.5 秒，調整所有事件的 tick
-      final msPerTick = parser.tempoEvents.isNotEmpty 
-          ? parser.tempoEvents.first.msPerTick(_tpq)
-          : (500000 / 1000.0 / _tpq);
-      final firstNoteDelayMs = firstNoteTick * msPerTick;
+      // 調整所有事件
+      _events = filteredEvents.map((event) {
+        return MidiNoteEvent(
+          tick: (event.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
+          noteNumber: event.noteNumber,
+          velocity: event.velocity,
+          isNoteOn: event.isNoteOn,
+        );
+      }).toList();
       
-      List<MidiNoteEvent> adjustedEvents = filteredEvents;
-      List<TempoChange> adjustedTempos = parser.tempoEvents;
-      
-      if (firstNoteDelayMs > 500) {
-        // 將所有事件的 tick 減去前導空白時間
-        adjustedEvents = filteredEvents.map((event) {
-          return MidiNoteEvent(
-            tick: event.tick - firstNoteTick,
-            noteNumber: event.noteNumber,
-            velocity: event.velocity,
-            isNoteOn: event.isNoteOn,
-          );
-        }).toList();
-        
-        // 同時調整 tempo 事件
-        adjustedTempos = parser.tempoEvents.map((tempo) {
-          return TempoChange(
-            tick: (tempo.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
-            microsecondsPerQuarter: tempo.microsecondsPerQuarter,
-          );
-        }).toList();
+      // 調整 tempo 事件
+      _tempoChanges = parser.tempoEvents.map((tempo) {
+        return TempoChange(
+          tick: (tempo.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
+          microsecondsPerQuarter: tempo.microsecondsPerQuarter,
+        );
+      }).toList();
+
+      // 確保至少有一個 tempo
+      if (_tempoChanges.isEmpty) {
+        _tempoChanges.add(TempoChange(
+          tick: 0,
+          microsecondsPerQuarter: 500000, // 120 BPM
+        ));
       }
 
-      _events = adjustedEvents;
-      _tempoChanges = adjustedTempos;
+      // ⭐ 預計算所有 tempo 段
+      _precomputeTempos();
+
       _currentIndex = 0;
-      _startTime = DateTime.now().millisecondsSinceEpoch;
       _isPaused = false;
+      _pausedElapsedMs = 0;
 
-      // 設定初始 tempo
-      if (_tempoChanges.isNotEmpty) {
-        _msPerTick = _tempoChanges.first.msPerTick(_tpq);
-      } else {
-        _msPerTick = 500000 / 1000.0 / _tpq; // 預設 120 BPM
-      }
+      // 重新載入音量設定
+      await _loadVolumeSettings();
 
       _playingStateController.add(true);
       
+      // 啟動高精度播放循環
+      _stopwatch.reset();
+      _stopwatch.start();
       _startPlaybackLoop();
     } catch (e) {
-      debugPrint('❌ MidiPlayerService: Error playing midi: $e');
+      debugPrint('❌ Error playing MIDI: $e');
       _playingStateController.add(false);
     }
+  }
+
+  /// ⭐ 預計算所有 tempo 段的累積時間
+  void _precomputeTempos() {
+    _cachedTempos.clear();
+    
+    double cumulativeMs = 0.0;
+    
+    for (int i = 0; i < _tempoChanges.length; i++) {
+      final tempo = _tempoChanges[i];
+      final msPerTick = tempo.msPerTick(_tpq);
+      final endTick = (i + 1 < _tempoChanges.length) 
+          ? _tempoChanges[i + 1].tick 
+          : (_events.isNotEmpty ? _events.last.tick + 1 : 999999999);
+      
+      _cachedTempos.add(_CachedTempo(
+        startTick: tempo.tick,
+        endTick: endTick,
+        msPerTick: msPerTick,
+        cumulativeMs: cumulativeMs,
+      ));
+      
+      cumulativeMs += (endTick - tempo.tick) * msPerTick;
+    }
+  }
+
+  /// ⭐ 高效率取得事件時間 (O(1) 查表)
+  double _getEventTimeMs(int tick) {
+    for (final tempo in _cachedTempos) {
+      if (tick >= tempo.startTick && tick < tempo.endTick) {
+        return tempo.cumulativeMs + (tick - tempo.startTick) * tempo.msPerTick;
+      }
+    }
+    
+    // Fallback
+    if (_cachedTempos.isEmpty) return 0;
+    final lastTempo = _cachedTempos.last;
+    return lastTempo.cumulativeMs + (tick - lastTempo.startTick) * lastTempo.msPerTick;
   }
 
   void pause() {
     if (!_isPaused && _playbackLoop != null) {
       _isPaused = true;
-      _pauseTime = DateTime.now().millisecondsSinceEpoch - _startTime;
+      _pausedElapsedMs = _stopwatch.elapsedMilliseconds;
+      _stopwatch.stop();
       _playbackLoop?.cancel();
       _playbackLoop = null;
       _playingStateController.add(false);
@@ -249,130 +318,94 @@ class MidiPlayerService {
   void resume() {
     if (_isPaused) {
       _isPaused = false;
-      _startTime = DateTime.now().millisecondsSinceEpoch - _pauseTime;
+      _stopwatch.start();
       _playingStateController.add(true);
       _startPlaybackLoop();
     }
   }
 
+  /// ⭐ 啟動播放循環 - 使用預測性排程
   void _startPlaybackLoop() {
     _playbackLoop?.cancel();
-    _playbackLoop = Timer.periodic(const Duration(milliseconds: _playbackIntervalMs), (timer) {
-      if (_currentIndex >= _events.length) {
-        stop();
-        return;
-      }
-
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final elapsed = now - _startTime;
-
-      // 適應性批次大小：檢查接下來的音符密度
-      final adaptiveBatchSize = _calculateAdaptiveBatchSize();
-
-      // 逐個處理音符事件，使用精確時間計算
-      int processedCount = 0;
-      while (_currentIndex < _events.length && processedCount < adaptiveBatchSize) {
-        final event = _events[_currentIndex];
-        
-        // 使用精確的累積時間計算，避免 tempo 變化誤差
-        final eventTime = _calculateAccurateEventTime(event.tick);
-        
-        // 如果音符時間還沒到，停止處理
-        if (eventTime > elapsed) break;
-
-        // 立即播放單個音符
-        if (_soundfontId != null) {
-          _playSingleNote(event);
+    
+    _playbackLoop = Timer.periodic(
+      const Duration(milliseconds: _playbackIntervalMs), 
+      (timer) {
+        if (_currentIndex >= _events.length && _scheduledNotes.isEmpty) {
+          stop();
+          return;
         }
-        
-        _currentIndex++;
-        processedCount++;
-      }
 
-      // 更新進度
-      if (_events.isNotEmpty) {
-        double progress = (_currentIndex / _events.length).clamp(0.0, 1.0);
-        _progressController.add(progress);
+        final elapsedMs = _stopwatch.elapsedMilliseconds;
+
+        // 1️⃣ 播放已排程且時間到的音符
+        _playScheduledNotes(elapsedMs);
+
+        // 2️⃣ 預先排程未來的音符 (look-ahead scheduling)
+        _scheduleUpcomingNotes(elapsedMs);
+
+        // 3️⃣ 更新進度
+        if (_events.isNotEmpty) {
+          final progress = (_currentIndex / _events.length).clamp(0.0, 1.0);
+          _progressController.add(progress);
+        }
       }
-    });
+    );
   }
 
-  // 根據接下來音符的密度動態調整批次大小
-  int _calculateAdaptiveBatchSize() {
-    if (_currentIndex >= _events.length) return _maxBatchSize;
-    
-    // 檢查接下來 50ms 內的音符數量
-    final currentEvent = _events[_currentIndex];
-    final currentTime = _calculateAccurateEventTime(currentEvent.tick);
-    const lookAheadMs = 50.0; // 向前看 50ms
-    
-    int notesInWindow = 0;
-    for (int i = _currentIndex; i < _events.length && notesInWindow < 20; i++) {
-      final event = _events[i];
-      final eventTime = _calculateAccurateEventTime(event.tick);
-      if (eventTime > currentTime + lookAheadMs) break;
-      notesInWindow++;
+  /// 播放已排程的音符
+  void _playScheduledNotes(int currentTimeMs) {
+    if (_soundfontId == null || !_cachedSoundEnabled) return;
+
+    for (final scheduled in _scheduledNotes) {
+      if (!scheduled.played && scheduled.scheduledTimeMs <= currentTimeMs) {
+        _playNoteImmediate(scheduled.event);
+        scheduled.played = true;
+      }
     }
-    
-    // 根據密度調整批次大小
-    if (notesInWindow > 15) return 1; // 高密度：一次一個
-    if (notesInWindow > 10) return 2; // 中高密度：一次兩個
-    if (notesInWindow > 5) return 3;  // 中等密度：一次三個
-    return _maxBatchSize; // 低密度：正常批次
+
+    // 清理已播放的音符
+    _scheduledNotes.removeWhere((note) => note.played);
   }
 
-  // 精確計算事件時間，考慮 tempo 變化
-  double _calculateAccurateEventTime(int targetTick) {
-    if (_tempoChanges.isEmpty) {
-      return targetTick * _msPerTick;
-    }
+  /// 預先排程即將到來的音符
+  void _scheduleUpcomingNotes(int currentTimeMs) {
+    final lookAheadTime = currentTimeMs + _lookAheadMs;
+    int notesScheduled = 0;
 
-    double totalMs = 0;
-    int prevTick = 0;
-    
-    for (int i = 0; i < _tempoChanges.length; i++) {
-      final tempo = _tempoChanges[i];
-      final currentMsPerTick = tempo.msPerTick(_tpq);
-      
-      // 如果目標 tick 在當前 tempo 段之前
-      if (i + 1 < _tempoChanges.length) {
-        final nextTempo = _tempoChanges[i + 1];
-        if (targetTick <= nextTempo.tick) {
-          totalMs += (targetTick - prevTick) * currentMsPerTick;
-          return totalMs;
-        } else {
-          totalMs += (nextTempo.tick - prevTick) * currentMsPerTick;
-          prevTick = nextTempo.tick;
+    while (_currentIndex < _events.length && notesScheduled < _maxNotesPerCycle) {
+      final event = _events[_currentIndex];
+      final eventTimeMs = _getEventTimeMs(event.tick).round();
+
+      // 超出 look-ahead 窗口，停止排程
+      if (eventTimeMs > lookAheadTime) break;
+
+      // 如果音符已經過期，立即播放
+      if (eventTimeMs <= currentTimeMs) {
+        if (_soundfontId != null && _cachedSoundEnabled) {
+          _playNoteImmediate(event);
         }
       } else {
-        // 最後一個 tempo 段
-        totalMs += (targetTick - prevTick) * currentMsPerTick;
-        return totalMs;
+        // 排程未來音符
+        _scheduledNotes.add(_ScheduledNote(
+          event: event,
+          scheduledTimeMs: eventTimeMs,
+        ));
       }
+
+      _currentIndex++;
+      notesScheduled++;
     }
-    
-    return totalMs;
   }
 
-  void _playSingleNote(MidiNoteEvent event) async {
+  /// ⭐ 立即播放音符 (非阻塞)
+  void _playNoteImmediate(MidiNoteEvent event) {
     if (_soundfontId == null) return;
     
     try {
-      // 取得音量設定
-      final midiVolume = await _settingsService.getMidiVolume();
-      final masterVolume = await _settingsService.getMasterVolume();
-      final soundEnabled = await _settingsService.isSoundEnabled();
-      
-      // 如果音效未啟用，則不播放
-      if (!soundEnabled) return;
-      
-      // 計算最終音量（結合 MIDI 音量和主音量）
-      final finalVelocity = (event.velocity * midiVolume * masterVolume).round().clamp(0, 127);
-      
-      // 調試：輸出音量值（每100個音符輸出一次，避免過多日誌）
-      if (event.isNoteOn && _currentIndex % 100 == 0) {
-        debugPrint('🎹 MIDI音量: midi=$midiVolume, master=$masterVolume, 原始velocity=${event.velocity}, 最終=$finalVelocity');
-      }
+      final finalVelocity = (event.velocity * _cachedMidiVolume * _cachedMasterVolume)
+          .round()
+          .clamp(0, 127);
       
       if (event.isNoteOn) {
         _midiPro.playNote(
@@ -381,12 +414,14 @@ class MidiPlayerService {
           velocity: finalVelocity
         );
       } else {
-        _midiPro.stopNote(sfId: _soundfontId!, key: event.noteNumber);
+        _midiPro.stopNote(
+          sfId: _soundfontId!, 
+          key: event.noteNumber
+        );
       }
     } catch (e) {
-      // 手機優化：簡化錯誤日誌
       if (kDebugMode) {
-        debugPrint('MidiPlayerService: ⚠️ Note playback error: $e');
+        debugPrint('⚠️ Note playback error: $e');
       }
     }
   }
@@ -394,11 +429,16 @@ class MidiPlayerService {
   Future<void> stop() async {
     _playbackLoop?.cancel();
     _playbackLoop = null;
+    _stopwatch.stop();
+    _stopwatch.reset();
+    
     _currentIndex = 0;
     _isPaused = false;
-    _pauseTime = 0;
+    _pausedElapsedMs = 0;
     _currentMidiPath = null;
     _tempoChanges.clear();
+    _cachedTempos.clear();
+    _scheduledNotes.clear();
 
     // 停止所有音符
     if (_soundfontId != null) {
@@ -407,7 +447,7 @@ class MidiPlayerService {
           _midiPro.stopNote(sfId: _soundfontId!, key: i);
         }
       } catch (e) {
-        debugPrint('MidiPlayerService: Error stopping notes: $e');
+        debugPrint('❌ Error stopping notes: $e');
       }
     }
 
@@ -417,6 +457,7 @@ class MidiPlayerService {
 
   void dispose() {
     _playbackLoop?.cancel();
+    _stopwatch.stop();
     _midiPro.dispose();
     _playingStateController.close();
     _progressController.close();

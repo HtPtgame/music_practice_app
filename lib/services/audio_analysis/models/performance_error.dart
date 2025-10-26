@@ -72,6 +72,8 @@ class PerformanceError {
         return 0.3 + (timingOffset?.abs() ?? 0) * 2; // 最多0.6
       case ErrorType.earlyTiming:
         return 0.3 + (timingOffset?.abs() ?? 0) * 2;
+      default:
+        return 0.5; // 未知錯誤類型
     }
   }
 
@@ -88,6 +90,8 @@ class PerformanceError {
         return '⏩';
       case ErrorType.lateTiming:
         return '⏸️';
+      default:
+        return '❓'; // 未知錯誤類型
     }
   }
 

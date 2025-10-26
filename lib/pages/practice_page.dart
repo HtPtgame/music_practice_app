@@ -8,6 +8,7 @@ import 'package:flutter_midi_pro/flutter_midi_pro.dart'; // 新增：MIDI 播放
 
 import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/widgets/countdown_overlay.dart'; // Phase 1B: 倒數計時
 import 'dart:io';
 
 // Week 4 Phase 2: 分析功能
@@ -128,6 +129,35 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Future<void> startRecording() async {
+    // Phase 1B: 顯示倒數計時
+    bool countdownCancelled = false;
+
+    // 顯示倒數計時 Overlay
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return CountdownOverlay(
+          onCountdownComplete: () {
+            Navigator.of(context).pop();
+          },
+          onCancel: () {
+            countdownCancelled = true;
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
+
+    // 如果取消了倒數計時，則不開始錄音
+    if (countdownCancelled) {
+      debugPrint('⏸️ 用戶取消了倒數計時');
+      return;
+    }
+
+    debugPrint('🎤 倒數計時完成，開始錄音');
+
+    // 原有的錄音邏輯
     if (_useAltRecorder) {
       debugPrint('🎤 (ALT) 使用 record 套件開始錄音');
       if (!await _recordAlt.hasPermission()) {
