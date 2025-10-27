@@ -1,7 +1,7 @@
-/// 音符檢測服務 (動態參數版 - 2025/10/26)
+/// 音符檢測服務 (固定參數版 - 2025/10/27)
 /// 
 /// 從頻譜圖中檢測所有存在的音符
-/// Round 9: 支援根據樂曲難度動態調整 energyThreshold (0.30~0.40)
+/// 已停用動態參數功能，使用固定閾值
 library;
 
 import 'dart:math';
@@ -11,16 +11,13 @@ import 'sequence_matcher_service.dart';
 abstract class INoteDetector {
   /// 從頻譜圖中檢測所有音符
   Future<List<DetectedNote>> detectAll(Spectrogram spectrogram);
-  
-  /// 設定動態 energyThreshold (Round 9)
-  void setEnergyThreshold(double threshold);
 }
 
-/// 音符檢測服務實現 (動態參數版)
+/// 音符檢測服務實現 (固定參數版)
 /// 
-/// 使用峰值檢測算法 + 動態閾值
+/// 使用峰值檢測算法 + 固定閾值
 class NoteDetectorService implements INoteDetector {
-  // 檢測參數 (固定部分)
+  // 檢測參數 (固定)
   static const int minMidiNote = 21;  // 最低音 (A0)
   static const int maxMidiNote = 108; // 最高音 (C8)
   static const double minNoteDuration = 0.15; // 最短音符時長 (秒)
@@ -31,19 +28,8 @@ class NoteDetectorService implements INoteDetector {
   static const int minHarmonicPeaks = 2; // 🔧 保持較低以提高召回率
   static const int maxNotesPerFrame = 3; // 保留每幀限制
   
-  // Round 9: 動態參數
-  /// 動態能量閾值 (預設 0.38，可根據樂曲難度調整 0.30~0.40)
-  double _minEnergyThreshold = 0.38;
-  
-  /// 設定動態 energyThreshold (Round 9)
-  @override
-  void setEnergyThreshold(double threshold) {
-    _minEnergyThreshold = threshold.clamp(0.30, 0.40);
-    print('🎚️ energyThreshold 已更新: ${_minEnergyThreshold.toStringAsFixed(2)}');
-  }
-  
-  /// 取得當前 energyThreshold
-  double get minEnergyThreshold => _minEnergyThreshold;
+  /// 固定能量閾值 (已停用動態調整功能)
+  static const double minEnergyThreshold = 0.38;
   
   // 音符範圍限制
   static const int noteRangeMargin = 5; // MIDI 音符範圍擴展量 (半音)

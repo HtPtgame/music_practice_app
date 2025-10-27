@@ -57,6 +57,9 @@ class _PracticePageState extends State<PracticePage> {
   String _analysisPhase = '';
   final _analyzer = PerformanceAnalyzer();
 
+  // 倒數計時開關狀態
+  bool _enableCountdown = true;
+
   @override
   void initState() {
     super.initState();
@@ -129,33 +132,37 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Future<void> startRecording() async {
-    // Phase 1B: 顯示倒數計時
     bool countdownCancelled = false;
 
-    // 顯示倒數計時 Overlay
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return CountdownOverlay(
-          onCountdownComplete: () {
-            Navigator.of(context).pop();
-          },
-          onCancel: () {
-            countdownCancelled = true;
-            Navigator.of(context).pop();
-          },
-        );
-      },
-    );
+    // 根據開關狀態決定是否顯示倒數計時
+    if (_enableCountdown) {
+      // Phase 1B: 顯示倒數計時
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return CountdownOverlay(
+            onCountdownComplete: () {
+              Navigator.of(context).pop();
+            },
+            onCancel: () {
+              countdownCancelled = true;
+              Navigator.of(context).pop();
+            },
+          );
+        },
+      );
 
-    // 如果取消了倒數計時，則不開始錄音
-    if (countdownCancelled) {
-      debugPrint('⏸️ 用戶取消了倒數計時');
-      return;
+      // 如果取消了倒數計時，則不開始錄音
+      if (countdownCancelled) {
+        debugPrint('⏸️ 用戶取消了倒數計時');
+        return;
+      }
+
+      debugPrint('🎤 倒數計時完成，開始錄音');
+    } else {
+      debugPrint('🎤 已關閉倒數計時，直接開始錄音');
     }
-
-    debugPrint('🎤 倒數計時完成，開始錄音');
 
     // 原有的錄音邏輯
     if (_useAltRecorder) {
@@ -2434,6 +2441,27 @@ class _PracticePageState extends State<PracticePage> {
                           const Text('錄音控制',
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // 倒數計時開關
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.timer, size: 20, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          const Text('3秒倒數計時',
+                              style: TextStyle(fontSize: 14, color: Colors.grey)),
+                          const SizedBox(width: 12),
+                          Switch(
+                            value: _enableCountdown,
+                            onChanged: (value) {
+                              setState(() {
+                                _enableCountdown = value;
+                              });
+                            },
+                            activeColor: AppColors.dynamicPrimary,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),

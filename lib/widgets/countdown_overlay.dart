@@ -156,13 +156,13 @@ class _CountdownOverlayState extends State<CountdownOverlay>
   Color _getCountColor(int count) {
     switch (count) {
       case 3:
-        return Colors.red;
+        return const Color(0xFFE53935); // 柔和的紅色
       case 2:
-        return Colors.orange;
+        return const Color(0xFFFB8C00); // 柔和的橙色
       case 1:
-        return Colors.green;
+        return const Color(0xFF43A047); // 柔和的綠色
       default:
-        return Colors.blue;
+        return const Color(0xFF1E88E5); // 柔和的藍色
     }
   }
 }

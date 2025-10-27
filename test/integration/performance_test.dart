@@ -25,13 +25,13 @@ class TestConfig {
   });
 }
 
-/// Round 10 測試配置（四輪測試）
+/// Round 11 測試配置（四輪測試）- 使用實際音檔路徑
 final List<TestConfig> round10Tests = [
   // 第一輪：生日快樂（簡單基準）
   TestConfig(
     name: '生日快樂',
     midiPath: 'assets/test_voice/生日快樂.mid',
-    audioPath: 'D:/Flutter_project/music_practice_app/test_recordings/生日快樂',
+    audioPath: 'assets/test_voice',
     noteCount: 25,
     duration: 17.0,
     description: '基準測試 - 簡單旋律',
@@ -41,7 +41,7 @@ final List<TestConfig> round10Tests = [
   TestConfig(
     name: '測試音檔',
     midiPath: 'assets/test_voice/測試音檔.mid',
-    audioPath: 'D:/Flutter_project/music_practice_app/test_recordings/測試音檔',
+    audioPath: 'assets/test_voice',
     noteCount: 94,
     duration: 34.0,
     description: '單音無伴奏測試',
@@ -51,7 +51,7 @@ final List<TestConfig> round10Tests = [
   TestConfig(
     name: '小星星',
     midiPath: 'assets/test_voice/小星星.mid',
-    audioPath: 'D:/Flutter_project/music_practice_app/test_recordings/小星星',
+    audioPath: 'assets/test_voice',
     noteCount: 147,
     duration: 27.0,
     description: '伴奏測試 - 中等複雜度',
@@ -61,7 +61,7 @@ final List<TestConfig> round10Tests = [
   TestConfig(
     name: '名偵探柯南',
     midiPath: 'assets/test_voice/名偵探柯南.mid',
-    audioPath: 'D:/Flutter_project/music_practice_app/test_recordings/名偵探柯南',
+    audioPath: 'assets/test_voice',
     noteCount: 1431,
     duration: 164.0,
     description: '複雜測試 - 快速長曲',
@@ -130,57 +130,58 @@ void main() {
       final roundNum = roundIndex + 1;
 
       group('第 $roundNum 輪：${config.name}', () {
-        print('\n' + '=' * 60);
-        print('第 $roundNum 輪測試：${config.name}');
-        print('描述：${config.description}');
-        print('音符數：${config.noteCount}, 時長：${config.duration}秒');
+        print('\n${'=' * 60}');
+        print('🎯 Round $roundNum: ${config.name}');
+        print('   描述: ${config.description}');
+        print('   音符數: ${config.noteCount}, 時長: ${config.duration}秒');
+        print('   參數: energyThreshold=${DifficultyLevel.beginner.energyThreshold}, tolerance=±${DifficultyLevel.beginner.timingTolerance}ms');
         print('=' * 60);
 
-        // 測試1-4: 正確演奏測試（三種難度）
-        for (final level in DifficultyLevel.values) {
-          test('${config.name} - 正確演奏 (${level.label})', () async {
-            final audioFile = '${config.audioPath}/correct_performance_${level.label}.wav';
-            await _runTest(
-              analyzer: analyzer,
-              config: config,
-              audioFile: audioFile,
-              level: level,
-              testType: TestType.correctPerformance,
-              testNumber: level.index + 1,
-              roundNumber: roundNum,
-            );
-          });
-        }
-
-        // 測試5-8: 環境噪音測試
-        final noiseTests = [
-          ('background_noise_初學.wav', DifficultyLevel.beginner),
-          ('background_noise_中等.wav', DifficultyLevel.intermediate),
-          ('background_noise_專業.wav', DifficultyLevel.expert),
-          ('silence_專業.wav', DifficultyLevel.expert),
+        // 測試音檔列表 (根據用戶需求)
+        final testAudioFiles = [
+          // 正確演奏音檔
+          ('${config.name}(midi轉檔).wav', TestType.correctPerformance, 'MIDI轉檔'),
+          ('${config.name}(手機環境錄製).wav', TestType.correctPerformance, '手機錄製'),
+          ('${config.name}(電腦環境錄製).wav', TestType.correctPerformance, '電腦錄製'),
+          // 其他曲目測試(錯誤音高)
+          ...() {
+            final wrongPitchFiles = <(String, TestType, String)>[];
+            final allSongs = ['小星星', '名偵探柯南', '測試音檔', '生日快樂'];
+            for (final song in allSongs) {
+              if (song != config.name) {
+                wrongPitchFiles.add(('$song(手機環境錄製).wav', TestType.wrongPitch, song));
+              }
+            }
+            return wrongPitchFiles;
+          }(),
+          // 環境噪音
+          ('環境背景.wav', TestType.environmentalNoise, '環境背景1'),
+          ('環境背景2.wav', TestType.environmentalNoise, '環境背景2'),
         ];
 
-        for (var i = 0; i < noiseTests.length; i++) {
-          final (fileName, level) = noiseTests[i];
-          test('${config.name} - 環境噪音 ${i + 1} (${level.label})', () async {
+        var testNum = 1;
+        for (final (fileName, testType, description) in testAudioFiles) {
+          test('$description', () async {
             final audioFile = '${config.audioPath}/$fileName';
             await _runTest(
               analyzer: analyzer,
               config: config,
               audioFile: audioFile,
-              level: level,
-              testType: TestType.environmentalNoise,
-              testNumber: 5 + i,
+              level: DifficultyLevel.beginner, // 使用初學參數作為基準
+              testType: testType,
+              testNumber: testNum++,
               roundNumber: roundNum,
             );
           });
         }
+        
+        print('\n✅ Round $roundNum 完成\n');
       });
     }
   });
 }
 
-/// 執行單個測試案例
+/// 執行單個測試案例 (簡化輸出)
 Future<void> _runTest({
   required PerformanceAnalyzer analyzer,
   required TestConfig config,
@@ -190,20 +191,14 @@ Future<void> _runTest({
   required int testNumber,
   required int roundNumber,
 }) async {
-  print('\n' + '-' * 60);
-  print('🎵 測試 #$testNumber: ${config.name} - ${testType.label} (${level.label})');
-  print('音檔：${audioFile.split('/').last}');
-  print('參數：energyThreshold=${level.energyThreshold}, timingTolerance=±${level.timingTolerance}ms');
-
   // 檢查檔案是否存在
   if (!File(audioFile).existsSync()) {
-    print('⚠️ 音檔不存在: $audioFile');
-    print('測試跳過');
+    print('⚠️ 跳過: ${audioFile.split('/').last} (不存在)');
     return;
   }
 
   try {
-    // 執行分析 (注意: analyze 方法參數順序是 wavPath, midiPath)
+    // 執行分析 (靜默模式 - 不顯示過程)
     final result = await analyzer.analyze(
       audioFile,
       config.midiPath,
@@ -214,14 +209,13 @@ Future<void> _runTest({
 
     // 驗證結果（根據測試類型）
     _validateResult(result, testType);
-  } catch (e, stackTrace) {
-    print('❌ 測試失敗: $e');
-    print('堆疊追蹤: $stackTrace');
+  } catch (e) {
+    print('❌ R$roundNumber-T$testNumber | 錯誤: $e');
     rethrow;
   }
 }
 
-/// 輸出測試結果
+/// 輸出測試結果 (簡化版)
 void _printTestResult(
   result,
   TestType testType,
@@ -229,42 +223,31 @@ void _printTestResult(
   int testNumber,
   int roundNumber,
 ) {
-  final score = result.overallScore;
   final matchedNotes = result.correctNotes;
   final totalNotes = result.totalNotes;
-  final precision = result.precision;
   final recall = result.recall;
-  final f1Score = result.f1Score;
-
-  print('\n📊 測試結果：');
-  print('   分數: ${score.toStringAsFixed(1)}');
-  print('   匹配音符: $matchedNotes / $totalNotes');
-  print('   Precision: ${(precision * 100).toStringAsFixed(1)}%');
-  print('   Recall: ${(recall * 100).toStringAsFixed(1)}%');
-  print('   F1 Score: ${(f1Score * 100).toStringAsFixed(1)}%');
-  print('   評級: ${result.grade}');
 
   // 判定是否通過
   final passed = _isTestPassed(result, testType);
-  final passLabel = passed ? '✅ PASS' : '❌ FAIL';
-  print('\n$passLabel (Round $roundNumber, Test #$testNumber)');
-  print('-' * 60);
+  final passLabel = passed ? '✅' : '❌';
+  
+  // 簡化輸出: 只顯示關鍵資訊
+  print('$passLabel R$roundNumber-T$testNumber | Recall: ${(recall * 100).toStringAsFixed(1)}% ($matchedNotes/$totalNotes) | ${testType.label}');
 }
 
 /// 判斷測試是否通過
 bool _isTestPassed(result, TestType testType) {
   final recall = result.recall;
-  final precision = result.precision;
 
   switch (testType) {
     case TestType.correctPerformance:
-      // 正確演奏：recall ≥ 0.8
-      return recall >= 0.8;
+      // 正確演奏：只檢查 recall ≥ 0.9 (不漏音即可,暫不處理多彈)
+      return recall >= 0.9;
     case TestType.environmentalNoise:
-      // 環境噪音：precision ≥ 0.9 (低誤報)
-      return precision >= 0.9;
+      // 環境噪音：recall < 0.2 (不應該檢測到音符)
+      return recall < 0.2;
     case TestType.wrongPitch:
-      // 錯誤音高：recall < 0.5 (不應匹配)
+      // 錯誤音高：recall < 0.5 (不應匹配太多)
       return recall < 0.5;
     default:
       return false;

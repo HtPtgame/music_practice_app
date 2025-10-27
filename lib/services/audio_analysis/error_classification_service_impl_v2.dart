@@ -3,25 +3,15 @@ import 'package:music_practice_app/services/audio_analysis/models/performance_er
 import 'package:music_practice_app/services/audio_analysis/models/spectrogram.dart';
 import 'package:music_practice_app/services/audio_analysis/spectral_flux_onset_detector.dart';
 
-/// 錯誤分類服務實現 (動態參數版 - 2025/10/26)
+/// 錯誤分類服務實現 (固定參數版 - 2025/10/27)
 /// 
-/// Round 9: 支援根據樂曲速度動態調整 timingTolerance (0.08~0.20秒)
+/// 已停用動態參數功能，使用固定節奏容錯窗口
 class ErrorClassificationServiceImpl {
   /// 能量檢測閾值
   static const double energyThreshold = 0.08;  // 進一步降低以提高靈敏度
   
-  /// Round 9: 動態參數
-  /// 節奏容錯窗口 (秒) - 預設 ±100ms，可根據樂曲速度調整 0.08~0.20秒
-  double _timingTolerance = 0.10;
-  
-  /// 設定動態 timingTolerance (Round 9)
-  void setTimingTolerance(double tolerance) {
-    _timingTolerance = tolerance.clamp(0.08, 0.20);
-    print('🎚️ [ErrorClassifier] timingTolerance 已更新: ±${(_timingTolerance * 1000).toStringAsFixed(0)}ms');
-  }
-  
-  /// 取得當前 timingTolerance
-  double get timingTolerance => _timingTolerance;
+  /// 固定節奏容錯窗口 (秒) - ±100ms (已停用動態調整功能)
+  static const double timingTolerance = 0.10;
   
   /// Phase 2B: Onset 檢測器
   final _onsetDetector = SpectralFluxOnsetDetector();
@@ -30,11 +20,18 @@ class ErrorClassificationServiceImpl {
     required MidiTimeline expectedTimeline,
     required Spectrogram spectrogram,
     required Map<NoteEvent, bool> verificationResults,
+    double? timingTolerance,     // 動態時間容錯（2025/10/27）
   }) async {
+    // 使用動態參數，如果沒有則使用固定預設值
+    final tolerance = timingTolerance ?? ErrorClassificationServiceImpl.timingTolerance;
+    
     final errors = <PerformanceError>[];
     
     // Phase 2B: 預先檢測所有 onset 事件
     final onsets = _onsetDetector.detectOnsets(spectrogram);
+    
+    print('🎯 錯誤分類參數:');
+    print('   時間容錯: ±${(tolerance * 1000).toStringAsFixed(0)}ms');
     
     // 檢測漏音
     for (final entry in verificationResults.entries) {
@@ -63,13 +60,13 @@ class ErrorClassificationServiceImpl {
       final nearestOnset = _onsetDetector.getOnsetNear(
         onsets,
         expectedNote.startTime,
-        timingTolerance * 3, // 搜索範圍 ±300ms
+        tolerance * 3, // 搜索範圍（使用動態參數）
       );
       
       if (nearestOnset != null) {
         final timeOffset = nearestOnset.time - expectedNote.startTime;
         
-        if (timeOffset.abs() > timingTolerance) {
+        if (timeOffset.abs() > tolerance) {  // 使用動態容錯
           final type = timeOffset > 0 ? ErrorType.lateTiming : ErrorType.earlyTiming;
           final direction = timeOffset > 0 ? '晚了' : '早了';
           final offsetMs = (timeOffset.abs() * 1000).toStringAsFixed(0);

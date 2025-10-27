@@ -138,29 +138,30 @@ class AnalysisReport {
 
   /// 總分 (0-100)
   /// 
-  /// 優化版評分 (2025/10/25):
-  /// - 主要基於 F1 Score (70% 權重)
-  /// - 節奏分數 (30% 權重)
+  /// 優化版評分 (2025/10/27):
+  /// - 準確率 (60% 權重): 實際演奏正確的音符比例
+  /// - 節奏分數 (40% 權重): 節奏準確性
   /// 
-  /// 舊版僅基於 accuracy,容易被亂彈欺騙
+  /// 修正原因: F1 Score 在低準確率時仍可能給高分（如51.7%準確率得87分）
   double get overallScore {
-    // 使用 F1 Score 作為主要音準評分 (0-100)
-    final pitchScore = f1Score * 100;
+    // 使用實際準確率作為主要評分 (0-100)
+    final accuracyPercent = accuracy * 100;
     
-    // 音準權重 70%, 節奏權重 30%
-    return (pitchScore * 0.7 + rhythmScore * 0.3).clamp(0, 100);
+    // 準確率權重 60%, 節奏權重 40%
+    return (accuracyPercent * 0.6 + rhythmScore * 0.4).clamp(0, 100);
   }
 
   /// 評級 (S/A/B/C/D/F) - 已優化
   /// 
-  /// 基於 F1 Score 而非 accuracy
+  /// 基於綜合評分（準確率+節奏）
   String get grade {
-    if (f1Score >= 0.95) return 'S';  // 新增 S 級
-    if (f1Score >= 0.90) return 'A';  // 90%+ (舊版標準)
-    if (f1Score >= 0.80) return 'B';
-    if (f1Score >= 0.70) return 'C';
-    if (f1Score >= 0.60) return 'D';
-    return 'F';
+    final score = overallScore;
+    if (score >= 95) return 'S';  // 95%+
+    if (score >= 85) return 'A';  // 85-94%
+    if (score >= 75) return 'B';  // 75-84%
+    if (score >= 65) return 'C';  // 65-74%
+    if (score >= 55) return 'D';  // 55-64%
+    return 'F';  // <55%
   }
 
   /// 是否可能在亂彈 - 新增 2025/10/25
