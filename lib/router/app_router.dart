@@ -14,6 +14,7 @@ import 'package:music_practice_app/pages/settings_page.dart';
 import 'package:music_practice_app/pages/note_page.dart';
 import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
 import 'package:music_practice_app/pages/metronome_page.dart';
+import 'package:music_practice_app/pages/sheet_annotation_page.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
@@ -82,6 +83,12 @@ final GoRouter appRouter = GoRouter(
               },
             ),
           ],
+        ),
+        GoRoute(
+          path: '/sheet-annotation',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: SheetAnnotationPage(),
+          ),
         ),
       ],
     ),

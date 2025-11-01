@@ -27,6 +27,8 @@ dependencies:
   record: ^6.1.1  # 升級修正 linux 平台未實作 startStream 問題
   shared_preferences: ^2.3.2  # 本地儲存套件
   fftea: ^1.5.0+1  # FFT/STFT 頻譜分析 (音訊分析系統核心,支援任意大小輸入)
+  image_picker: ^1.1.2  # 圖片選擇器
+  syncfusion_flutter_pdfviewer: ^28.1.36  # PDF 檢視器
 
 dev_dependencies:
   flutter_test:

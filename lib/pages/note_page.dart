@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -257,6 +258,14 @@ class _NotePageState extends State<NotePage> {
         elevation: 0,
         centerTitle: true,
         actions: [
+          // 電子譜面標註按鈕
+          if (!_isEditMode)
+            IconButton(
+              onPressed: () => context.go('/sheet-annotation'),
+              icon: const Icon(Icons.auto_stories),
+              tooltip: '電子譜面標註',
+              color: AppColors.dynamicPrimary,
+            ),
           if (_musicSheets.isNotEmpty)
             TextButton(
               onPressed: _isEditMode ? _toggleEditMode : _toggleEditMode,
@@ -335,6 +344,17 @@ class _NotePageState extends State<NotePage> {
                     style: TextStyle(
                       fontSize: 14,
                       color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => context.go('/sheet-annotation'),
+                    icon: const Icon(Icons.auto_stories),
+                    label: const Text('或使用電子譜面標註'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.dynamicPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                   ),
                 ],
