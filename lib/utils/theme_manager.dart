@@ -64,9 +64,8 @@ class ThemeManager extends ChangeNotifier {
       } else {
         _currentTheme = 'default';
       }
-      debugPrint('主題初始化完成: $_currentTheme');
     } catch (e) {
-      debugPrint('載入主題設定時發生錯誤: $e');
+      debugPrint('⚠️ ThemeManager: 載入主題設定失敗: $e');
       _currentTheme = 'default';
     }
   }
@@ -78,10 +77,9 @@ class ThemeManager extends ChangeNotifier {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('selected_theme', themeName);
-        debugPrint('主題已更改為: $themeName');
         notifyListeners(); // 通知監聽器主題已更改
       } catch (e) {
-        debugPrint('保存主題設定時發生錯誤: $e');
+        debugPrint('⚠️ ThemeManager: 保存主題設定失敗: $e');
       }
     }
   }

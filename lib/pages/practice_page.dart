@@ -2,11 +2,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:logger/logger.dart' show Level;
 import 'package:record/record.dart'; // 新增：record 套件
 import 'package:flutter_midi_pro/flutter_midi_pro.dart'; // 新增：MIDI 播放
 
 import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/widgets/countdown_overlay.dart'; // Phase 1B: 倒數計時
 import 'dart:io';
 
 // Week 4 Phase 2: 分析功能
@@ -55,6 +57,9 @@ class _PracticePageState extends State<PracticePage> {
   String _analysisPhase = '';
   final _analyzer = PerformanceAnalyzer();
 
+  // 倒數計時開關狀態
+  bool _enableCountdown = true;
+
   @override
   void initState() {
     super.initState();
@@ -64,46 +69,41 @@ class _PracticePageState extends State<PracticePage> {
 
   Future<void> _initAudio() async {
     try {
-      debugPrint('🔄 開始初始化音訊系統...');
-
       _recorder = FlutterSoundRecorder();
       _player = FlutterSoundPlayer();
+      
+      // 關閉 flutter_sound 的內部日誌
+      _recorder!.setLogLevel(Level.error);
+      _player!.setLogLevel(Level.error);
 
       // 先檢查麥克風權限
       final micPermission = await Permission.microphone.status;
-      debugPrint('麥克風權限狀態: $micPermission');
 
       if (micPermission != PermissionStatus.granted) {
         debugPrint('⚠️ 麥克風權限未授權，將在錄音時請求');
       }
 
-      // 初始化錄音器
-      debugPrint('初始化錄音器...');
+      // 初始化錄音器和播放器
       await _recorder!.openRecorder();
-      debugPrint('✅ 錄音器初始化成功');
-
-      // 初始化播放器
-      debugPrint('初始化播放器...');
       await _player!.openPlayer();
-      debugPrint('✅ 播放器初始化成功');
 
-      debugPrint('✅ 音訊系統初始化完成');
     } catch (e, stackTrace) {
       debugPrint('❌ 音訊初始化失敗: $e');
       debugPrint('堆疊追蹤: $stackTrace');
 
       // 嘗試重新初始化
       try {
-        debugPrint('嘗試重新初始化...');
         await Future.delayed(const Duration(milliseconds: 1000));
 
         _recorder = FlutterSoundRecorder();
         _player = FlutterSoundPlayer();
+        
+        _recorder!.setLogLevel(Level.error);
+        _player!.setLogLevel(Level.error);
 
         await _recorder!.openRecorder();
         await _player!.openPlayer();
 
-        debugPrint('✅ 重新初始化成功');
       } catch (retryError) {
         debugPrint('❌ 重新初始化也失敗: $retryError');
       }
@@ -132,6 +132,39 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Future<void> startRecording() async {
+    bool countdownCancelled = false;
+
+    // 根據開關狀態決定是否顯示倒數計時
+    if (_enableCountdown) {
+      // Phase 1B: 顯示倒數計時
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return CountdownOverlay(
+            onCountdownComplete: () {
+              Navigator.of(context).pop();
+            },
+            onCancel: () {
+              countdownCancelled = true;
+              Navigator.of(context).pop();
+            },
+          );
+        },
+      );
+
+      // 如果取消了倒數計時，則不開始錄音
+      if (countdownCancelled) {
+        debugPrint('⏸️ 用戶取消了倒數計時');
+        return;
+      }
+
+      debugPrint('🎤 倒數計時完成，開始錄音');
+    } else {
+      debugPrint('🎤 已關閉倒數計時，直接開始錄音');
+    }
+
+    // 原有的錄音邏輯
     if (_useAltRecorder) {
       debugPrint('🎤 (ALT) 使用 record 套件開始錄音');
       if (!await _recordAlt.hasPermission()) {
@@ -2408,6 +2441,27 @@ class _PracticePageState extends State<PracticePage> {
                           const Text('錄音控制',
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // 倒數計時開關
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.timer, size: 20, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          const Text('3秒倒數計時',
+                              style: TextStyle(fontSize: 14, color: Colors.grey)),
+                          const SizedBox(width: 12),
+                          Switch(
+                            value: _enableCountdown,
+                            onChanged: (value) {
+                              setState(() {
+                                _enableCountdown = value;
+                              });
+                            },
+                            activeColor: AppColors.dynamicPrimary,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),

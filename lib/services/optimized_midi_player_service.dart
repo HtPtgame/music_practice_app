@@ -68,29 +68,25 @@ class MidiPlayerService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
-    debugPrint('MidiPlayerService: Initializing for piano...');
     
     try {
       // 嘗試直接從 assets 載入 SoundFont
       try {
-        debugPrint('MidiPlayerService: Loading SoundFont from assets...');
         _soundfontId = await _midiPro.loadSoundfont(path: 'assets/TimGM6mb.sf2', bank: 0, program: 0);
         
         if (_soundfontId != null) {
-          // 選擇鋼琴音色 (Program 0 = Acoustic Grand Piano)
           await _midiPro.selectInstrument(
             sfId: _soundfontId!,
             channel: 0,
             bank: 0,
-            program: 0, // 鋼琴
+            program: 0,
           );
           
-          debugPrint('MidiPlayerService: Piano ready with SoundFont ID: $_soundfontId');
           _isInitialized = true;
           return;
         }
       } catch (assetsError) {
-        debugPrint('MidiPlayerService: Assets loading failed: $assetsError');
+        // Assets 載入失敗，嘗試其他方法
       }
 
       // 嘗試複製到設備存儲
@@ -111,10 +107,8 @@ class MidiPlayerService {
       await file.parent.create(recursive: true);
 
       if (!await file.exists() || await file.length() == 0) {
-        debugPrint('MidiPlayerService: Copying SoundFont...');
         final byteData = await rootBundle.load('assets/TimGM6mb.sf2');
         await file.writeAsBytes(byteData.buffer.asUint8List());
-        debugPrint('MidiPlayerService: SoundFont copied (${byteData.lengthInBytes} bytes)');
       }
 
       final fileSize = await file.length();
@@ -122,31 +116,26 @@ class MidiPlayerService {
         throw Exception('SoundFont file too small');
       }
 
-      // 載入 SoundFont
       _soundfontId = await _midiPro.loadSoundfont(path: sfPath, bank: 0, program: 0);
       
       if (_soundfontId != null) {
-        // 設定鋼琴音色
         await _midiPro.selectInstrument(
           sfId: _soundfontId!,
           channel: 0,
           bank: 0,
-          program: 0, // Acoustic Grand Piano
+          program: 0,
         );
-        
-        debugPrint('MidiPlayerService: Piano ready with device SoundFont ID: $_soundfontId');
       } else {
         throw Exception('Failed to load SoundFont');
       }
       
       _isInitialized = true;
     } catch (e, s) {
-      debugPrint('MidiPlayerService: Initialization FAILED: $e\n$s');
+      debugPrint('❌ OptimizedMidiPlayerService: Initialization FAILED: $e\n$s');
       _isInitialized = false;
       _soundfontId = null;
       
-      // 如果 SoundFont 完全失敗，提供視覺模式
-      _isInitialized = true; // 允許視覺播放
+      _isInitialized = true;
     }
   }
 
@@ -182,7 +171,7 @@ class MidiPlayerService {
       }).toList();
 
       if (filteredEvents.isEmpty) {
-        debugPrint('MidiPlayerService: No valid piano events found.');
+        debugPrint('⚠️ OptimizedMidiPlayerService: No valid piano events found.');
         return;
       }
 
@@ -199,20 +188,11 @@ class MidiPlayerService {
           : (500000 / 1000.0 / _tpq);
       final firstNoteDelayMs = firstNoteTick * msPerTick;
       
-      debugPrint('🎵 MIDI Analysis:');
-      debugPrint('   Total events: ${filteredEvents.length}');
-      debugPrint('   First Note On tick: $firstNoteTick');
-      debugPrint('   TPQ: $_tpq');
-      debugPrint('   Ms per tick: ${msPerTick.toStringAsFixed(3)}');
-      debugPrint('   First note delay: ${firstNoteDelayMs.toStringAsFixed(0)}ms (${(firstNoteDelayMs/1000).toStringAsFixed(2)}s)');
-      
       List<MidiNoteEvent> adjustedEvents = filteredEvents;
       List<TempoChange> adjustedTempos = parser.tempoEvents;
       
       if (firstNoteDelayMs > 500) {
         // 將所有事件的 tick 減去前導空白時間
-        debugPrint('🔧 Adjusting: Removing ${firstNoteDelayMs.toStringAsFixed(0)}ms leading silence...');
-        
         adjustedEvents = filteredEvents.map((event) {
           return MidiNoteEvent(
             tick: event.tick - firstNoteTick,
@@ -229,10 +209,6 @@ class MidiPlayerService {
             microsecondsPerQuarter: tempo.microsecondsPerQuarter,
           );
         }).toList();
-        
-        debugPrint('✅ Adjusted! New first note tick: ${adjustedEvents.first.tick}');
-      } else {
-        debugPrint('✅ No adjustment needed (delay < 500ms)');
       }
 
       _events = adjustedEvents;
@@ -250,12 +226,9 @@ class MidiPlayerService {
 
       _playingStateController.add(true);
       
-      final modeText = _soundfontId != null ? "piano audio" : "visual";
-      debugPrint('MidiPlayerService: Playing $midiPath with ${_events.length} piano events ($modeText mode)');
-
       _startPlaybackLoop();
     } catch (e) {
-      debugPrint('MidiPlayerService: Error playing midi: $e');
+      debugPrint('❌ OptimizedMidiPlayerService: Error playing midi: $e');
       _playingStateController.add(false);
     }
   }
@@ -338,7 +311,7 @@ class MidiPlayerService {
       }
     } catch (e) {
       // 如果發生錯誤，記錄但不影響播放
-      debugPrint('MidiPlayerService: Batch playback error: $e');
+      debugPrint('❌ OptimizedMidiPlayerService: Batch playback error: $e');
     }
   }
 
@@ -360,14 +333,12 @@ class MidiPlayerService {
           _midiPro.stopNote(sfId: _soundfontId!, key: i);
         }
       } catch (e) {
-        debugPrint('MidiPlayerService: Error stopping notes: $e');
+        debugPrint('❌ OptimizedMidiPlayerService: Error stopping notes: $e');
       }
     }
 
     if (!_playingStateController.isClosed) _playingStateController.add(false);
     if (!_progressController.isClosed) _progressController.add(0.0);
-
-    debugPrint('MidiPlayerService: Stopped.');
   }
 
   void dispose() {
@@ -375,7 +346,6 @@ class MidiPlayerService {
     _midiPro.dispose();
     _playingStateController.close();
     _progressController.close();
-    debugPrint('MidiPlayerService: Disposed.');
   }
 
   // 演奏偵錯功能（專注於鋼琴）
@@ -391,9 +361,8 @@ class MidiPlayerService {
           key: noteNumber,
           velocity: velocity,
         );
-        debugPrint('MidiPlayerService: Piano note $noteNumber played (velocity: $velocity)');
       } catch (e) {
-        debugPrint('MidiPlayerService: Error playing piano note $noteNumber: $e');
+        debugPrint('❌ OptimizedMidiPlayerService: Error playing piano note $noteNumber: $e');
       }
     }
   }
@@ -402,9 +371,8 @@ class MidiPlayerService {
     if (_soundfontId != null && noteNumber >= 21 && noteNumber <= 108) {
       try {
         await _midiPro.stopNote(sfId: _soundfontId!, key: noteNumber);
-        debugPrint('MidiPlayerService: Piano note $noteNumber stopped');
       } catch (e) {
-        debugPrint('MidiPlayerService: Error stopping piano note $noteNumber: $e');
+        debugPrint('❌ OptimizedMidiPlayerService: Error stopping piano note $noteNumber: $e');
       }
     }
   }
@@ -415,9 +383,8 @@ class MidiPlayerService {
         for (var i = 21; i <= 108; i++) { // 鋼琴音域
           await _midiPro.stopNote(sfId: _soundfontId!, key: i);
         }
-        debugPrint('MidiPlayerService: All piano notes stopped');
       } catch (e) {
-        debugPrint('MidiPlayerService: Error stopping all piano notes: $e');
+        debugPrint('❌ OptimizedMidiPlayerService: Error stopping all piano notes: $e');
       }
     }
   }

@@ -31,7 +31,6 @@ class SettingsService {
   /// 初始化服務
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
-    debugPrint('SettingsService: ✅ Initialized');
   }
 
   /// 確保已初始化
@@ -52,11 +51,7 @@ class SettingsService {
   /// 儲存主音量
   Future<bool> setMasterVolume(double volume) async {
     await _ensureInitialized();
-    final success = await _prefs?.setDouble(_keyMasterVolume, volume) ?? false;
-    if (success) {
-      debugPrint('SettingsService: 🔊 Master volume saved: ${(volume * 100).round()}%');
-    }
-    return success;
+    return await _prefs?.setDouble(_keyMasterVolume, volume) ?? false;
   }
 
   /// 取得 MIDI 音量
@@ -68,11 +63,7 @@ class SettingsService {
   /// 儲存 MIDI 音量
   Future<bool> setMidiVolume(double volume) async {
     await _ensureInitialized();
-    final success = await _prefs?.setDouble(_keyMidiVolume, volume) ?? false;
-    if (success) {
-      debugPrint('SettingsService: 🎹 MIDI volume saved: ${(volume * 100).round()}%');
-    }
-    return success;
+    return await _prefs?.setDouble(_keyMidiVolume, volume) ?? false;
   }
 
   /// 取得錄音音量
@@ -84,11 +75,7 @@ class SettingsService {
   /// 儲存錄音音量
   Future<bool> setRecordingVolume(double volume) async {
     await _ensureInitialized();
-    final success = await _prefs?.setDouble(_keyRecordingVolume, volume) ?? false;
-    if (success) {
-      debugPrint('SettingsService: 🎤 Recording volume saved: ${(volume * 100).round()}%');
-    }
-    return success;
+    return await _prefs?.setDouble(_keyRecordingVolume, volume) ?? false;
   }
 
   /// 取得節拍器音量
@@ -100,11 +87,7 @@ class SettingsService {
   /// 儲存節拍器音量
   Future<bool> setMetronomeVolume(double volume) async {
     await _ensureInitialized();
-    final success = await _prefs?.setDouble(_keyMetronomeVolume, volume) ?? false;
-    if (success) {
-      debugPrint('SettingsService: ⏱️ Metronome volume saved: ${(volume * 100).round()}%');
-    }
-    return success;
+    return await _prefs?.setDouble(_keyMetronomeVolume, volume) ?? false;
   }
 
   // ==================== 音效/震動設定 ====================
@@ -118,11 +101,7 @@ class SettingsService {
   /// 儲存音效開關狀態
   Future<bool> setSoundEnabled(bool enabled) async {
     await _ensureInitialized();
-    final success = await _prefs?.setBool(_keySoundEnabled, enabled) ?? false;
-    if (success) {
-      debugPrint('SettingsService: 🔔 Sound ${enabled ? "enabled" : "disabled"}');
-    }
-    return success;
+    return await _prefs?.setBool(_keySoundEnabled, enabled) ?? false;
   }
 
   /// 取得震動開關狀態
@@ -134,11 +113,7 @@ class SettingsService {
   /// 儲存震動開關狀態
   Future<bool> setVibrationEnabled(bool enabled) async {
     await _ensureInitialized();
-    final success = await _prefs?.setBool(_keyVibrationEnabled, enabled) ?? false;
-    if (success) {
-      debugPrint('SettingsService: 📳 Vibration ${enabled ? "enabled" : "disabled"}');
-    }
-    return success;
+    return await _prefs?.setBool(_keyVibrationEnabled, enabled) ?? false;
   }
 
   // ==================== 語言設定 ====================
@@ -152,11 +127,7 @@ class SettingsService {
   /// 儲存選擇的語言
   Future<bool> setSelectedLanguage(String languageCode) async {
     await _ensureInitialized();
-    final success = await _prefs?.setString(_keySelectedLanguage, languageCode) ?? false;
-    if (success) {
-      debugPrint('SettingsService: 🌐 Language saved: $languageCode');
-    }
-    return success;
+    return await _prefs?.setString(_keySelectedLanguage, languageCode) ?? false;
   }
 
   // ==================== 批次操作 ====================
@@ -186,7 +157,6 @@ class SettingsService {
       await setSoundEnabled(_defaultSoundEnabled);
       await setVibrationEnabled(_defaultVibrationEnabled);
       await setSelectedLanguage(_defaultLanguage);
-      debugPrint('SettingsService: 🔄 All settings reset to defaults');
       return true;
     } catch (e) {
       debugPrint('SettingsService: ❌ Failed to reset settings: $e');
@@ -197,10 +167,6 @@ class SettingsService {
   /// 清除所有設定
   Future<bool> clearAll() async {
     await _ensureInitialized();
-    final success = await _prefs?.clear() ?? false;
-    if (success) {
-      debugPrint('SettingsService: 🧹 All settings cleared');
-    }
-    return success;
+    return await _prefs?.clear() ?? false;
   }
 }
