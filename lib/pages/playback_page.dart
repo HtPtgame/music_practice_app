@@ -20,7 +20,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
   bool _isLoading = true;
   bool _isPlaying = false;
-  String _status = '正在初始化...';
 
   double _currentPosition = 0.0;
   double get _totalDuration => _midiService.totalDurationMs / 1000.0; // 秒
@@ -35,7 +34,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
       if (mounted) {
         setState(() {
           _isPlaying = isPlaying;
-          _status = isPlaying ? '播放中...' : '已停止';
         });
       }
     });
@@ -54,7 +52,6 @@ class _PlaybackPageState extends State<PlaybackPage> {
     if (mounted) {
       setState(() {
         _isLoading = false;
-        _status = '';
       });
     }
   }
@@ -118,150 +115,144 @@ class _PlaybackPageState extends State<PlaybackPage> {
         elevation: 0,
       ),
       body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(_status),
-                ],
-              ),
+          ? const Center(
+              child: CircularProgressIndicator(),
             )
-          : SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: 24.0,
-                right: 24.0,
-                top: 24.0,
-                bottom: MediaQuery.of(context).padding.bottom + 100, // 避免底部導航欄遮擋
-              ),
-              child: Column(
-                  children: [
-                    Card(
-                      color: AppColors.dynamicCard,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          children: [
-                            Icon(Icons.music_note,
-                                size: 80, color: AppColors.dynamicPrimary),
-                            const SizedBox(height: 16),
-                            Text(
-                              widget.file?.name ?? '未知檔案',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.dynamicTextDark,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (widget.file != null) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.dynamicTextLight,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 32),
-                            Slider(
-                              value: _currentPosition,
-                              max: _totalDuration,
-                              onChanged: null,
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(_formatTime(_currentPosition)),
-                                  Text(_formatTime(_totalDuration)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                final screenHeight = MediaQuery.of(context).size.height;
+                
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: screenWidth * 0.05,
+                      right: screenWidth * 0.05,
+                      top: screenHeight * 0.02,
+                      bottom: MediaQuery.of(context).padding.bottom + 100,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Card(
+                          color: AppColors.dynamicCard,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(screenWidth * 0.06),
+                            child: Column(
                               children: [
-                                IconButton(
-                                  onPressed: _isLoading ? null : _restart,
-                                  icon: const Icon(Icons.replay),
-                                  iconSize: 36,
-                                  color: AppColors.dynamicTextDark,
-                                  tooltip: '重新播放',
+                                SizedBox(
+                                  width: screenWidth * 0.7,
+                                  height: screenWidth * 0.7,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.music_note,
+                                        size: screenWidth * 0.2,
+                                        color: AppColors.dynamicPrimary,
+                                      ),
+                                      SizedBox(height: screenHeight * 0.02),
+                                      Text(
+                                        widget.file?.name ?? '未知檔案',
+                                        style: TextStyle(
+                                          fontSize: screenWidth * 0.04,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.dynamicTextDark,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (widget.file != null) ...[
+                                        SizedBox(height: screenHeight * 0.01),
+                                        Text(
+                                          '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
+                                          style: TextStyle(
+                                            fontSize: screenWidth * 0.03,
+                                            color: AppColors.dynamicTextLight,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
+                                SizedBox(height: screenHeight * 0.015),
                                 Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.dynamicPrimary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    onPressed: _isLoading ? null : _togglePlayPause,
-                                    icon: Icon(
-                                        _isPlaying ? Icons.pause : Icons.play_arrow),
-                                    iconSize: 48,
-                                    color: Colors.white,
-                                    tooltip: _isPlaying ? '暫停' : '播放',
+                                  height: 2,
+                                  width: screenWidth * 0.7,
+                                  color: Colors.grey[300],
+                                ),
+                                SizedBox(height: screenHeight * 0.04),
+                                Slider(
+                                  value: _currentPosition,
+                                  max: _totalDuration,
+                                  onChanged: null,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _formatTime(_currentPosition),
+                                        style: TextStyle(fontSize: screenWidth * 0.035),
+                                      ),
+                                      Text(
+                                        _formatTime(_totalDuration),
+                                        style: TextStyle(fontSize: screenWidth * 0.035),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: _isLoading ? null : _stop,
-                                  icon: const Icon(Icons.stop),
-                                  iconSize: 36,
-                                  color: AppColors.dynamicTextDark,
-                                  tooltip: '停止',
+                                SizedBox(height: screenHeight * 0.04),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    IconButton(
+                                      onPressed: _isLoading ? null : _restart,
+                                      icon: const Icon(Icons.replay),
+                                      iconSize: screenWidth * 0.09,
+                                      color: AppColors.dynamicTextDark,
+                                      tooltip: '重新播放',
+                                    ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: AppColors.dynamicPrimary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: IconButton(
+                                        onPressed: _isLoading ? null : _togglePlayPause,
+                                        icon: Icon(
+                                          _isPlaying ? Icons.pause : Icons.play_arrow,
+                                        ),
+                                        iconSize: screenWidth * 0.12,
+                                        color: Colors.white,
+                                        tooltip: _isPlaying ? '暫停' : '播放',
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: _isLoading ? null : _stop,
+                                      icon: const Icon(Icons.stop),
+                                      iconSize: screenWidth * 0.09,
+                                      color: AppColors.dynamicTextDark,
+                                      tooltip: '停止',
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    // ...已移除『開始演奏』按鈕區塊...
-                    if (_status.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.dynamicPrimary.withAlpha((0.1 * 255).round()),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _isPlaying ? Icons.music_note : Icons.music_off,
-                              color: AppColors.dynamicPrimary,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _status,
-                              style: TextStyle(
-                                color: AppColors.dynamicPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

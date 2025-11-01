@@ -1,19 +1,53 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../utils/app_colors.dart';
+import '../models/drawing_data.dart';
+import '../widgets/drawing_canvas.dart';
 
 // 練習要點數據模型
 class PracticeNote {
   final int measure;
   final String content;
+  final DrawingData? drawing;
 
   PracticeNote({
     required this.measure,
     required this.content,
+    this.drawing,
   });
 
   @override
   String toString() {
-    return '第$measure小節: $content';
+    final data = {
+      'measure': measure,
+      'content': content,
+      if (drawing != null && drawing!.isNotEmpty) 'drawing': drawing!.toJson(),
+    };
+    return jsonEncode(data);
+  }
+
+  static PracticeNote fromString(String str) {
+    try {
+      final data = jsonDecode(str) as Map<String, dynamic>;
+      return PracticeNote(
+        measure: data['measure'] as int,
+        content: data['content'] as String,
+        drawing: data.containsKey('drawing') 
+            ? DrawingData.fromJson(data['drawing'] as Map<String, dynamic>)
+            : null,
+      );
+    } catch (e) {
+      // 如果解析失敗，嘗試舊格式 "第X小節: 內容"
+      final match = RegExp(r'^第(\d+)小節:\s*(.+)$').firstMatch(str);
+      if (match != null) {
+        return PracticeNote(
+          measure: int.parse(match.group(1)!),
+          content: match.group(2)!,
+        );
+      }
+      // 預設格式
+      return PracticeNote(measure: 1, content: str);
+    }
   }
 }
 
@@ -43,17 +77,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
     super.initState();
     // 將舊的字串格式轉換為新的 PracticeNote 格式
     _notes = widget.initialNotes.map((noteString) {
-      // 嘗試解析舊格式 "第X小節: 內容"
-      final match = RegExp(r'^第(\d+)小節:\s*(.+)$').firstMatch(noteString);
-      if (match != null) {
-        return PracticeNote(
-          measure: int.parse(match.group(1)!),
-          content: match.group(2)!,
-        );
-      } else {
-        // 如果不是新格式，預設為第1小節
-        return PracticeNote(measure: 1, content: noteString);
-      }
+      return PracticeNote.fromString(noteString);
     }).toList();
   }
 
@@ -208,6 +232,91 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
         widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
       }
     });
+  }
+
+  void _showDrawingDialog(int index) {
+    final note = _notes[index];
+    DrawingData drawingData = note.drawing ?? DrawingData();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 500),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.brush, color: AppColors.dynamicPrimary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '第 ${note.measure} 小節 - 音樂畫面',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.dynamicTextDark,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: DrawingCanvas(
+                    initialDrawing: drawingData,
+                    onDrawingChanged: (newDrawing) {
+                      drawingData = newDrawing;
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        '取消',
+                        style: TextStyle(color: AppColors.dynamicTextLight),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _notes[index] = PracticeNote(
+                            measure: note.measure,
+                            content: note.content,
+                            drawing: drawingData.isNotEmpty ? drawingData : null,
+                          );
+                        });
+                        widget.onNotesChanged(_notes.map((n) => n.toString()).toList());
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.dynamicPrimary,
+                      ),
+                      child: const Text(
+                        '儲存',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _editNote(int index) {
@@ -457,9 +566,34 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                                   fontSize: 16,
                                 ),
                               ),
+                              subtitle: _notes[index].drawing?.isNotEmpty == true
+                                  ? Row(
+                                      children: [
+                                        Icon(Icons.brush, size: 14, color: AppColors.dynamicPrimary),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '包含音樂畫面',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.dynamicPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : null,
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.brush_outlined,
+                                      color: _notes[index].drawing?.isNotEmpty == true
+                                          ? AppColors.dynamicPrimary
+                                          : Colors.grey,
+                                    ),
+                                    onPressed: () => _showDrawingDialog(index),
+                                    tooltip: '編輯音樂畫面',
+                                  ),
                                   IconButton(
                                     icon: Icon(Icons.edit_outlined, color: AppColors.dynamicPrimary),
                                     onPressed: () => _editNote(index),
