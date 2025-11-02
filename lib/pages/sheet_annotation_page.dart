@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../models/sheet_annotation.dart';
 import '../widgets/annotatable_image_viewer.dart';
 import '../utils/app_colors.dart';
@@ -17,11 +18,87 @@ class SheetAnnotationPage extends StatefulWidget {
 class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   List<AnnotatedSheet> _sheets = [];
   bool _isLoading = true;
+  bool _isEditMode = false;
+  Set<int> _selectedIndices = {};
 
   @override
   void initState() {
     super.initState();
     _loadSheets();
+  }
+
+  void _toggleEditMode() {
+    setState(() {
+      _isEditMode = !_isEditMode;
+      if (!_isEditMode) {
+        _selectedIndices.clear();
+      }
+    });
+  }
+
+  void _toggleSelection(int index) {
+    setState(() {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+      } else {
+        _selectedIndices.add(index);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedSheets() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('確認刪除'),
+        content: Text('確定要刪除選中的 ${_selectedIndices.length} 個譜面嗎？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('刪除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // 刪除選中的檔案
+      final indicesToDelete = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
+      for (final index in indicesToDelete) {
+        final sheet = _sheets[index];
+        final file = File(sheet.filePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+        _sheets.removeAt(index);
+      }
+      
+      await _saveSheets();
+      
+      setState(() {
+        _selectedIndices.clear();
+        _isEditMode = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已刪除 ${indicesToDelete.length} 個譜面')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('刪除失敗: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _loadSheets() async {
@@ -185,14 +262,49 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey('sheet_annotation_page'),
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: const Text(
-          '電子譜面標註',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          _isEditMode ? '選擇要刪除的譜面' : '電子譜',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.dynamicTextDark,
+          ),
         ),
         backgroundColor: AppColors.dynamicBackground,
         elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false, // 不顯示返回鍵
+        actions: [
+          // 樂曲目錄按鈕 (對應電子譜頁面的電子譜按鈕)
+          if (!_isEditMode)
+            IconButton(
+              onPressed: () => context.go('/notes'),
+              icon: const Icon(Icons.library_music),
+              tooltip: '樂曲目錄',
+              color: AppColors.dynamicPrimary,
+            ),
+          if (_sheets.isNotEmpty)
+            TextButton(
+              onPressed: _toggleEditMode,
+              child: Text(
+                _isEditMode ? '取消' : '編輯',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          if (_isEditMode && _selectedIndices.isNotEmpty)
+            IconButton(
+              onPressed: _deleteSelectedSheets,
+              icon: const Icon(Icons.delete, color: Colors.red),
+              tooltip: '刪除選中項',
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -248,12 +360,27 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () => _openSheet(sheet),
+                          onTap: () {
+                            if (_isEditMode) {
+                              _toggleSelection(index);
+                            } else {
+                              _openSheet(sheet);
+                            }
+                          },
                           borderRadius: BorderRadius.circular(16),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Row(
                               children: [
+                                // 編輯模式下的選擇框
+                                if (_isEditMode) ...[
+                                  Checkbox(
+                                    value: _selectedIndices.contains(index),
+                                    onChanged: (value) => _toggleSelection(index),
+                                    activeColor: AppColors.dynamicPrimary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
                                 // 檔案預覽縮圖或圖標
                                 Container(
                                   width: 70,
@@ -369,15 +496,16 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                     ],
                                   ),
                                 ),
-                                // 刪除按鈕
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.red[400],
+                                // 刪除按鈕 (非編輯模式下顯示)
+                                if (!_isEditMode)
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red[400],
+                                    ),
+                                    onPressed: () => _deleteSheet(sheet),
+                                    tooltip: '刪除',
                                   ),
-                                  onPressed: () => _deleteSheet(sheet),
-                                  tooltip: '刪除',
-                                ),
                               ],
                             ),
                           ),
@@ -386,7 +514,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _isEditMode ? null : FloatingActionButton(
         onPressed: _pickAndAddSheet,
         backgroundColor: AppColors.dynamicPrimary,
         child: const Icon(Icons.add, color: Colors.white),

@@ -82,13 +82,19 @@ final GoRouter appRouter = GoRouter(
                 );
               },
             ),
+            // 電子譜面標註作為筆記頁面的子路由
+            GoRoute(
+              path: 'sheet-annotation',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                child: const SheetAnnotationPage(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return child;
+                },
+              ),
+            ),
           ],
-        ),
-        GoRoute(
-          path: '/sheet-annotation',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: SheetAnnotationPage(),
-          ),
         ),
       ],
     ),

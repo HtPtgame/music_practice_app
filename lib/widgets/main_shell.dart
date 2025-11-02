@@ -131,7 +131,7 @@ class MainShell extends StatelessWidget {
   final String location = GoRouterState.of(context).uri.toString();
   if (location.startsWith('/library')) return 1;
   if (location.startsWith('/metronome')) return 2;
-  if (location.startsWith('/notes')) return 3;
+  if (location.startsWith('/notes')) return 3; // 包含 /notes/sheet-annotation
   if (location.startsWith('/settings')) return 4;
   return 0;
   }

@@ -193,16 +193,17 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
             final displayHeight = imageSize.height * scale;
             
             // 全螢幕模式時的 padding 和樣式
-            final padding = _isFullScreen ? 0.0 : 16.0;
+            final outerPadding = _isFullScreen ? 0.0 : 16.0;
+            final cardPadding = _isFullScreen ? 0.0 : 12.0; // Card 內部 padding
             final borderRadius = _isFullScreen ? 0.0 : 20.0;
             final showShadow = !_isFullScreen;
             
             return Container(
-              padding: EdgeInsets.all(padding),
+              padding: EdgeInsets.all(outerPadding),
               child: Center(
                 child: Container(
-                  width: _isFullScreen ? screenWidth : displayWidth + padding * 2,
-                  height: _isFullScreen ? screenHeight : displayHeight + padding * 2,
+                  width: _isFullScreen ? screenWidth : displayWidth + cardPadding * 2,
+                  height: _isFullScreen ? screenHeight : displayHeight + cardPadding * 2,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(borderRadius),
@@ -221,112 +222,116 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                       ),
                     ] : null,
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(borderRadius),
-                    child: InteractiveViewer(
-                      transformationController: _transformationController,
-                      minScale: 0.5,
-                      maxScale: 4.0,
-                      child: GestureDetector(
-                        // 雙擊切換全螢幕
-                        onDoubleTap: _toggleFullScreen,
-                        onTapDown: widget.isEditable
-                            ? (details) {
-                                final RenderBox box = context.findRenderObject() as RenderBox;
-                                final localPosition = box.globalToLocal(details.globalPosition);
-                                
-                                // 調整位置以考慮 padding
-                                final adjustedPosition = Offset(
-                                  localPosition.dx - padding,
-                                  localPosition.dy - padding,
-                                );
-                                
+                  child: Padding(
+                    padding: EdgeInsets.all(cardPadding),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(_isFullScreen ? 0 : borderRadius - 8),
+                      child: InteractiveViewer(
+                        transformationController: _transformationController,
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: GestureDetector(
+                          // 雙擊切換全螢幕
+                          onDoubleTap: _toggleFullScreen,
+                          onTapDown: widget.isEditable
+                              ? (details) {
+                                  final RenderBox box = context.findRenderObject() as RenderBox;
+                                  final localPosition = box.globalToLocal(details.globalPosition);
+                                  
+                                  // 調整位置以考慮所有 padding
+                                  final totalPadding = outerPadding + cardPadding;
+                                  final adjustedPosition = Offset(
+                                    localPosition.dx - totalPadding,
+                                    localPosition.dy - totalPadding,
+                                  );
+                                  
+                                  final contentWidth = _isFullScreen ? screenWidth : displayWidth;
+                                  final contentHeight = _isFullScreen ? screenHeight : displayHeight;
+                                  
+                                  // 檢查是否點擊到現有標記
+                                  for (final marker in _markers) {
+                                    final markerPos = Offset(
+                                      marker.position.dx * contentWidth,
+                                      marker.position.dy * contentHeight,
+                                    );
+                                    final distance = (adjustedPosition - markerPos).distance;
+                                    if (distance < 20) {
+                                      _showNoteDialog(marker.position, marker);
+                                      return;
+                                    }
+                                  }
+                                  
+                                  // 新增標記
+                                  _addMarker(adjustedPosition, Size(contentWidth, contentHeight));
+                                }
+                              : null,
+                          child: Stack(
+                            children: [
+                              // 背景圖片 - 帶邊框
+                              Container(
+                                width: _isFullScreen ? screenWidth : displayWidth,
+                                height: _isFullScreen ? screenHeight : displayHeight,
+                                decoration: BoxDecoration(
+                                  border: _isFullScreen ? null : Border.all(
+                                    color: AppColors.dynamicPrimary.withOpacity(0.2),
+                                    width: 3,
+                                  ),
+                                  borderRadius: _isFullScreen ? null : BorderRadius.circular(borderRadius - 10),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(_isFullScreen ? 0 : borderRadius - 12),
+                                  child: Image.file(
+                                    File(widget.sheet.filePath),
+                                    fit: BoxFit.contain,
+                                    width: _isFullScreen ? screenWidth : displayWidth,
+                                    height: _isFullScreen ? screenHeight : displayHeight,
+                                  ),
+                                ),
+                              ),
+                              
+                              // 標記圖標
+                              ..._markers.map((marker) {
                                 final contentWidth = _isFullScreen ? screenWidth : displayWidth;
                                 final contentHeight = _isFullScreen ? screenHeight : displayHeight;
                                 
-                                // 檢查是否點擊到現有標記
-                                for (final marker in _markers) {
-                                  final markerPos = Offset(
-                                    marker.position.dx * contentWidth,
-                                    marker.position.dy * contentHeight,
-                                  );
-                                  final distance = (adjustedPosition - markerPos).distance;
-                                  if (distance < 20) {
-                                    _showNoteDialog(marker.position, marker);
-                                    return;
-                                  }
-                                }
-                                
-                                // 新增標記
-                                _addMarker(adjustedPosition, Size(contentWidth, contentHeight));
-                              }
-                            : null,
-                        child: Stack(
-                          children: [
-                            // 背景圖片
-                            Container(
-                              width: _isFullScreen ? screenWidth : displayWidth,
-                              height: _isFullScreen ? screenHeight : displayHeight,
-                              decoration: BoxDecoration(
-                                border: _isFullScreen ? null : Border.all(
-                                  color: AppColors.dynamicPrimary.withOpacity(0.2),
-                                  width: 3,
-                                ),
-                                borderRadius: _isFullScreen ? null : BorderRadius.circular(borderRadius - 2),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(_isFullScreen ? 0 : borderRadius - 4),
-                                child: Image.file(
-                                  File(widget.sheet.filePath),
-                                  fit: BoxFit.contain,
-                                  width: _isFullScreen ? screenWidth : displayWidth,
-                                  height: _isFullScreen ? screenHeight : displayHeight,
-                                ),
-                              ),
-                            ),
-                            
-                            // 標記圖標
-                            ..._markers.map((marker) {
-                              final contentWidth = _isFullScreen ? screenWidth : displayWidth;
-                              final contentHeight = _isFullScreen ? screenHeight : displayHeight;
-                              
-                              return Positioned(
-                                left: marker.position.dx * contentWidth - 14,
-                                top: marker.position.dy * contentHeight - 14,
-                                child: GestureDetector(
-                                  onTap: () => _showNoteDialog(marker.position, marker),
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: marker.color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 3),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                          spreadRadius: 1,
-                                        ),
-                                        BoxShadow(
-                                          color: marker.color.withOpacity(0.4),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 0),
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(
-                                      Icons.edit_note,
-                                      size: 16,
-                                      color: Colors.white,
+                                return Positioned(
+                                  left: marker.position.dx * contentWidth - 14,
+                                  top: marker.position.dy * contentHeight - 14,
+                                  child: GestureDetector(
+                                    onTap: () => _showNoteDialog(marker.position, marker),
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: marker.color,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 3),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                            spreadRadius: 1,
+                                          ),
+                                          BoxShadow(
+                                            color: marker.color.withOpacity(0.4),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 0),
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit_note,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                          ],
+                                );
+                              }).toList(),
+                            ],
+                          ),
                         ),
                       ),
                     ),

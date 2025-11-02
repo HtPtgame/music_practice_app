@@ -244,6 +244,7 @@ class _NotePageState extends State<NotePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const ValueKey('note_page'),
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
         title: Text(
@@ -261,7 +262,7 @@ class _NotePageState extends State<NotePage> {
           // 電子譜面標註按鈕
           if (!_isEditMode)
             IconButton(
-              onPressed: () => context.go('/sheet-annotation'),
+              onPressed: () => context.go('/notes/sheet-annotation'),
               icon: const Icon(Icons.auto_stories),
               tooltip: '電子譜面標註',
               color: AppColors.dynamicPrimary,
@@ -348,7 +349,7 @@ class _NotePageState extends State<NotePage> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    onPressed: () => context.go('/sheet-annotation'),
+                    onPressed: () => context.go('/notes/sheet-annotation'),
                     icon: const Icon(Icons.auto_stories),
                     label: const Text('或使用電子譜面標註'),
                     style: ElevatedButton.styleFrom(
