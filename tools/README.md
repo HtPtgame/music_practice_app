@@ -1,250 +1,166 @@
-# 工具檔案目錄
+﻿# 工具檔案目錄
 
-本目錄包含音訊處理、MIDI 分析和參數優化相關的輔助工具。
+本目錄包含音訊處理和 MIDI 分析的整合工具，用於未來新增測試音檔時的格式處理。
 
-## 📁 檔案列表
+##  工具列表
 
-### 音訊處理工具
+###  audio_tools.dart - 音訊處理工具集
 
-#### `convert_to_mono.dart`
-**用途**: 將立體聲音檔轉換為單聲道
+整合了音訊格式轉換、修復、批次處理和分析功能。
 
-**使用方法**:
+**功能**:
+- **convert** - 將立體聲轉為單聲道
+- **batch** - 批次轉換目錄中的所有 WAV 檔案
+- **fix** - 修復音訊格式（轉為 16-bit PCM, 44100Hz, 單聲道）
+- **analyze** - 分析音訊檔案資訊
+
+**使用方式**:
 ```bash
-dart tools/convert_to_mono.dart <輸入檔案路徑> <輸出檔案路徑>
+# 單檔轉換為單聲道
+dart tools/audio_tools.dart convert <輸入檔案> <輸出檔案>
+
+# 批次轉換目錄中的所有 WAV 檔案
+dart tools/audio_tools.dart batch <目錄路徑>
+
+# 修復音訊格式
+dart tools/audio_tools.dart fix <檔案路徑>
+
+# 分析音訊檔案資訊
+dart tools/audio_tools.dart analyze <檔案路徑>
 ```
 
 **範例**:
 ```bash
-dart tools/convert_to_mono.dart test_recordings/生日快樂/stereo.wav test_recordings/生日快樂/mono.wav
-```
+# 轉換單個檔案
+dart tools/audio_tools.dart convert input.wav output.wav
 
-**技術細節**:
-- 混音方式: 平均左右聲道
-- 保留原始採樣率和位深度
-- 支援 16-bit PCM WAV 格式
+# 批次處理測試音檔目錄
+dart tools/audio_tools.dart batch assets/test_voice/
+
+# 修復格式問題
+dart tools/audio_tools.dart fix test.wav
+
+# 查看音訊資訊
+dart tools/audio_tools.dart analyze test.wav
+```
 
 ---
 
-#### `batch_convert_to_mono.dart`
-**用途**: 批次轉換立體聲音檔為單聲道
+###  midi_tools.dart - MIDI 分析工具
 
-**使用方法**:
-```bash
-dart tools/batch_convert_to_mono.dart
-```
+分析 MIDI 檔案的結構、音符、Tempo 等資訊。
 
 **功能**:
-- 掃描 `assets/test_voice/` 資料夾
-- 自動檢測雙聲道 WAV 檔案
-- 轉換並覆蓋原檔案（⚠️ 注意備份）
-
-**範例輸出**:
-```
-🔍 掃描 test_voice 資料夾...
-✅ 轉換: 小星星.wav (2ch → 1ch)
-✅ 轉換: 名偵探柯南.wav (2ch → 1ch)
-⏭️  跳過: 生日快樂.wav (已是單聲道)
-📊 總計: 轉換 2 個檔案，跳過 1 個
-```
-
----
-
-#### `fix_test_audio.dart`
-**用途**: 修復測試音檔格式問題
-
-**使用方法**:
-```bash
-dart tools/fix_test_audio.dart <音檔目錄>
-```
-
-**功能**:
-- 檢查音檔格式
-- 轉換為正確格式（16-bit PCM WAV, 44100Hz, 單聲道）
-- 修復損壞的音檔頭
-
-**範例**:
-```bash
-dart tools/fix_test_audio.dart test_recordings/生日快樂
-```
-
----
-
-### MIDI 分析工具
-
-#### `analyze_midi_files.dart`
-**用途**: 分析 MIDI 檔案結構和特性
-
-**使用方法**:
-```bash
-dart tools/analyze_midi_files.dart
-```
+- **analyze** - 分析單個 MIDI 檔案
+- **batch** - 批次分析目錄中的所有 MIDI 檔案
 
 **分析項目**:
-- � 檔案大小
-- 🎵 音符總數
-- ⏱️ TPQ (Ticks Per Quarter)
-- 🎼 Tempo 事件數和詳情
-- 📈 音符密度
-- 🎹 音高範圍
-- ⏰ 樂曲總時長
+-  檔案大小
+-  音符總數
+-  TPQ (Ticks Per Quarter)
+-  Tempo 事件數和詳情
+-  音符密度
+-  音高範圍
+-  樂曲總時長
+
+**使用方式**:
+```bash
+# 分析單個 MIDI 檔案
+dart tools/midi_tools.dart analyze <檔案路徑>
+
+# 批次分析目錄中的所有 MIDI 檔案
+dart tools/midi_tools.dart batch <目錄路徑>
+```
+
+**範例**:
+```bash
+# 分析單個檔案
+dart tools/midi_tools.dart analyze assets/test_voice/生日快樂.mid
+
+# 批次分析
+dart tools/midi_tools.dart batch assets/test_voice/
+```
 
 **範例輸出**:
 ```
-🔍 MIDI 檔案延遲分析工具
+ MIDI 檔案分析工具
 ======================================================================
-📁 檔案: assets/test_voice/名偵探柯南.mid
-📊 檔案大小: 45.23 KB
-🎵 音符總數: 1431
-⏱️  TPQ (Ticks Per Quarter): 480
-🎼 Tempo 事件數: 1
+ 檔案: 名偵探柯南.mid
+ 檔案大小: 45.23 KB
+ 格式類型: 0
+ 軌道數: 1
+  TPQ (Ticks Per Quarter): 480
+ 音符總數: 1431
+ Tempo 事件數: 1
 
-📌 Tempo 事件詳情:
-   0. Tick 0: 165.0 BPM (363636 μs/quarter)
+ Tempo 事件詳情:
+   1. Tick 0: 165.0 BPM (363636 μs/quarter)
 
-📊 音符分布:
+ 音符分布:
    最低音符: C3 (48)
    最高音符: C7 (96)
-   音域跨度: 48 半音 (4 個八度)
+   音域跨度: 48 半音 (4.0 個八度)
 
-⏰ 時長分析:
+ 時長分析:
    總時長: 164.2 秒
    音符密度: 8.7 notes/sec
-   評級: 🔥 極快節奏
+   評級:  極快節奏
 ======================================================================
 ```
 
 ---
 
-### 參數優化工具
-
-#### `find_best_parameters.dart`
-**用途**: 基於歷史測試數據分析最佳參數
-
-**使用方法**:
-```bash
-dart tools/find_best_parameters.dart
-```
-
-**分析基準**:
-- Round 5-8 測試結果
-- 正確演奏召回率 vs energyThreshold
-- 環境噪音召回率 vs energyThreshold
-
-**優化目標**:
-- 正確演奏召回率 ≥ 85%
-- 環境噪音召回率 ≤ 5%
-
-**範例輸出**:
-```
-📊 參數分析報告
-======================================================================
-Round 5 (threshold=0.38):
-  正確演奏: 86.5% ✅
-  環境噪音: 10.3% ⚠️
-
-Round 6 (threshold=0.40):
-  正確演奏: 82.1% ⚠️
-  環境噪音: 7.2% ✅
-
-Round 7 (threshold=0.36):
-  正確演奏: 89.3% ✅
-  環境噪音: 13.5% ❌
-
-Round 8 (threshold=0.38):
-  正確演奏: 88.7% ✅
-  環境噪音: 9.1% ⚠️
-
-🎯 推薦參數: 0.38
-   理由: 最佳平衡點，正確演奏高召回 + 環境噪音可接受
-======================================================================
-```
-
-**結論**: 引發 Round 9 動態參數系統開發
-
----
-
-## 🔧 工具使用場景
+##  使用場景
 
 ### 場景 1: 準備新的測試音檔
 
 ```bash
-# 1. 修復格式
-dart tools/fix_test_audio.dart test_recordings/新曲目
+# 1. 分析音訊檔案
+dart tools/audio_tools.dart analyze new_recording.wav
 
-# 2. 轉換為單聲道
-dart tools/batch_convert_to_mono.dart
+# 2. 修復格式（如需要）
+dart tools/audio_tools.dart fix new_recording.wav
 
-# 3. 分析 MIDI 特性
-dart tools/analyze_midi_files.dart
+# 3. 批次處理整個目錄
+dart tools/audio_tools.dart batch test_recordings/新曲目/
 ```
 
-### 場景 2: 參數調優研究
+### 場景 2: 分析 MIDI 樂譜特性
 
 ```bash
-# 1. 分析歷史數據
-dart tools/find_best_parameters.dart
+# 1. 分析 MIDI 檔案
+dart tools/midi_tools.dart analyze new_song.mid
 
-# 2. 執行參數掃描
-dart test/research/parameter_sweep_test.dart
+# 2. 批次分析所有 MIDI
+dart tools/midi_tools.dart batch assets/test_voice/
 
-# 3. 驗證新參數
-dart test/validation/final_validation_test.dart
+# 根據分析結果調整測試參數:
+# - 音符密度 > 5 notes/sec  複雜曲目
+# - BPM > 140  快速曲目
+# - 時長 > 60s  長時間測試
 ```
 
-### 場景 3: MIDI 檔案診斷
+### 場景 3: 音訊格式標準化
 
 ```bash
-# 分析 MIDI 結構
-dart tools/analyze_midi_files.dart
+# 確保所有測試音檔符合系統要求
+# (16-bit PCM, 44100Hz, 單聲道)
 
-# 查看:
-# - 音符數量（影響測試時長）
-# - Tempo 設定（影響速度分級）
-# - 音高範圍（影響頻譜匹配）
-# - 音符密度（影響難度分級）
+# 批次轉換
+dart tools/audio_tools.dart batch assets/test_voice/
+
+# 驗證格式
+dart tools/audio_tools.dart analyze assets/test_voice/生日快樂.wav
 ```
 
 ---
 
-## ⚙️ 依賴項
-
-這些工具需要 Flutter/Dart SDK，部分工具可能需要：
-
-### 音訊處理（convert_to_mono, batch_convert, fix_test_audio）
-- ✅ 純 Dart 實現，無需外部依賴
-- ✅ 支援 16-bit PCM WAV 格式
-
-### MIDI 分析（analyze_midi_files）
-- ✅ 使用專案內的 MidiParser
-- ✅ 無需外部工具
-
-### FFmpeg（可選，用於複雜轉換）
-
-安裝 FFmpeg:
-```bash
-# Windows (Chocolatey)
-choco install ffmpeg
-
-# macOS (Homebrew)
-brew install ffmpeg
-
-# Ubuntu
-sudo apt install ffmpeg
-```
-
-**注意**: 本專案工具已實現基本音訊處理，FFmpeg 僅在需要進階功能時使用。
-
----
-
-## 📝 開發筆記
-
-### 音訊格式要求
+##  音訊格式要求
 
 本專案的音訊分析系統要求：
 - **格式**: WAV (PCM)
 - **位深度**: 16-bit
-- **採樣率**: 44100Hz（推薦）或 48000Hz
+- **採樣率**: 44100Hz
 - **聲道**: 單聲道（必須）
 
 **為什麼要求單聲道？**
@@ -252,31 +168,39 @@ sudo apt install ffmpeg
 - 減少運算量
 - 避免立體聲相位問題
 
-### MIDI 分析用途
+---
 
-1. **難度分級**:
-   - 音符密度 > 5 notes/sec → 複雜
-   - 音符密度 < 2 notes/sec → 簡單
+##  相關資源
 
-2. **速度分級**:
-   - BPM > 140 → 快速
-   - BPM < 80 → 慢速
+### 測試系統
+- **test/integration/** - 整合測試
+- **test/validation/** - 驗證測試
+- **test/research/** - 參數研究測試
 
-3. **參數調整**:
-   - 複雜曲目 → 降低 energyThreshold
-   - 快速曲目 → 縮小 timingTolerance
+### 主程式功能
+- **lib/services/audio_analysis/** - 音訊分析服務
+- **lib/services/midi_service.dart** - MIDI 處理服務
+
+### 文檔
+- **AI_WORK_LOG.md** - 完整開發歷程記錄
+- **test/integration/README.md** - 整合測試說明
 
 ---
 
-## 🔗 相關文檔
+##  更新記錄
 
-- [test/research/README.md](../test/research/README.md) - 參數研究
-- [test/validation/README.md](../test/validation/README.md) - 驗證測試
-- [AUDIO_DETECTION_OPTIMIZATION.md](../AUDIO_DETECTION_OPTIMIZATION.md) - 優化歷史
-- [lib/services/audio_analysis/dynamic_parameter_service.dart](../lib/services/audio_analysis/dynamic_parameter_service.dart) - 動態參數實現
+**2025/11/08** - 工具整合
+- 將三個音訊處理工具整合為 `audio_tools.dart`
+- 保留 MIDI 分析工具為 `midi_tools.dart`
+- 採用指令式介面，更易於使用
+- 所有功能整合至兩個檔案，便於維護
+
+**保留原因**:
+- 未來可能新增測試音檔
+- 需要統一音訊格式
+- MIDI 分析有助於參數調整
 
 ---
 
-**建立日期**: 2025/10/26  
-**最後更新**: 2025/10/26  
+**最後更新**: 2025/11/08  
 **維護者**: GitHub Copilot

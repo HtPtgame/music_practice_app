@@ -3409,6 +3409,122 @@ dart test_week3.dart 4    # 背景噪音測試
 **測試結果**:  所有核心功能運作正常
 
 ---
+### 2025/11/08 - 測試檔案清理 ✅ 完成
+
+**目標**: 清理專案根目錄中過時的測試檔案，保留整合測試系統
+
+**保留的檔案**:
+- `run_debug_test.bat` - 批次檔入口點（支援: `.\run_debug_test.bat 1`）
+- `run_debug_test.ps1` - PowerShell 測試腳本
+- `test/integration/debug_accuracy_test.dart` - 實際測試邏輯（位於 test 目錄）
+
+**刪除的檔案** (共 27 個):
+
+*Dart 測試腳本* (20 個):
+- `batch_convert_to_mono.dart` - 音訊批次轉換工具
+- `demo_dynamic_parameters.dart` - 動態參數演示
+- `find_best_parameters.dart` - 參數優化工具
+- `fix_test_audio.dart` - 音訊格式修正工具
+- `test_all_rounds.dart` - 全輪次測試
+- `test_by_rounds.dart` - 分輪測試
+- `test_comprehensive.dart` - 綜合測試
+- `test_comprehensive_detection.dart` - 綜合偵測測試
+- `test_conan.dart` - 柯南測試
+- `test_detection_comprehensive.dart` - 空檔案
+- `test_detection_optimized.dart` - 優化偵測測試
+- `test_dynamic_parameters.dart` - 動態參數測試
+- `test_final_validation.dart` - 最終驗證
+- `test_midi_simple.dart` - MIDI 簡易測試
+- `test_parameter_sweep.dart` - 參數掃描
+- `test_phase1a_alignment.dart` - 對齊測試
+- `test_quick.dart` - 快速測試
+- `test_round10_dynamic.dart` - 第10輪動態測試
+- `test_round10_full.dart` - 第10輪完整測試
+- `test_round10_quick.dart` - 第10輪快速測試
+
+*PowerShell 腳本* (7 個):
+- `consolidate_md_files.ps1` - MD 檔案整合（空檔案）
+- `convert_midi.ps1` - MIDI 轉換
+- `convert_to_mono.ps1` - 單聲道轉換
+- `find_recording.ps1` - 錄音檔查找
+- `run_all_tests.ps1` - 舊版全測試腳本
+- `run_round_tests.ps1` - 舊版輪次測試腳本
+- `verify_rollback.ps1` - 回滾驗證
+
+**測試系統使用方式**:
+```powershell
+# 執行整合測試
+.\run_debug_test.bat 1
+
+# 或使用 PowerShell（支援更多模式）
+.\run_debug_test.ps1 0  # 全部測試
+.\run_debug_test.ps1 1  # 第一輪（生日快樂）
+.\run_debug_test.ps1 2  # 第二輪（測試音檔）
+.\run_debug_test.ps1 3  # 第三輪（小星星）
+.\run_debug_test.ps1 4  # 第四輪（名偵探柯南）
+```
+
+**清理效益**:
+- 移除重複功能的測試腳本
+- 保持專案根目錄整潔
+- 整合至統一的測試入口點
+- 減少程式碼提醒（清除過時檔案的 lint 警告）
+
+---
+
+### Test 與 Tools 資料夾清理
+
+**清理範圍**: 移除過時的開發工具和測試檔案
+
+**Test 資料夾刪除** (4 項):
+- `audio_conversion_test.md` - 舊版 AI 轉換功能測試清單（已淘汰功能）
+- `experiments/` - 空資料夾
+- `legacy/` - 空資料夾
+- `specific_songs/` - 空資料夾
+
+**Tools 資料夾清理與重整** (5 個舊工具 → 2 個整合工具):
+
+*刪除的工具*:
+- `find_best_parameters.dart` - 參數優化工具（動態參數系統已完成，不再需要）
+
+*整合後的新工具*:
+- ✅ `audio_tools.dart` - 音訊處理工具集
+  - 整合自: `convert_to_mono.dart`, `batch_convert_to_mono.dart`, `fix_test_audio.dart`
+  - 功能: convert, batch, fix, analyze
+  - 用途: 未來新增測試音檔時的格式處理
+  
+- ✅ `midi_tools.dart` - MIDI 分析工具
+  - 整合自: `analyze_midi_files.dart`
+  - 功能: analyze, batch
+  - 用途: 分析 MIDI 特性以調整測試參數
+
+**保留的結構**:
+
+Test 資料夾:
+- `integration/` - 整合測試（debug_accuracy_test.dart, performance_test.dart）
+- `research/` - 參數研究測試
+- `services/` - 服務層測試
+- `validation/` - 驗證測試
+- `widget_test.dart` - Flutter 預設測試
+
+Tools 資料夾:
+- `audio_tools.dart` - 音訊處理工具集（4合1）
+- `midi_tools.dart` - MIDI 分析工具
+- `README.md` - 工具使用文檔
+
+**整合效益**:
+- 移除 4 個已完成任務的過時檔案
+- 將 4 個音訊工具整合為 1 個，採用指令式介面
+- 保留 MIDI 分析工具以備未來使用
+- 所有工具採用統一的 CLI 介面，更易使用
+- tools/README.md 更新為完整的使用說明
+
+**保留原因**:
+- 未來可能新增測試音檔，需要格式轉換和修復
+- MIDI 分析有助於了解新樂譜的特性
+- 整合後的工具更易維護和使用
+
+---
 ### 2025/10/08 - 程式碼清理: 移除 AI 轉換偵錯功能 ✅ 完成
 
 **背景**:
