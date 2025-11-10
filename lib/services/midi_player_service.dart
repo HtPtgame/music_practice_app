@@ -55,7 +55,6 @@ class MidiPlayerService {
   List<_ScheduledNote> _scheduledNotes = [];
   String? _currentMidiPath;
   bool _isPaused = false;
-  int _pausedElapsedMs = 0;
 
   // Tempo 管理
   List<TempoChange> _tempoChanges = [];
@@ -249,7 +248,6 @@ class MidiPlayerService {
 
       _currentIndex = 0;
       _isPaused = false;
-      _pausedElapsedMs = 0;
 
       // 重新載入音量設定
       await _loadVolumeSettings();
@@ -307,7 +305,6 @@ class MidiPlayerService {
   void pause() {
     if (!_isPaused && _playbackLoop != null) {
       _isPaused = true;
-      _pausedElapsedMs = _stopwatch.elapsedMilliseconds;
       _stopwatch.stop();
       _playbackLoop?.cancel();
       _playbackLoop = null;
@@ -434,7 +431,6 @@ class MidiPlayerService {
     
     _currentIndex = 0;
     _isPaused = false;
-    _pausedElapsedMs = 0;
     _currentMidiPath = null;
     _tempoChanges.clear();
     _cachedTempos.clear();

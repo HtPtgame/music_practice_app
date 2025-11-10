@@ -59,7 +59,7 @@ class PerformanceError {
   /// 是否為音高問題
   bool get isPitchError => type == ErrorType.wrongNote || type == ErrorType.missedNote;
 
-  /// 錯誤嚴重程度 (0-1, 1最嚴重)
+  /// 計算錯誤嚴重程度 (0-1)
   double get severity {
     switch (type) {
       case ErrorType.correct:
@@ -72,8 +72,6 @@ class PerformanceError {
         return 0.3 + (timingOffset?.abs() ?? 0) * 2; // 最多0.6
       case ErrorType.earlyTiming:
         return 0.3 + (timingOffset?.abs() ?? 0) * 2;
-      default:
-        return 0.5; // 未知錯誤類型
     }
   }
 
@@ -90,8 +88,6 @@ class PerformanceError {
         return '⏩';
       case ErrorType.lateTiming:
         return '⏸️';
-      default:
-        return '❓'; // 未知錯誤類型
     }
   }
 
