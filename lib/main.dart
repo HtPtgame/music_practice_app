@@ -3,12 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:music_practice_app/router/app_router.dart';
 import 'package:music_practice_app/utils/theme_manager.dart';
 import 'package:music_practice_app/services/settings_service.dart';
+import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // 初始化 Firebase
+  if (USE_FIREBASE_AUTH) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+  
   // 初始化設定服務
   await SettingsService().initialize();
+  
+  // 初始化認證服務
+  await authService.initialize();
   
   // 鎖定螢幕方向為直立模式，防止旋轉破圖
   await SystemChrome.setPreferredOrientations([

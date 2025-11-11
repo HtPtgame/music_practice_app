@@ -1,8 +1,10 @@
 // lib/pages/home_page.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/widgets/check_in_card.dart';
 import 'package:music_practice_app/widgets/practice_timer_card.dart';
+import 'package:music_practice_app/services/auth_service_config.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -29,10 +31,8 @@ class HomePage extends StatelessWidget {
                       Text('音靈偵探', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 24, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  IconButton(
-                    icon: Icon(Icons.person_outline, color: AppColors.dynamicTextDark, size: 28),
-                    onPressed: null, // 在 Shell 中這個按鈕可能需要透過狀態管理觸發行為
-                  ),
+                  // 使用者頭像/登入按鈕
+                  _UserButton(),
                 ],
               ),
             ),
@@ -44,6 +44,53 @@ class HomePage extends StatelessWidget {
           ],
         ),
       );
+  }
+}
+
+// 使用者按鈕 Widget
+class _UserButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: authService,
+      builder: (context, _) {
+        final user = authService.currentUser;
+
+        if (user != null) {
+          // 已登入：顯示使用者頭像
+          return GestureDetector(
+            onTap: () => context.push('/profile'),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.dynamicPrimary,
+              child: user.avatarUrl != null
+                  ? ClipOval(
+                      child: Image.network(
+                        user.avatarUrl!,
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Text(
+                      user.username[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          );
+        } else {
+          // 未登入：顯示登入按鈕
+          return IconButton(
+            icon: Icon(Icons.person_outline, color: AppColors.dynamicTextDark, size: 28),
+            onPressed: () => context.push('/login'),
+            tooltip: '登入',
+          );
+        }
+      },
+    );
   }
 }
 

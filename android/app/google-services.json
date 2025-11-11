@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "927535785315",
+    "project_id": "sound-spirit-detective",
+    "storage_bucket": "sound-spirit-detective.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:927535785315:android:7a2b437ba33252efc31f56",
+        "android_client_info": {
+          "package_name": "com.example.music_practice_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8eXmmBqYSAe3-_Hhs1ssCfI9H6YF1eEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

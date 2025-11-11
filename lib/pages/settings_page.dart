@@ -1,9 +1,11 @@
 // lib/pages/settings_page.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/utils/theme_manager.dart';
 import 'package:music_practice_app/services/settings_service.dart';
 import 'package:music_practice_app/services/haptic_service.dart';
+import 'package:music_practice_app/services/auth_service_config.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -131,6 +133,12 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 帳號設定區塊
+            _buildSectionTitle('帳號設定'),
+            const SizedBox(height: 16),
+            _buildAccountCard(),
+            const SizedBox(height: 32),
+            
             // 語言設定區塊
             _buildSectionTitle('語言設定'),
             const SizedBox(height: 16),
@@ -161,6 +169,81 @@ class _SettingsPageState extends State<SettingsPage> {
         fontWeight: FontWeight.bold,
         color: AppColors.dynamicTextDark,
       ),
+    );
+  }
+
+  Widget _buildAccountCard() {
+    return ListenableBuilder(
+      listenable: authService,
+      builder: (context, _) {
+        final user = authService.currentUser;
+
+        return Card(
+          color: AppColors.dynamicCard,
+          elevation: 1.5,
+          shadowColor: const Color(0x196A5AE0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: InkWell(
+            onTap: () {
+              if (user != null) {
+                context.push('/profile');
+              } else {
+                context.push('/login');
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      user != null ? Icons.person : Icons.person_outline,
+                      color: AppColors.dynamicPrimary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user != null ? '個人帳號' : '登入 / 註冊',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.dynamicTextDark,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user != null 
+                              ? user.displayName ?? user.username
+                              : '登入以同步您的練習記錄',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: AppColors.dynamicTextLight,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
