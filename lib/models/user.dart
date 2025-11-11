@@ -49,7 +49,7 @@ class User {
   
   // 使用者數據（雲端同步）
   final List<DateTime> checkInDates; // 打卡日期列表
-  final Map<String, int> practiceTime; // 練習時間記錄 (日期 -> 分鐘數)
+  final Map<String, int> practiceTime; // 練習時間記錄 (日期 -> 秒數)
   final Map<String, dynamic> settings; // 個人化設定
   final List<MusicNote> musicNotes; // 文字筆記
 

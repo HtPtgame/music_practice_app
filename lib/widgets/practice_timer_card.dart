@@ -4,6 +4,7 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:music_practice_app/services/practice_timer_service.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -16,6 +17,7 @@ class PracticeTimerCard extends StatefulWidget {
 
 class _PracticeTimerCardState extends State<PracticeTimerCard> {
   final UserDataSyncService _syncService = UserDataSyncService();
+  final PracticeTimerService _timerService = PracticeTimerService();
   
   // 計時器狀態
   bool _isRunning = false;
@@ -40,6 +42,10 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   @override
   void dispose() {
     _timer?.cancel();
+    // 如果計時器正在運行，離開頁面時重置全局狀態
+    if (_isRunning) {
+      _timerService.setTimerRunning(false);
+    }
     authService.removeListener(_onAuthStateChanged);
     super.dispose();
   }
@@ -108,12 +114,8 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final user = authService.currentUser;
     if (user != null) {
       try {
-        // 將秒數轉換為分鐘（保留小數點後1位精度）
-        final practiceTimeInMinutes = _weeklyPracticeData.map(
-          (key, value) => MapEntry(key, (value / 60.0 * 10).round()) // 儲存為分鐘*10
-        );
-        
-        await _syncService.syncPracticeTime(practiceTimeInMinutes);
+        // 直接儲存秒數到雲端（完全精確，不轉換）
+        await _syncService.syncPracticeTime(_weeklyPracticeData);
         debugPrint('練習時間已同步到雲端');
       } catch (e) {
         debugPrint('同步練習時間到雲端失敗: $e');
@@ -168,6 +170,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
       _isRunning = true;
     });
     
+    // 更新全局計時器狀態
+    _timerService.setTimerRunning(true);
+    
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _elapsedSeconds++;
@@ -184,6 +189,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     setState(() {
       _isRunning = false;
     });
+    
+    // 更新全局計時器狀態
+    _timerService.setTimerRunning(false);
     
     // 如果本次練習有時長，則保存數據
     if (sessionSeconds > 0) {
@@ -206,50 +214,6 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
       }
       
       debugPrint('本次練習: $sessionSeconds 秒, 今日累計: $_elapsedSeconds 秒');
-    }
-  }
-
-  // 重置今日計時
-  Future<void> _resetTimer() async {
-    // 確認對話框
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('重置今日計時'),
-        content: const Text('確定要將今日累計時長重置為 0 嗎？此操作無法復原。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('確認重置'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final today = _getTodayString();
-      
-      setState(() {
-        _elapsedSeconds = 0;
-        _weeklyPracticeData[today] = 0;
-      });
-      
-      await _savePracticeData();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('今日計時已重置'),
-            backgroundColor: AppColors.dynamicPrimary,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     }
   }
 
@@ -319,38 +283,25 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 標題和重置按鈕
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // 標題
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '練習計時',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.dynamicTextDark,
-                            ),
-                          ),
-                          Text(
-                            '今日累計時長（隔日自動重置）',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.dynamicTextLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // 重置按鈕（僅在未計時且有時長時顯示）
-                      if (!_isRunning && _elapsedSeconds > 0)
-                        IconButton(
-                          onPressed: _resetTimer,
-                          icon: const Icon(Icons.refresh, size: 20),
-                          color: AppColors.dynamicTextLight,
-                          tooltip: '重置今日計時',
+                      Text(
+                        '練習計時',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.dynamicTextDark,
                         ),
+                      ),
+                      Text(
+                        '今日累計時長（隔日自動重置）',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.dynamicTextLight,
+                        ),
+                      ),
                     ],
                   ),
                   

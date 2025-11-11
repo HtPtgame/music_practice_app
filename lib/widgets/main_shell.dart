@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:music_practice_app/services/practice_timer_service.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -136,7 +137,52 @@ class MainShell extends StatelessWidget {
   return 0;
   }
 
-  void _onItemTapped(int index, BuildContext context) {
+  void _onItemTapped(int index, BuildContext context) async {
+    // 檢查計時器是否運行中
+    final timerService = PracticeTimerService();
+    final currentIndex = _calculateSelectedIndex(context);
+    
+    // 如果已經在目標頁面，不需要切換
+    if (index == currentIndex) return;
+    
+    // 如果計時器正在運行，彈出警告
+    if (timerService.isTimerRunning) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 8),
+              Text('計時器運行中'),
+            ],
+          ),
+          content: const Text(
+            '練習計時器正在運行中！\n\n'
+            '切換頁面將導致本次計時數據不被記錄。\n'
+            '建議先暫停計時器再切換頁面。\n\n'
+            '確定要離開此頁面嗎？',
+            style: TextStyle(fontSize: 15),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('留在此頁', style: TextStyle(fontSize: 16)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('確定離開', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+      );
+      
+      // 如果用戶取消切換，直接返回
+      if (confirmed != true) return;
+    }
+    
+    // 執行頁面切換
     switch (index) {
       case 0:
         context.go('/');

@@ -10,7 +10,149 @@
 
 ## 📅 最新更新 (2025/11/11)
 
-### 🔐 Firebase 認證與數據系統完整建置
+### � 計時器頁面切換警告功能 (下午)
+
+#### 問題描述
+用戶在練習計時器運行時不小心切換到其他頁面，導致該次計時的時間不被記錄。
+
+**場景重現**:
+1. 用戶開始練習計時（例如已計時 15 分鐘）
+2. 不小心點擊底部導航欄切換到其他頁面
+3. 計時器組件被銷毀，本次 15 分鐘的數據丟失 ❌
+
+#### 解決方案
+
+**核心設計**: 全局計時器狀態管理 + 頁面切換攔截
+
+**實現架構**:
+
+**1. 全局狀態服務** (`lib/services/practice_timer_service.dart`)
+```dart
+class PracticeTimerService extends ChangeNotifier {
+  bool _isTimerRunning = false;
+  
+  bool get isTimerRunning => _isTimerRunning;
+  
+  void setTimerRunning(bool isRunning) {
+    if (_isTimerRunning != isRunning) {
+      _isTimerRunning = isRunning;
+      notifyListeners();
+    }
+  }
+}
+```
+
+**2. 計時器組件整合** (`lib/widgets/practice_timer_card.dart`)
+```dart
+// 開始計時時更新全局狀態
+void _startTimer() {
+  setState(() { _isRunning = true; });
+  _timerService.setTimerRunning(true);  // ✅ 通知全局
+  _timer = Timer.periodic(...);
+}
+
+// 暫停計時時更新全局狀態
+Future<void> _pauseTimer() async {
+  _timer?.cancel();
+  setState(() { _isRunning = false; });
+  _timerService.setTimerRunning(false);  // ✅ 通知全局
+  await _savePracticeData();
+}
+
+// 離開頁面時重置狀態
+@override
+void dispose() {
+  if (_isRunning) {
+    _timerService.setTimerRunning(false);
+  }
+  super.dispose();
+}
+```
+
+**3. 底部導航欄攔截** (`lib/widgets/main_shell.dart`)
+```dart
+void _onItemTapped(int index, BuildContext context) async {
+  final timerService = PracticeTimerService();
+  
+  // 檢查計時器是否運行中
+  if (timerService.isTimerRunning) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange),
+          Text('計時器運行中'),
+        ]),
+        content: Text(
+          '練習計時器正在運行中！\n\n'
+          '切換頁面將導致本次計時數據不被記錄。\n'
+          '建議先暫停計時器再切換頁面。\n\n'
+          '確定要離開此頁面嗎？'
+        ),
+        actions: [
+          TextButton(child: Text('留在此頁'), onPressed: ...),
+          TextButton(child: Text('確定離開'), onPressed: ...),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;  // 用戶取消切換
+  }
+  
+  // 執行頁面切換
+  context.go('/...');
+}
+```
+
+#### 功能特性
+
+**警告對話框**:
+- 🟠 **警告圖標** - 橙色警示圖標吸引注意
+- 📝 **清晰說明** - 明確告知數據丟失風險
+- 💡 **操作建議** - 提示「先暫停計時器」
+- 🔴 **確認按鈕** - 紅色「確定離開」按鈕強調風險
+
+**用戶體驗**:
+- ✅ **主動防護** - 在數據丟失前彈出警告
+- ✅ **雙重確認** - 避免誤操作
+- ✅ **靈活選擇** - 用戶可選擇留在頁面或強制離開
+- ✅ **狀態同步** - 計時器狀態實時更新
+
+**技術優勢**:
+- ✅ **全局狀態** - 任何頁面都能檢測計時器狀態
+- ✅ **輕量級** - 使用 ChangeNotifier，無需額外依賴
+- ✅ **可擴展** - 未來可添加其他頁面切換攔截邏輯
+
+#### 測試場景
+
+| 場景 | 計時器狀態 | 預期行為 |
+|------|-----------|---------|
+| 點擊底部導航（未計時） | 停止 | 直接切換頁面 ✅ |
+| 點擊底部導航（計時中） | 運行 | 彈出警告對話框 ⚠️ |
+| 警告對話框點擊「留在此頁」 | 運行 | 關閉對話框，停留在首頁 ✅ |
+| 警告對話框點擊「確定離開」 | 運行 | 切換到目標頁面（數據丟失） ⚠️ |
+| 暫停計時器後切換頁面 | 停止 | 直接切換（數據已保存） ✅ |
+
+#### 修改檔案
+
+**新增檔案**:
+- `lib/services/practice_timer_service.dart` - 全局計時器狀態服務
+
+**修改檔案**:
+- `lib/widgets/practice_timer_card.dart` - 整合全局狀態
+- `lib/widgets/main_shell.dart` - 添加頁面切換攔截
+- `lib/router/app_router.dart` - 移除未使用的 import
+
+#### 後續優化建議
+
+1. **自動保存機制** - 頁面切換時自動暫停並保存（未來考慮）
+2. **後台計時** - 使用 WorkManager 在後台持續計時（未來考慮）
+3. **彈窗樣式** - 根據主題動態調整對話框顏色
+4. **音效提示** - 彈出警告時播放提示音
+
+---
+
+### �🔐 Firebase 認證與數據系統完整建置 (上午)
 
 #### 第一階段：Firebase 專案初始化
 **目標**: 建立完整的用戶認證與雲端數據同步系統

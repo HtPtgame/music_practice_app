@@ -168,12 +168,8 @@ class AuthService extends ChangeNotifier {
       debugPrint('已同步打卡記錄: ${checkInDatesStr.length} 天');
       
       // ✅ 同步練習時間 (包含空 Map,確保新用戶也有初始化)
-      // 雲端儲存格式: 分鐘*10 (例: 15 = 1.5分鐘)
-      // 本地儲存格式: 秒數 (例: 90秒)
-      final practiceDataInSeconds = user.practiceTime.map(
-        (key, minutesTimes10) => MapEntry(key, (minutesTimes10 / 10.0 * 60).round())
-      );
-      final practiceDataJson = jsonEncode(practiceDataInSeconds);
+      // 雲端與本地統一格式: 秒數 (完全精確)
+      final practiceDataJson = jsonEncode(user.practiceTime);
       await prefs.setString('practice_data', practiceDataJson);
       debugPrint('已同步練習時間: ${user.practiceTime.length} 筆記錄');
       
