@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/services/firebase_auth_service.dart';
 
-/// 註冊頁面
+/// 註冊頁面 - Firebase 版本
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -14,9 +15,9 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _usernameController = TextEditingController();
-  final _displayNameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authService = FirebaseAuthService();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -25,32 +26,29 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _emailController.dispose();
     _usernameController.dispose();
-    _displayNameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
+  /// 處理 Email/密碼註冊
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await authService.register(
+      await _authService.register(
         email: _emailController.text.trim(),
         username: _usernameController.text.trim(),
         password: _passwordController.text,
-        displayName: _displayNameController.text.trim().isEmpty
-            ? null
-            : _displayNameController.text.trim(),
+        displayName: _usernameController.text.trim(), // 使用 username 作為顯示名稱
       );
 
       if (mounted) {
-        // 註冊成功，返回首頁
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('註冊成功！'),
+            content: Text('註冊成功！歡迎加入'),
             backgroundColor: Colors.green,
           ),
         );
@@ -58,10 +56,56 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } catch (e) {
       if (mounted) {
+        // 提取錯誤訊息（移除 "Exception: " 前綴）
+        String errorMessage = e.toString().replaceFirst('Exception: ', '');
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('註冊失敗: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// 處理 Google 登入/註冊
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await _authService.signInWithGoogle();
+
+      if (mounted) {
+        if (success) {
+          // 登入/註冊成功
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google 登入成功！'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.go('/');
+        } else {
+          // 使用者取消登入,不顯示任何訊息
+          debugPrint('使用者取消 Google 登入');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // 提取錯誤訊息（移除 "Exception: " 前綴）
+        String errorMessage = e.toString().replaceFirst('Exception: ', '');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -86,11 +130,19 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo 或 Icon
+                // Logo
                 Icon(
-                  Icons.person_add,
+                  Icons.music_note,
                   size: 80,
                   color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '建立新帳號',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
@@ -116,14 +168,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // 使用者名稱
+                // 使用者名稱（同時作為顯示名稱）
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
                     labelText: '使用者名稱',
                     prefixIcon: Icon(Icons.account_circle),
                     border: OutlineInputBorder(),
-                    helperText: '3-20個字元，僅限英文、數字、底線',
+                    helperText: '3-20個字元，將作為您的顯示名稱',
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -132,23 +184,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (value.length < 3 || value.length > 20) {
                       return '使用者名稱長度需為 3-20 個字元';
                     }
-                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                      return '使用者名稱僅限英文、數字、底線';
-                    }
                     return null;
                   },
-                  enabled: !_isLoading,
-                ),
-                const SizedBox(height: 16),
-
-                // 顯示名稱（可選）
-                TextFormField(
-                  controller: _displayNameController,
-                  decoration: const InputDecoration(
-                    labelText: '顯示名稱（可選）',
-                    prefixIcon: Icon(Icons.badge),
-                    border: OutlineInputBorder(),
-                  ),
                   enabled: !_isLoading,
                 ),
                 const SizedBox(height: 16),
@@ -215,12 +252,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 24),
 
                 // 註冊按鈕
-                ElevatedButton(
+                FilledButton(
                   onPressed: _isLoading ? null : _handleRegister,
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -233,10 +269,58 @@ class _RegisterPageState extends State<RegisterPage> {
                         )
                       : const Text(
                           '註冊',
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+
+                // 分隔線
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        '或',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey,
+                            ),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Google 登入按鈕
+                OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _handleGoogleSignIn,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: const Size(double.infinity, 50),
+                    side: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 1.5,
+                    ),
+                  ),
+                  icon: Image.asset(
+                    'assets/google_logo.png',
+                    height: 24,
+                    width: 24,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.g_mobiledata, size: 24);
+                    },
+                  ),
+                  label: const Text(
+                    '使用 Google 帳號註冊',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // 登入連結
                 Row(

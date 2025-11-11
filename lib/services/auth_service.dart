@@ -128,11 +128,71 @@ class AuthService extends ChangeNotifier {
       users[userId]['password'] = userData['password'] ?? _hashPassword(password);
       await prefs.setString('users', jsonEncode(users));
       
+      // 登入成功後,從帳號數據載入到本地 SharedPreferences
+      await _syncUserDataToLocal(_currentUser!);
+      
       notifyListeners();
       return true;
     } catch (e) {
       debugPrint('登入失敗: $e');
       rethrow;
+    }
+  }
+
+  /// 將帳號數據同步到本地 SharedPreferences
+  Future<void> _syncUserDataToLocal(User user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // ✅ 同步打卡記錄 (包含空列表,確保新用戶也有初始化)
+      final checkInDatesStr = user.checkInDates.map((date) =>
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'
+      ).toList();
+      await prefs.setStringList('checked_dates', checkInDatesStr);
+      
+      // 計算連續打卡天數
+      int consecutiveDays = 0;
+      if (checkInDatesStr.isNotEmpty) {
+        final today = DateTime.now();
+        for (int i = 0; i < 365; i++) {
+          final date = today.subtract(Duration(days: i));
+          final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+          if (checkInDatesStr.contains(dateStr)) {
+            consecutiveDays++;
+          } else {
+            break;
+          }
+        }
+      }
+      await prefs.setInt('consecutive_days', consecutiveDays);
+      debugPrint('已同步打卡記錄: ${checkInDatesStr.length} 天');
+      
+      // ✅ 同步練習時間 (包含空 Map,確保新用戶也有初始化)
+      // 雲端儲存格式: 分鐘*10 (例: 15 = 1.5分鐘)
+      // 本地儲存格式: 秒數 (例: 90秒)
+      final practiceDataInSeconds = user.practiceTime.map(
+        (key, minutesTimes10) => MapEntry(key, (minutesTimes10 / 10.0 * 60).round())
+      );
+      final practiceDataJson = jsonEncode(practiceDataInSeconds);
+      await prefs.setString('practice_data', practiceDataJson);
+      debugPrint('已同步練習時間: ${user.practiceTime.length} 筆記錄');
+      
+      // 同步個人化設定
+      if (user.settings.isNotEmpty) {
+        final settings = user.settings;
+        await prefs.setDouble('master_volume', (settings['masterVolume'] as num?)?.toDouble() ?? 0.8);
+        await prefs.setDouble('midi_volume', (settings['midiVolume'] as num?)?.toDouble() ?? 0.7);
+        await prefs.setDouble('recording_volume', (settings['recordingVolume'] as num?)?.toDouble() ?? 0.9);
+        await prefs.setDouble('metronome_volume', (settings['metronomeVolume'] as num?)?.toDouble() ?? 0.6);
+        await prefs.setBool('sound_enabled', settings['soundEnabled'] as bool? ?? true);
+        await prefs.setBool('vibration_enabled', settings['vibrationEnabled'] as bool? ?? true);
+        await prefs.setString('selected_language', settings['selectedLanguage'] as String? ?? 'zh_TW');
+        debugPrint('已同步個人化設定');
+      }
+      
+      debugPrint('帳號數據已完整同步到本地');
+    } catch (e) {
+      debugPrint('同步帳號數據到本地失敗: $e');
     }
   }
 

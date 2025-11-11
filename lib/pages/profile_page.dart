@@ -251,6 +251,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _handleDeleteAccount() {
     final passwordController = TextEditingController();
+    final isGoogleUser = authService.isGoogleSignIn();
 
     showDialog(
       context: context,
@@ -258,17 +259,28 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text('刪除帳號'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('⚠️ 此操作無法復原！\n所有資料將被永久刪除。'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: '請輸入密碼確認',
-                border: OutlineInputBorder(),
-              ),
+            const Text(
+              '⚠️ 此操作無法復原！\n所有資料將被永久刪除。',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 16),
+            if (isGoogleUser)
+              const Text(
+                '您使用 Google 帳號登入。\n點擊「確認刪除」後需要重新登入 Google 以確認身份。',
+                style: TextStyle(fontSize: 14),
+              )
+            else
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: '請輸入密碼確認',
+                  border: OutlineInputBorder(),
+                  helperText: '需要輸入您的帳號密碼',
+                ),
+              ),
           ],
         ),
         actions: [
@@ -279,18 +291,37 @@ class _ProfilePageState extends State<ProfilePage> {
           TextButton(
             onPressed: () async {
               try {
-                await authService.deleteAccount(passwordController.text);
+                // Google 用戶不需要密碼,Email 用戶需要密碼
+                await authService.deleteAccount(
+                  isGoogleUser ? null : passwordController.text
+                );
+                
                 if (mounted) {
+                  // 先關閉對話框
                   Navigator.pop(context);
-                  context.go('/');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('帳號已刪除')),
-                  );
+                  
+                  // 等待下一幀再執行導航,避免 Navigator 鎖定衝突
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      context.go('/');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('帳號已刪除'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  });
                 }
               } catch (e) {
                 if (mounted) {
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('刪除失敗: $e')),
+                    SnackBar(
+                      content: Text('刪除失敗: ${e.toString().replaceFirst("Exception: ", "")}'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 4),
+                    ),
                   );
                 }
               }

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/services/user_data_sync_service.dart';
 
 class CheckInCard extends StatefulWidget {
   const CheckInCard({super.key});
@@ -11,6 +13,8 @@ class CheckInCard extends StatefulWidget {
 }
 
 class _CheckInCardState extends State<CheckInCard> {
+  final UserDataSyncService _syncService = UserDataSyncService();
+  
   int _consecutiveDays = 0;
   Set<String> _checkedDates = {}; // 格式: 'yyyy-MM-dd'
   bool _hasCheckedToday = false;
@@ -21,26 +25,80 @@ class _CheckInCardState extends State<CheckInCard> {
   void initState() {
     super.initState();
     _loadCheckInData();
+    
+    // 監聽認證狀態變化,登入後刷新數據
+    authService.addListener(_onAuthStateChanged);
+  }
+
+  @override
+  void dispose() {
+    authService.removeListener(_onAuthStateChanged);
+    super.dispose();
+  }
+
+  /// 認證狀態變化時的回調
+  void _onAuthStateChanged() {
+    // 當認證狀態改變時,重新載入數據
+    // (登入後會從雲端同步到本地,然後這裡載入最新數據)
+    if (mounted) {
+      _loadCheckInData();
+    }
   }
 
   Future<void> _loadCheckInData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final checkedDatesJson = prefs.getStringList('checked_dates') ?? [];
-    final consecutiveDays = prefs.getInt('consecutive_days') ?? 0;
-
     setState(() {
-      _checkedDates = checkedDatesJson.toSet();
-      _consecutiveDays = consecutiveDays;
-      _hasCheckedToday = _checkedDates.contains(_getTodayString());
-      _updateConsecutiveDays();
-      _isLoading = false; // 載入完成
+      _isLoading = true;
     });
+
+    try {
+      // ✅ 優先從本地 SharedPreferences 載入最新數據
+      final prefs = await SharedPreferences.getInstance();
+      final checkedDatesJson = prefs.getStringList('checked_dates') ?? [];
+      final consecutiveDays = prefs.getInt('consecutive_days') ?? 0;
+
+      setState(() {
+        _checkedDates = checkedDatesJson.toSet();
+        _consecutiveDays = consecutiveDays;
+        _hasCheckedToday = _checkedDates.contains(_getTodayString());
+        _updateConsecutiveDays();
+        _isLoading = false;
+      });
+      
+      debugPrint('CheckInCard: ✅ 打卡數據已從本地載入 (最新數據)');
+    } catch (e) {
+      debugPrint('載入打卡數據失敗: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveCheckInData() async {
+    // 保存到本地 SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('checked_dates', _checkedDates.toList());
     await prefs.setInt('consecutive_days', _consecutiveDays);
+
+    // 如果已登入，同步到雲端
+    final user = authService.currentUser;
+    if (user != null) {
+      try {
+        final dateList = _checkedDates.map((dateStr) {
+          final parts = dateStr.split('-');
+          return DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+          );
+        }).toList();
+        
+        await _syncService.syncCheckInDates(dateList);
+        debugPrint('打卡記錄已同步到雲端');
+      } catch (e) {
+        debugPrint('同步打卡記錄到雲端失敗: $e');
+        // 即使同步失敗,本地數據已保存
+      }
+    }
   }
 
   String _getTodayString() {

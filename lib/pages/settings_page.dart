@@ -6,6 +6,7 @@ import 'package:music_practice_app/utils/theme_manager.dart';
 import 'package:music_practice_app/services/settings_service.dart';
 import 'package:music_practice_app/services/haptic_service.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/services/user_data_sync_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,6 +18,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final SettingsService _settingsService = SettingsService();
   final HapticService _hapticService = HapticService();
+  final UserDataSyncService _syncService = UserDataSyncService();
   
   String _selectedLanguage = 'zh_TW'; // 預設選擇繁體中文
   
@@ -68,11 +70,34 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadSettings();
+    
+    // 監聽認證狀態變化,登入後刷新數據
+    authService.addListener(_onAuthStateChanged);
+  }
+
+  @override
+  void dispose() {
+    authService.removeListener(_onAuthStateChanged);
+    super.dispose();
+  }
+
+  /// 認證狀態變化時的回調
+  void _onAuthStateChanged() {
+    // 當認證狀態改變時,重新載入數據
+    // (登入後會從雲端同步到本地,然後這裡載入最新數據)
+    if (mounted) {
+      _loadSettings();
+    }
   }
 
   /// 從持久化儲存載入所有設定
   Future<void> _loadSettings() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
+      // ✅ 優先從本地 SharedPreferences 載入最新數據
       final settings = await _settingsService.getAllSettings();
       
       if (mounted) {
@@ -88,13 +113,47 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       }
       
-      debugPrint('SettingsPage: ✅ Settings loaded successfully');
+      debugPrint('SettingsPage: ✅ Settings loaded from local (最新數據)');
     } catch (e) {
       debugPrint('SettingsPage: ⚠️ Failed to load settings: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  /// 保存設定到本地和雲端
+  Future<void> _saveSettings() async {
+    // 保存到本地 SharedPreferences
+    await _settingsService.setMasterVolume(_masterVolume);
+    await _settingsService.setMidiVolume(_midiVolume);
+    await _settingsService.setRecordingVolume(_recordingVolume);
+    await _settingsService.setMetronomeVolume(_metronomeVolume);
+    await _settingsService.setSoundEnabled(_soundEnabled);
+    await _settingsService.setVibrationEnabled(_vibrationEnabled);
+    await _settingsService.setSelectedLanguage(_selectedLanguage);
+
+    // 如果已登入，同步到雲端
+    final user = authService.currentUser;
+    if (user != null) {
+      try {
+        final settings = {
+          'masterVolume': _masterVolume,
+          'midiVolume': _midiVolume,
+          'recordingVolume': _recordingVolume,
+          'metronomeVolume': _metronomeVolume,
+          'soundEnabled': _soundEnabled,
+          'vibrationEnabled': _vibrationEnabled,
+          'selectedLanguage': _selectedLanguage,
+        };
+        
+        await _syncService.syncSettings(settings);
+        debugPrint('設定已同步到雲端');
+      } catch (e) {
+        debugPrint('同步設定到雲端失敗: $e');
+        // 即使同步失敗,本地設定已保存
       }
     }
   }
@@ -351,7 +410,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _masterVolume,
               onChanged: (value) async {
                 setState(() => _masterVolume = value);
-                await _settingsService.setMasterVolume(value);
+                await _saveSettings();
                 _hapticService.selectionClick();
               },
             ),
@@ -364,7 +423,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _midiVolume,
               onChanged: (value) async {
                 setState(() => _midiVolume = value);
-                await _settingsService.setMidiVolume(value);
+                await _saveSettings();
                 _hapticService.selectionClick();
               },
             ),
@@ -377,7 +436,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _metronomeVolume,
               onChanged: (value) async {
                 setState(() => _metronomeVolume = value);
-                await _settingsService.setMetronomeVolume(value);
+                await _saveSettings();
                 _hapticService.selectionClick();
               },
             ),
@@ -390,7 +449,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _recordingVolume,
               onChanged: (value) async {
                 setState(() => _recordingVolume = value);
-                await _settingsService.setRecordingVolume(value);
+                await _saveSettings();
                 _hapticService.selectionClick();
               },
             ),
@@ -406,7 +465,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _soundEnabled,
               onChanged: (value) async {
                 setState(() => _soundEnabled = value);
-                await _settingsService.setSoundEnabled(value);
+                await _saveSettings();
                 _hapticService.lightImpact();
               },
             ),
@@ -420,7 +479,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _vibrationEnabled,
               onChanged: (value) async {
                 setState(() => _vibrationEnabled = value);
-                await _settingsService.setVibrationEnabled(value);
+                await _saveSettings();
                 _hapticService.lightImpact();
               },
             ),
@@ -445,10 +504,7 @@ class _SettingsPageState extends State<SettingsPage> {
       });
       
       // 儲存設定
-      await _settingsService.setMasterVolume(0.8);
-      await _settingsService.setMidiVolume(0.7);
-      await _settingsService.setRecordingVolume(0.9);
-      await _settingsService.setMetronomeVolume(0.6);
+      await _saveSettings();
       
       if (mounted) {
         _showSuccessMessage('已重置所有音量至標準值');
@@ -748,7 +804,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               });
                               
                               // 儲存設定
-                              await _settingsService.setSelectedLanguage(languageCode);
+                              await _saveSettings();
                               
                               // 等待 setState 完成
                               await Future.delayed(const Duration(milliseconds: 50));
@@ -763,7 +819,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               setState(() {
                                 _selectedLanguage = languageCode;
                               });
-                              await _settingsService.setSelectedLanguage(languageCode);
+                              await _saveSettings();
                             }
                           }
                         },

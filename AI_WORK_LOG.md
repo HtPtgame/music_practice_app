@@ -1,14 +1,531 @@
 ﻿# 音樂練習 APP - 開發歷程記錄
 
 **專案名稱**: music_practice_app  
-**核心功能**: 鋼琴演奏分析系統  
-**開發期間**: 2025年9月-10月  
-**專案狀態**: ✅ 完成並通過測試  
-**最後更新**: 2025年10月28日
+**核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
+**開發期間**: 2025年9月-11月  
+**專案狀態**: 🔄 持續開發中  
+**最後更新**: 2025年11月11日
 
 ---
 
-## 📅 最新更新 (2025/10/28)
+## 📅 最新更新 (2025/11/11)
+
+### 🔐 Firebase 認證與數據系統完整建置
+
+#### 第一階段：Firebase 專案初始化
+**目標**: 建立完整的用戶認證與雲端數據同步系統
+
+**執行步驟**:
+1. ✅ Firebase 專案創建與配置
+   - 專案 ID: `sound-spirit-detective`
+   - 啟用 Authentication (Email/密碼 + Google Sign-In)
+   - 啟用 Cloud Firestore
+   - 下載 `google-services.json` 並配置
+
+2. ✅ Android 專案配置
+   - 修改 `android/build.gradle.kts` 添加 Google Services
+   - 修改 `android/app/build.gradle.kts` 應用插件
+   - 配置 `android/app/google-services.json`
+
+3. ✅ Flutter 套件整合
+   ```yaml
+   dependencies:
+     firebase_core: ^3.10.0
+     firebase_auth: ^5.3.4
+     cloud_firestore: ^5.5.3
+     google_sign_in: ^6.2.2
+   ```
+
+**參考文件**: `FIREBASE_ACTIVATION_GUIDE.md`, `FIREBASE_QUICK_START.md`, `FIREBASE_SETUP_GUIDE.md`
+
+---
+
+#### 第二階段：用戶認證系統
+**實作內容**:
+
+**1. Firebase 認證服務** (`lib/services/firebase_auth_service.dart`)
+- Email/密碼註冊與登入
+- Google 帳號登入
+- 帳號刪除功能
+- 登出功能
+- 自動數據同步（登入時從 Firestore 載入到 SharedPreferences）
+
+**2. 本地認證服務** (`lib/services/auth_service.dart`)
+- 訪客模式支援
+- 本地數據管理
+
+**3. 認證服務配置** (`lib/services/auth_service_config.dart`)
+```dart
+final authService = FirebaseAuthService(); // 使用 Firebase 認證
+```
+
+**4. 用戶模型** (`lib/models/user.dart`)
+```dart
+class User {
+  String id;
+  String? email;
+  String? displayName;
+  String? photoURL;
+  List<DateTime> checkInDates;        // 打卡記錄
+  Map<String, int> practiceTime;      // 練習時間 (日期: 分鐘*10)
+  Map<String, dynamic> settings;      // 個人化設定
+  DateTime? createdAt;
+  DateTime? lastLoginAt;
+}
+```
+
+**關鍵功能**:
+- ✅ Email 註冊時檢查重複（包含 Google 帳號）
+- ✅ Google 登入強制顯示帳號選擇器（每次 signOut 清除快取）
+- ✅ 登入時自動同步雲端數據到本地
+- ✅ 訪客模式與帳號模式無縫切換
+- ✅ 登入後自動刷新所有 UI 組件數據
+
+**修改檔案**: 
+- `lib/services/firebase_auth_service.dart`
+- `lib/services/auth_service.dart`
+- `lib/services/auth_service_config.dart`
+- `lib/models/user.dart`
+- `lib/services/firebase_options.dart`
+
+**參考文件**: `AUTH_IMPROVEMENTS.md`, `ACCOUNT_FEATURE_UPDATE.md`
+
+---
+
+#### 第三階段：數據同步系統
+**實作內容**:
+
+**1. 數據同步服務** (`lib/services/user_data_sync_service.dart`)
+```dart
+class UserDataSyncService {
+  Future<void> syncCheckInDates(List<DateTime> checkInDates);
+  Future<void> syncPracticeTime(Map<String, int> practiceTime);
+  Future<void> syncSettings(Map<String, dynamic> settings);
+}
+```
+
+**2. 同步策略**:
+- **本地優先**: 所有 UI 從 SharedPreferences 載入（最新數據）
+- **登入同步**: 登入時將 Firestore 數據同步到 SharedPreferences
+- **修改同步**: 本地修改後同步到 Firestore
+- **離線支援**: 未登入時使用本地數據
+
+**3. 數據流程**:
+```
+登入 → Firestore → SharedPreferences → UI 顯示
+修改 → SharedPreferences → Firestore (若已登入)
+載入 → SharedPreferences → UI 顯示
+```
+
+**4. UI 組件監聽認證狀態**:
+- `CheckInCard`: 監聽登入狀態，登入後刷新打卡數據
+- `PracticeTimerCard`: 監聽登入狀態，登入後刷新練習數據
+- `SettingsPage`: 監聽登入狀態，登入後刷新設定
+
+**關鍵優化**:
+- ✅ 移除所有 UI 對 `user.settings`/`user.checkInDates`/`user.practiceTime` 的直接訪問
+- ✅ 統一從 SharedPreferences 載入（避免數據回溯問題）
+- ✅ 登入時觸發 `authService.notifyListeners()` 刷新所有監聽組件
+- ✅ 空數據也同步到本地（確保新用戶初始化正確）
+
+**修改檔案**: 
+- `lib/services/user_data_sync_service.dart`
+- `lib/widgets/check_in_card.dart`
+- `lib/widgets/practice_timer_card.dart`
+- `lib/pages/settings_page.dart`
+
+**參考文件**: `DATA_SYNC_FIX.md`, `USER_DATA_SYNC_GUIDE.md`, `GOOGLE_LOGIN_DATA_FIX.md`
+
+---
+
+#### 第四階段：資料庫程式自我檢驗
+**目的**: 在測試前系統性檢查所有資料庫相關程式，發現並修復潛在問題
+
+**檢驗清單** (6 項):
+1. ✅ Firebase 初始化流程
+2. ✅ 登入/註冊時的數據同步
+3. ✅ 數據保存邏輯
+4. ✅ UserDataSyncService
+5. ✅ 數據載入優先級
+6. ✅ 單位轉換一致性
+
+**發現並修復的問題** (7 個):
+
+**問題 1**: Firebase 初始化競爭條件
+- **症狀**: authStateChanges 監聽與直接檢查 currentUser 可能產生競爭
+- **修復**: `initialize()` 重構為先處理 currentUser，再監聽 authStateChanges
+
+**問題 2**: register() 缺少本地同步
+- **症狀**: 註冊時只建立 Firestore 文件，未同步預設數據到 SharedPreferences
+- **修復**: 增加 `await _syncCloudDataToLocal(user);`
+
+**問題 3**: Google 登入新用戶缺少本地同步
+- **症狀**: signInWithGoogle() 新用戶路徑也沒有同步
+- **修復**: 新用戶路徑增加 `await _syncCloudDataToLocal(user);`
+
+**問題 4**: _syncCloudDataToLocal 空數據未初始化
+- **症狀**: `if (user.checkInDates.isNotEmpty)` 導致新用戶空數組不寫入本地
+- **影響**: 新用戶打卡/練習功能無法正常工作
+- **修復**: 移除 isEmpty 判斷，確保空數據也寫入 SharedPreferences
+```dart
+// ❌ 修復前
+if (user.checkInDates.isNotEmpty) {
+  await prefs.setStringList('checked_dates', checkInDatesStr);
+}
+
+// ✅ 修復後
+await prefs.setStringList('checked_dates', checkInDatesStr); // [] 也要寫入
+```
+
+**問題 5**: auth_service.dart 同樣的 isEmpty 問題
+- **修復**: 同步修復本地認證服務
+
+**問題 6**: _hasLoadedData 重複設定
+- **症狀**: `_loadUserData` 內部和呼叫處都設定 `_hasLoadedData = true`
+- **修復**: 統一在 `_loadUserData` 內部管理
+
+**問題 7**: profile_page.dart 刪除帳號時 Navigator 鎖定衝突
+- **症狀**: `Navigator.pop()` 和 `context.go('/')` 同時執行導致錯誤
+- **修復**: 使用 `WidgetsBinding.instance.addPostFrameCallback()` 延遲導航
+
+**重要發現**: 空數據初始化的重要性
+```dart
+// 新用戶註冊時必須寫入空數組
+await prefs.setStringList('checked_dates', []);  // 確保 key 存在
+await prefs.setString('practice_data', '{}');    // 確保 key 存在
+```
+
+**修改檔案**: 
+- `lib/services/firebase_auth_service.dart` (重大重構)
+- `lib/services/auth_service.dart`
+- `lib/pages/profile_page.dart`
+
+**參考文件**: `DATABASE_SELF_INSPECTION.md`
+
+---
+
+#### 第五階段：練習計時器優化
+**實作內容**:
+
+**1. 增強統計功能**
+- ✅ 本週平均：顯示每日平均練習時長
+- ✅ 本月累計：顯示本月總練習時長
+- ✅ 智能單位：自動切換 h (小時) / min (分鐘)
+
+**2. 自動數據清理**
+```dart
+void _cleanOldPracticeData() {
+  final cutoffDate = now.subtract(const Duration(days: 90));
+  _weeklyPracticeData.removeWhere((key, value) {
+    final date = DateTime.parse(key);
+    return date.isBefore(cutoffDate);
+  });
+}
+```
+- 保留最近 **90 天** 的數據
+- 每次保存時自動清理舊數據
+
+**3. 視覺化改進**
+- ✅ 星期標籤：顯示「一、二、三、四、五、六、日」
+- ✅ 未來日期標示：淡色顯示，不顯示長條
+- ✅ 空白日期處理：顯示空心長條（帶邊框）
+- ✅ 今日高亮：背景色標示
+- ✅ 時長顯示：60分鐘以上顯示小時 (1.5h)
+
+**4. 數據精度改進**
+```
+雲端儲存: 分鐘*10 (例: 15 = 1.5分鐘)
+本地儲存: 秒數 (例: 90秒)
+
+上傳轉換: (90 / 60.0 * 10).round() = 15
+下載轉換: (15 / 10.0 * 60).round() = 90
+```
+
+**5. 破圖問題修復**
+- **問題**: RenderFlex overflowed by 13 pixels
+- **原因**: 新增統計摘要行和星期標籤導致高度超出
+- **解決**: 優化布局尺寸（圖表高度 180→160px，長條高度 120→100px）
+
+**修改檔案**: 
+- `lib/widgets/practice_timer_card.dart`
+- `lib/services/firebase_auth_service.dart` (數據轉換邏輯)
+- `lib/services/auth_service.dart` (數據轉換邏輯)
+
+**參考文件**: `PRACTICE_TIMER_OPTIMIZATION.md`, `PRACTICE_TIMER_DATA_FIX.md`
+
+---
+
+#### 第六階段：當日累計功能
+**目標**: 計時器顯示當日累計時長，而非每次結束後歸零
+
+**核心邏輯**:
+
+**1. 初始化載入當日累計**
+```dart
+final today = _getTodayString();
+_elapsedSeconds = _weeklyPracticeData[today] ?? 0;
+_lastDate = today;
+```
+
+**2. 跨日自動重置**
+```dart
+void _startTimer() {
+  final today = _getTodayString();
+  if (today != _lastDate) {
+    // 日期變化，重置為新一天
+    _elapsedSeconds = _weeklyPracticeData[today] ?? 0;
+    _lastDate = today;
+  }
+  _sessionStartSeconds = _elapsedSeconds;
+  // 開始計時...
+}
+```
+
+**3. 暫停自動保存**
+```dart
+Future<void> _pauseTimer() async {
+  _timer?.cancel();
+  final sessionSeconds = _elapsedSeconds - _sessionStartSeconds;
+  
+  if (sessionSeconds > 0) {
+    _weeklyPracticeData[today] = _elapsedSeconds; // 保存累計時長
+    await _savePracticeData();
+    
+    ScaffoldMessenger.showSnackBar(
+      '已記錄本次練習 ${sessionSeconds}，今日累計 ${_elapsedSeconds}'
+    );
+  }
+}
+```
+
+**4. UI 優化**
+- ✅ 標題增加提示：「今日累計時長（隔日自動重置）」
+- ✅ 重置按鈕：僅在未計時且有時長時顯示
+- ✅ 合併開始/暫停按鈕：根據狀態切換功能
+- ✅ 移除結束按鈕：暫停即自動保存
+
+**使用場景**:
+```
+早上 08:00 - 練習 30 分鐘 → 暫停 → 累計 30:00
+下午 14:00 - 練習 20 分鐘 → 暫停 → 累計 50:00
+晚上 20:00 - 練習 25 分鐘 → 暫停 → 累計 01:15:00
+隔天 09:00 - 開始計時 → 自動重置 → 00:00
+```
+
+**修改檔案**: `lib/widgets/practice_timer_card.dart`
+
+**參考文件**: `PRACTICE_TIMER_DAILY_ACCUMULATION.md`
+
+---
+
+#### 第七階段：Google Sign-In 問題修復
+**問題**: PlatformException (sign_in_failed, ApiException: 10)
+- **錯誤碼 10**: DEVELOPER_ERROR
+- **原因**: `google-services.json` 的 `oauth_client` 為空陣列
+
+**解決步驟**:
+1. ✅ 取得 SHA-1 指紋：`cd android && .\gradlew signingReport`
+2. ✅ Firebase Console 配置
+   - 啟用 Google Sign-In
+   - 新增 SHA-1 指紋到 Android 應用程式
+   - 下載新的 `google-services.json`
+3. ✅ 驗證新檔案包含 oauth_client
+4. ✅ 清理並重新建置：`flutter clean && flutter pub get`
+
+**修改檔案**: `android/app/google-services.json`
+
+**參考文件**: `GOOGLE_SIGNIN_FIX.md`, `GOOGLE_SIGNIN_CHECKLIST.md`
+
+---
+
+### 📊 數據架構總覽
+
+#### Firestore 結構
+```
+users/{userId}:
+  email: string
+  username: string
+  displayName: string?
+  photoURL: string?
+  checkInDates: array<timestamp>
+  practiceTime: map<string, int>  // {日期: 分鐘*10}
+  settings: map<string, dynamic>
+  musicNotes: array
+  createdAt: timestamp
+  lastLoginAt: timestamp
+```
+
+#### SharedPreferences 結構
+```
+checked_dates: List<String>  // ['2025-11-11', '2025-11-10']
+consecutive_days: int
+practice_data: String(JSON)  // {"2025-11-11": 3600}  (秒數)
+master_volume: double
+midi_volume: double
+...其他設定
+```
+
+#### 數據同步流程
+```
+1. 登入
+   Firestore → _syncCloudDataToLocal → SharedPreferences
+   
+2. 修改
+   UI → SharedPreferences → UserDataSyncService → Firestore
+   
+3. 載入
+   SharedPreferences → UI (所有組件統一從本地載入)
+   
+4. 登出
+   清除 currentUser，保留 SharedPreferences (訪客模式可用)
+```
+
+---
+
+### 🔧 關鍵技術決策
+
+#### 1. 為何選擇本地優先策略？
+- **性能**: SharedPreferences 讀取速度遠快於 Firestore
+- **可靠性**: 避免網路延遲導致 UI 顯示舊數據
+- **離線支援**: 訪客模式完全可用
+- **一致性**: 所有 UI 統一數據來源，避免混亂
+
+#### 2. 為何練習時間用分鐘*10儲存？
+- **精度**: 保留小數點後 1 位 (1.5分鐘 = 15)
+- **空間**: 使用整數節省儲存空間
+- **兼容**: 本地用秒數（完全精確），雲端用分鐘*10（足夠精確）
+
+#### 3. 為何空數據也要寫入本地？
+```dart
+// ❌ 錯誤: 新用戶打卡功能會壞掉
+if (user.checkInDates.isNotEmpty) {
+  await prefs.setStringList('checked_dates', checkInDatesStr);
+}
+
+// ✅ 正確: 確保 SharedPreferences 有 key
+await prefs.setStringList('checked_dates', []); // 空陣列也寫入
+```
+- **原因**: SharedPreferences.getStringList('key') 如果 key 不存在會返回 null
+- **影響**: 後續功能會因為 null 而出錯
+- **解決**: 新用戶註冊時必須初始化所有 key，即使是空值
+
+#### 4. 為何使用 authService.addListener() 刷新 UI？
+- **目的**: 登入後自動刷新所有組件數據
+- **原理**: FirebaseAuthService 繼承 ChangeNotifier
+- **流程**: 登入 → notifyListeners() → 所有監聽組件重新載入數據
+- **優勢**: 無需手動刷新每個頁面
+
+---
+
+### 🐛 已知問題與解決
+
+| 問題 | 原因 | 解決方案 | 狀態 |
+|------|------|----------|------|
+| Google 帳號可重複註冊 | register() 未檢查 Google Email | 新增 _emailExists() 方法 | ✅ 已修復 |
+| Google 登入跳過選擇器 | GoogleSignIn SDK 快取上次帳號 | signInWithGoogle() 開頭 signOut | ✅ 已修復 |
+| 數據回溯問題 | UI 從 user.settings 載入舊快取 | 統一從 SharedPreferences 載入 | ✅ 已修復 |
+| 新用戶打卡功能無法使用 | 空數據未初始化到本地 | 移除 isEmpty 判斷 | ✅ 已修復 |
+| 刪除帳號時程式當機 | Navigator 鎖定衝突 | 使用 addPostFrameCallback | ✅ 已修復 |
+| 練習圖表破圖 | 統計摘要行增加高度 | 優化布局尺寸 | ✅ 已修復 |
+| 計時器每次結束歸零 | 舊邏輯設計問題 | 改為當日累計模式 | ✅ 已修復 |
+
+---
+
+### 📝 測試驗證
+
+#### 認證功能測試
+- [x] Email 註冊新用戶
+- [x] Email 登入
+- [x] Google 登入新用戶
+- [x] Google 登入現有用戶
+- [x] Email 重複檢查（包含 Google 帳號）
+- [x] Google 帳號選擇器顯示
+- [x] 登出功能
+- [x] 刪除帳號功能
+
+#### 數據同步測試
+- [x] 登入後數據從 Firestore 同步到本地
+- [x] 本地修改後同步到 Firestore
+- [x] 訪客模式數據保存到本地
+- [x] 訪客登入後數據切換（雲端覆蓋本地）
+- [x] 登出後本地數據保留（可繼續訪客模式）
+- [x] 跨設備同步測試
+
+#### 練習計時器測試
+- [x] 首次使用從 00:00 開始
+- [x] 暫停自動保存數據
+- [x] 當日多次練習累加
+- [x] 隔日自動重置
+- [x] 手動重置功能
+- [x] 統計數據正確（本週平均、本月累計）
+- [x] 長條圖顯示正確（包含未來日期、空白日期）
+- [x] 數據精度測試（90秒 ↔ 1.5分鐘）
+
+---
+
+### 📦 新增/修改檔案清單
+
+#### 新增檔案
+- `lib/services/firebase_auth_service.dart` - Firebase 認證服務
+- `lib/services/user_data_sync_service.dart` - 數據同步服務
+- `lib/services/auth_service_config.dart` - 認證服務配置
+- `lib/services/firebase_options.dart` - Firebase 配置選項
+- `lib/pages/user_account_page.dart` - 用戶帳號管理頁面
+- `android/app/google-services.json` - Firebase Android 配置
+
+#### 重大修改檔案
+- `lib/services/firebase_auth_service.dart` - 完整重構
+  - initialize() 邏輯順序調整
+  - register() 增加本地同步和 Email 檢查
+  - signInWithGoogle() 增加本地同步和帳號選擇器
+  - _syncCloudDataToLocal() 移除 isEmpty 判斷
+  - _loadUserData() 統一管理 _hasLoadedData
+  
+- `lib/services/auth_service.dart` - 同步修復
+  - _syncUserDataToLocal() 移除 isEmpty 判斷
+  
+- `lib/widgets/practice_timer_card.dart` - 大幅優化
+  - 當日累計功能
+  - 自動保存機制
+  - 統計功能增強
+  - 視覺化改進
+  - 數據精度提升
+  - 自動清理舊數據
+  
+- `lib/widgets/check_in_card.dart` - 增加認證監聽
+- `lib/pages/settings_page.dart` - 增加認證監聽
+- `lib/pages/profile_page.dart` - 修復 Navigator 衝突
+
+#### 配置檔案
+- `pubspec.yaml` - 新增 Firebase 相關套件
+- `android/build.gradle.kts` - Google Services 配置
+- `android/app/build.gradle.kts` - Firebase 插件配置
+
+---
+
+### 🎯 下一步計劃
+
+#### 短期目標
+- [ ] 完整的 E2E 測試
+- [ ] 錯誤處理優化（更友善的提示訊息）
+- [ ] 練習目標設定功能
+- [ ] 成就系統
+
+#### 中期目標
+- [ ] 社交功能（好友排行榜）
+- [ ] 練習提醒通知
+- [ ] 數據分析圖表（月度、季度趨勢）
+- [ ] 多設備數據同步優化
+
+#### 長期目標
+- [ ] iOS 平台支援
+- [ ] Web 平台支援
+- [ ] 離線模式增強
+- [ ] 數據匯出功能
+
+---
+
+## 📅 歷史更新 (2025/10/28)
 
 ### 三項功能優化
 
