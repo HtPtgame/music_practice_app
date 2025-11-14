@@ -573,6 +573,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onChanged: onChanged,
                   min: 0.0,
                   max: 1.0,
+                  divisions: 100, // 設定為100個區間，每個區間為1% (0.01)
                 ),
               ),
             ],

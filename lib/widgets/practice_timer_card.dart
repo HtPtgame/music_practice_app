@@ -439,14 +439,17 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   // 格式化本週總時長
   String _formatWeekTotal() {
     final weekDates = _getWeekDates();
-    int totalMinutes = 0;
+    int totalSeconds = 0;
     
+    // 累加本週所有天數的秒數
     for (final date in weekDates) {
-      totalMinutes += _getPracticeMinutes(date);
+      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      totalSeconds += _weeklyPracticeData[dateString] ?? 0;
     }
     
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
+    // 轉換為小時和分鐘
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
     
     if (hours > 0) {
       return '共 ${hours}h ${minutes}min';
@@ -457,22 +460,39 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
 
   // 計算本週平均每日練習時長
   String _getWeekAverage() {
+    final now = DateTime.now();
     final weekDates = _getWeekDates();
-    int totalMinutes = 0;
-    int practiceDays = 0;
+    int totalSeconds = 0;
+    int daysInWeekSoFar = 0; // 本週已經過去的天數（包含今天）
     
+    // 累加本週所有天數的秒數，只計算已經過去的天數
     for (final date in weekDates) {
-      final minutes = _getPracticeMinutes(date);
-      totalMinutes += minutes;
-      if (minutes > 0) {
-        practiceDays++;
+      // 如果日期在今天之後，跳過（未來的日期）
+      if (date.isAfter(DateTime(now.year, now.month, now.day))) {
+        continue;
       }
+      
+      daysInWeekSoFar++;
+      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      totalSeconds += _weeklyPracticeData[dateString] ?? 0;
     }
     
-    if (practiceDays == 0) return '0min/天';
+    // 如果本週還沒有任何天數（理論上不可能），返回0
+    if (daysInWeekSoFar == 0) return '0min/天';
     
-    final avgMinutes = totalMinutes ~/ practiceDays;
-    return '${avgMinutes}min/天';
+    // 計算平均秒數（除以本週已過天數）
+    final avgSeconds = totalSeconds / daysInWeekSoFar;
+    
+    // 轉換為分鐘（保留1位小數）
+    final avgMinutes = avgSeconds / 60;
+    
+    if (avgMinutes >= 60) {
+      // 超過60分鐘，顯示小時
+      final hours = avgMinutes / 60;
+      return '${hours.toStringAsFixed(1)}h/天';
+    } else {
+      return '${avgMinutes.toStringAsFixed(1)}min/天';
+    }
   }
 
   // 計算本月總練習時長
@@ -481,16 +501,17 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
     
-    int totalMinutes = 0;
+    int totalSeconds = 0; // ← 改為累加秒數
     
     for (var day = firstDayOfMonth; 
          day.isBefore(lastDayOfMonth.add(const Duration(days: 1))); 
          day = day.add(const Duration(days: 1))) {
       final dateString = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-      final seconds = _weeklyPracticeData[dateString] ?? 0;
-      totalMinutes += seconds ~/ 60;
+      totalSeconds += _weeklyPracticeData[dateString] ?? 0; // ← 直接累加秒數
     }
     
+    // ← 最後統一轉換為小時和分鐘
+    final totalMinutes = totalSeconds ~/ 60;
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
     

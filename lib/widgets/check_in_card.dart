@@ -16,6 +16,7 @@ class _CheckInCardState extends State<CheckInCard> {
   final UserDataSyncService _syncService = UserDataSyncService();
   
   int _consecutiveDays = 0;
+  int _totalCheckInDays = 0; // 新增：累計打卡天數
   Set<String> _checkedDates = {}; // 格式: 'yyyy-MM-dd'
   bool _hasCheckedToday = false;
   DateTime _selectedMonth = DateTime.now();
@@ -59,6 +60,7 @@ class _CheckInCardState extends State<CheckInCard> {
       setState(() {
         _checkedDates = checkedDatesJson.toSet();
         _consecutiveDays = consecutiveDays;
+        _totalCheckInDays = _checkedDates.length; // 累計打卡天數就是打卡記錄總數
         _hasCheckedToday = _checkedDates.contains(_getTodayString());
         _updateConsecutiveDays();
         _isLoading = false;
@@ -107,18 +109,24 @@ class _CheckInCardState extends State<CheckInCard> {
   }
 
   void _updateConsecutiveDays() {
-    // 計算連續打卡天數
+    // 計算連續打卡天數（優化版：正確處理跨月份）
     final today = DateTime.now();
+    final todayString = _getTodayString();
     int consecutive = 0;
     
+    // 從今天開始往回檢查
     for (int i = 0; i < 365; i++) {
-      final date = today.subtract(Duration(days: i));
-      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final checkDate = today.subtract(Duration(days: i));
+      final dateString = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
       
       if (_checkedDates.contains(dateString)) {
         consecutive++;
       } else {
-        break;
+        // 如果今天還沒打卡，允許昨天開始計算
+        if (i == 0 && !_checkedDates.contains(todayString)) {
+          continue; // 跳過今天，從昨天開始計算
+        }
+        break; // 遇到未打卡的日子就停止
       }
     }
     
@@ -131,6 +139,7 @@ class _CheckInCardState extends State<CheckInCard> {
     setState(() {
       _checkedDates.add(_getTodayString());
       _hasCheckedToday = true;
+      _totalCheckInDays = _checkedDates.length; // 更新累計天數
       _updateConsecutiveDays();
     });
 
@@ -139,7 +148,7 @@ class _CheckInCardState extends State<CheckInCard> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('打卡成功！連續打卡 $_consecutiveDays 天 🎉'),
+          content: Text('打卡成功！連續 $_consecutiveDays 天，累計 $_totalCheckInDays 天 🎉'),
           backgroundColor: AppColors.dynamicPrimary,
           duration: const Duration(seconds: 2),
         ),
@@ -221,13 +230,30 @@ class _CheckInCardState extends State<CheckInCard> {
                         color: AppColors.dynamicTextDark,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    // 連續打卡天數
                     Row(
                       children: [
                         Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
                         const SizedBox(width: 4),
                         Text(
                           '連續 $_consecutiveDays 天',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dynamicPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // 累計打卡天數（移到下方）
+                    Row(
+                      children: [
+                        Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          '累計 $_totalCheckInDays 天',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

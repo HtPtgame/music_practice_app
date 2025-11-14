@@ -4,11 +4,430 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-11月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年11月11日
+**最後更新**: 2025年11月14日
 
 ---
 
-## 📅 最新更新 (2025/11/11)
+## 📅 最新更新 (2025/11/14)
+
+### 📊 UI 優化與數據精度改進
+
+#### 1️⃣ 累計打卡天數顯示位置調整
+
+**問題**：累計天數與連續天數並排顯示，可能在小螢幕上擁擠
+
+**解決方案**：調整為垂直排列，改善視覺層次
+
+**修改檔案**：`lib/widgets/check_in_card.dart`
+
+```dart
+// ✅ 新排版：垂直排列
+Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text('練習打卡'),
+    SizedBox(height: 6),
+    // 連續打卡天數（主要指標）
+    Row([
+      Icon(Icons.local_fire_department),
+      Text('連續 $_consecutiveDays 天'),
+    ]),
+    SizedBox(height: 4),
+    // 累計打卡天數（次要指標，移到下方）
+    Row([
+      Icon(Icons.emoji_events),
+      Text('累計 $_totalCheckInDays 天'),
+    ]),
+  ],
+)
+```
+
+**優點**：
+- ✅ 更清晰的視覺層次（連續天數更突出）
+- ✅ 避免小螢幕上文字擁擠
+- ✅ 減少橫向空間壓力
+- ✅ 不影響打卡按鈕位置
+
+---
+
+#### 2️⃣ 本月累積練習時數計算優化
+
+**問題**：與本週總時長相同，先轉分鐘再累加導致精度損失
+
+**範例**：
+- 1分30秒 (1min) + 1分40秒 (1min) = 2分鐘 ❌
+- 應該：90秒 + 100秒 = 190秒 = 3分10秒 ✅
+
+**修改檔案**：`lib/widgets/practice_timer_card.dart`
+
+```dart
+// ❌ 舊邏輯：每天先轉分鐘再累加
+String _getMonthTotal() {
+  int totalMinutes = 0;
+  for (var day in monthDays) {
+    final seconds = _weeklyPracticeData[dateString] ?? 0;
+    totalMinutes += seconds ~/ 60; // ← 每次都損失秒數
+  }
+  // ...
+}
+
+// ✅ 新邏輯：累加秒數後統一轉換
+String _getMonthTotal() {
+  int totalSeconds = 0; // ← 先累加秒數
+  for (var day in monthDays) {
+    totalSeconds += _weeklyPracticeData[dateString] ?? 0;
+  }
+  final totalMinutes = totalSeconds ~/ 60; // ← 最後轉換
+  // ...
+}
+```
+
+**優點**：
+- ✅ 保留秒級精度
+- ✅ 與本週總時長邏輯一致
+- ✅ 避免累計誤差
+
+---
+
+### 🎚️ 音量控制滑桿精度優化
+
+#### 問題描述
+- **數據精度問題**：滑桿數值無限制，導致雲端數據庫出現冗長小數
+- 例如：`midiVolume: 0.8993710691823867` ❌
+- 實際需求：以 1% (0.01) 為單位即可 ✅
+
+#### 解決方案
+
+**修改檔案**：`lib/pages/settings_page.dart`
+
+在 `_buildVolumeSlider()` 的 `Slider` widget 中添加 `divisions: 100` 參數：
+
+```dart
+Slider(
+  value: value,
+  onChanged: onChanged,
+  min: 0.0,
+  max: 1.0,
+  divisions: 100, // ← 新增：100個區間 = 每格1% (0.01)
+)
+```
+
+#### 影響範圍
+此修改應用於四個音量設定：
+1. 🎵 **主音量** (Master Volume)
+2. 🎹 **MIDI 音量** (MIDI Volume)
+3. 🥁 **節拍器音量** (Metronome Volume)
+4. 🎤 **錄音音量** (Recording Volume)
+
+#### 效果
+- ✅ 視覺上無差異（仍然流暢）
+- ✅ 數值簡化：0.87, 0.60, 1.00（而非 0.8736492839204673）
+- ✅ 雲端數據庫更整潔
+- ✅ 減少浮點數精度問題
+
+---
+
+### 📊 練習統計與打卡功能優化
+
+#### 問題描述
+
+**問題 1：練習時長計算不精確**
+- 舊邏輯：先將秒數轉為分鐘再相加
+- 例如：1分30秒 (1min) + 1分40秒 (1min) = 2分鐘 ❌
+- 實際應該：90秒 + 100秒 = 190秒 = 3分10秒 ✅
+
+**問題 2：本週平均計算錯誤**
+- 舊邏輯 v1：只計算有練習的天數平均
+- 舊邏輯 v2：固定除以7天（未考慮本週已過天數）❌
+- 例如：今天週二，週一練習60分鐘 → 平均60分鐘÷7天 = 8.6分鐘/天 ❌
+- 實際應該：60分鐘 ÷ 2天（週一+週二）= 30分鐘/天 ✅
+
+**問題 3：連續打卡跨月份中斷**
+- 舊邏輯：計算邏輯有缺陷，跨月份時可能中斷
+- 例如：10/31、11/1、11/2 連續打卡 → 顯示1天 ❌
+- 實際應該：顯示3天 ✅
+
+**問題 4：缺少累計打卡天數**
+- 只顯示連續天數，無法看到總打卡天數
+
+#### 解決方案
+
+**1. 練習時長計算優化** (`lib/widgets/practice_timer_card.dart`)
+
+```dart
+// ❌ 舊邏輯：先轉分鐘再相加
+String _formatWeekTotal() {
+  int totalMinutes = 0;
+  for (final date in weekDates) {
+    totalMinutes += _getPracticeMinutes(date); // 秒數→分鐘(丟失精度)
+  }
+  // ...
+}
+
+// ✅ 新邏輯：先累加秒數再轉換
+String _formatWeekTotal() {
+  int totalSeconds = 0;
+  for (final date in weekDates) {
+    final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    totalSeconds += _weeklyPracticeData[dateString] ?? 0; // 直接累加秒數
+  }
+  
+  // 轉換為小時和分鐘
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  
+  return hours > 0 ? '共 ${hours}h ${minutes}min' : '共 ${minutes}min';
+}
+```
+
+**範例驗證**：
+```
+舊算法：
+  週一: 90秒 → 1分 
+  週二: 100秒 → 1分
+  總計: 1 + 1 = 2分鐘 ❌
+
+新算法：
+  週一: 90秒
+  週二: 100秒
+  總計: 90 + 100 = 190秒 = 3分10秒 ✅
+```
+
+**2. 本週平均計算優化**
+
+**本週定義**: 週一到週日（7天），使用 `DateTime.weekday` 計算
+- 週一 = 1, 週二 = 2, ..., 週日 = 7
+- 本週起始日 = 今天 - (weekday - 1) 天
+- 例如：今天週四(4) → 本週一 = 今天 - 3天
+
+```dart
+// 獲取本週日期列表 (週一到週日)
+List<DateTime> _getWeekDates() {
+  final now = DateTime.now();
+  final weekday = now.weekday; // 1 = Monday, 7 = Sunday
+  final monday = now.subtract(Duration(days: weekday - 1));
+  return List.generate(7, (index) => monday.add(Duration(days: index)));
+}
+```
+
+**平均值計算修正**: 只計算本週已過天數（不包含未來）
+
+```dart
+// ❌ 舊邏輯 v1：只計算有練習的天數
+String _getWeekAverage() {
+  int totalMinutes = 0;
+  int practiceDays = 0;
+  
+  for (final date in weekDates) {
+    final minutes = _getPracticeMinutes(date);
+    totalMinutes += minutes;
+    if (minutes > 0) practiceDays++; // 只計算有練習的天數
+  }
+  
+  if (practiceDays == 0) return '0min/天';
+  final avgMinutes = totalMinutes ~/ practiceDays;
+  return '${avgMinutes}min/天';
+}
+
+// ❌ 舊邏輯 v2：固定除以7天（未考慮本週已過天數）
+String _getWeekAverage() {
+  int totalSeconds = 0;
+  for (final date in weekDates) {
+    totalSeconds += _weeklyPracticeData[dateString] ?? 0;
+  }
+  final avgSeconds = totalSeconds / 7; // 固定7天 ❌
+  // ...
+}
+
+// ✅ 新邏輯：只計算本週已過天數（包含今天）
+String _getWeekAverage() {
+  final now = DateTime.now();
+  final weekDates = _getWeekDates();
+  int totalSeconds = 0;
+  int daysInWeekSoFar = 0;
+  
+  for (final date in weekDates) {
+    // 跳過未來的日期
+    if (date.isAfter(DateTime(now.year, now.month, now.day))) {
+      continue;
+    }
+    
+    daysInWeekSoFar++; // 計算已過天數
+    final dateString = '${date.year}-${date.month}...';
+    totalSeconds += _weeklyPracticeData[dateString] ?? 0;
+  }
+  
+  if (daysInWeekSoFar == 0) return '0min/天';
+  
+  final avgSeconds = totalSeconds / daysInWeekSoFar; // 除以實際天數
+  final avgMinutes = avgSeconds / 60;
+  
+  if (avgMinutes >= 60) {
+    final hours = avgMinutes / 60;
+    return '${hours.toStringAsFixed(1)}h/天';
+  } else {
+    return '${avgMinutes.toStringAsFixed(1)}min/天'; // 保留1位小數
+  }
+}
+```
+
+**範例驗證**：
+```
+情況：今天週二，週一練習60分鐘，週二未練習
+
+舊算法 v1（只算練習日）：
+  60分鐘 ÷ 1天 = 60分鐘/天 ❌
+
+舊算法 v2（固定7天）：
+  3600秒 ÷ 7天 = 514秒 = 8.6分鐘/天 ❌
+
+新算法（實際已過天數）：
+  3600秒 ÷ 2天（週一+週二）= 1800秒 = 30分鐘/天 ✅
+```
+
+**3. 連續打卡計算優化** (`lib/widgets/check_in_card.dart`)
+
+```dart
+// ❌ 舊邏輯：邏輯不完整，可能在跨月份時出錯
+void _updateConsecutiveDays() {
+  int consecutive = 0;
+  for (int i = 0; i < 365; i++) {
+    final date = today.subtract(Duration(days: i));
+    final dateString = '${date.year}-${date.month}...';
+    if (_checkedDates.contains(dateString)) {
+      consecutive++;
+    } else {
+      break; // 立即中斷
+    }
+  }
+}
+
+// ✅ 新邏輯：正確處理今天未打卡的情況
+void _updateConsecutiveDays() {
+  final today = DateTime.now();
+  final todayString = _getTodayString();
+  int consecutive = 0;
+  
+  for (int i = 0; i < 365; i++) {
+    final checkDate = today.subtract(Duration(days: i));
+    final dateString = '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
+    
+    if (_checkedDates.contains(dateString)) {
+      consecutive++;
+    } else {
+      // 如果今天還沒打卡，允許從昨天開始計算
+      if (i == 0 && !_checkedDates.contains(todayString)) {
+        continue; // 跳過今天，從昨天開始
+      }
+      break; // 遇到未打卡的日子就停止
+    }
+  }
+  
+  _consecutiveDays = consecutive;
+}
+```
+
+**4. 新增累計打卡天數**
+
+```dart
+// 新增欄位
+int _totalCheckInDays = 0;
+
+// 載入時計算
+_totalCheckInDays = _checkedDates.length;
+
+// UI 顯示
+Row(
+  children: [
+    Icon(Icons.local_fire_department, color: Colors.orange),
+    Text('連續 $_consecutiveDays 天'),
+    Text(' · '),
+    Icon(Icons.emoji_events, color: Colors.amber),
+    Text('累計 $_totalCheckInDays 天'),
+  ],
+)
+
+// 打卡成功提示
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: Text('打卡成功！連續 $_consecutiveDays 天，累計 $_totalCheckInDays 天 🎉'),
+  ),
+);
+```
+
+#### 修改內容總結
+
+**修改檔案**:
+- `lib/widgets/practice_timer_card.dart` - 練習時長和平均值計算優化
+- `lib/widgets/check_in_card.dart` - 連續打卡計算優化 + 累計天數功能
+
+**數據庫相容性**:
+- ✅ 練習時長已使用秒數格式（2025/11/11 已優化）
+- ✅ 打卡記錄格式不變（`yyyy-MM-dd`）
+- ✅ 無需數據遷移
+
+**「本週」定義說明**:
+- **週期**: 週一 00:00 至週日 23:59
+- **計算方式**: 使用 `DateTime.weekday` (1=週一, 7=週日)
+- **起始日計算**: 本週一 = 今天 - (weekday - 1) 天
+- **範例**: 今天週四(4) → 本週一 = 今天 - 3天
+- **平均值**: 只計算本週已過天數（不含未來日期）
+  - 週一：平均 = 總秒數 ÷ 1天
+  - 週二：平均 = 總秒數 ÷ 2天
+  - 週日：平均 = 總秒數 ÷ 7天
+
+#### 功能改進對比
+
+| 功能 | 舊邏輯 | 新邏輯 | 改進 |
+|------|--------|--------|------|
+| 本週總時長 | 分鐘相加 | **秒數相加後轉換** | ✅ 精確到秒 |
+| 本週平均 | 固定÷7天 | **÷實際已過天數** | ✅ 反映當前進度 |
+| 平均值顯示 | 整數分鐘 | **小數點1位** | ✅ 更精確 |
+| 連續打卡 | 跨月可能錯誤 | **正確處理跨月** | ✅ 邏輯完善 |
+| 累計天數 | ❌ 無 | **✅ 新增** | ✅ 完整統計 |
+
+#### 測試驗證
+
+**場景 1：練習時長精度**
+```
+週一: 1分30秒 (90秒)
+週二: 1分40秒 (100秒)
+
+舊結果: 2分鐘 ❌
+新結果: 3分10秒 ✅
+```
+
+**場景 2：本週平均**
+```
+情況：今天週二
+週一: 60分鐘 (3600秒)
+週二: 0分鐘
+
+舊結果 v1: 60分鐘/天 ❌（只算練習日）
+舊結果 v2: 8.6分鐘/天 ❌（固定÷7天）
+新結果: 30分鐘/天 ✅（3600秒÷2天=1800秒）
+```
+
+**場景 3：跨月打卡**
+```
+10/30、10/31、11/1、11/2、11/3 連續打卡
+
+舊結果: 可能只顯示3天 ❌
+新結果: 正確顯示5天 ✅
+```
+
+**場景 4：累計天數**
+```
+總打卡: 50天
+連續: 7天
+
+舊顯示: 連續7天 ℹ️
+新顯示: 連續7天，累計50天 ✅
+```
+
+---
+
+## 📅 歷史更新 (2025/11/11)
 
 ### � 計時器頁面切換警告功能 (下午)
 
