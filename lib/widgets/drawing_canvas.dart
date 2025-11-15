@@ -52,7 +52,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   void _onPanEnd(DragEndDetails details) {
     if (widget.isReadOnly) return;
-    
+
     if (_currentStroke.isNotEmpty) {
       if (_isEraser) {
         setState(() {
@@ -73,13 +73,11 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           strokeWidth: _strokeWidth,
           brushType: _brushType,
         );
-        
         setState(() {
           _drawingData.strokes.add(stroke);
           _currentStroke = [];
         });
       }
-      
       widget.onDrawingChanged(_drawingData);
     }
   }
@@ -107,7 +105,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: Colors.grey[300]!),
-              borderRadius: widget.isReadOnly 
+              borderRadius: widget.isReadOnly
                   ? BorderRadius.circular(12)
                   : const BorderRadius.only(
                       topLeft: Radius.circular(12),
@@ -115,7 +113,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                     ),
             ),
             child: ClipRRect(
-              borderRadius: widget.isReadOnly 
+              borderRadius: widget.isReadOnly
                   ? BorderRadius.circular(12)
                   : const BorderRadius.only(
                       topLeft: Radius.circular(12),
@@ -129,8 +127,10 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                   painter: _DrawingPainter(
                     strokes: _drawingData.strokes,
                     currentStroke: _currentStroke,
-                    currentColor: _isEraser ? Colors.pink.withOpacity(0.3) : _selectedColor,
-                    currentStrokeWidth: _isEraser ? 25.0 : _strokeWidth,
+                    currentColor:
+                        _isEraser ? Colors.pink.withOpacity(0.3) : _selectedColor,
+                    currentStrokeWidth:
+                        _isEraser ? 25.0 : _strokeWidth,
                     isErasing: _isEraser,
                   ),
                   child: Container(),
@@ -139,33 +139,44 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
             ),
           ),
         ),
-        if (!widget.isReadOnly) Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
+        if (!widget.isReadOnly)
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Text('顏色 ',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600)),
+                    Expanded(
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: _buildColorButtons())),
+                  ],
+                ),
+                Divider(height: 12),
+                Row(
+                  children: [
+                    Text('大小 ',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600)),
+                    Expanded(
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: _buildSizeButtons())),
+                  ],
+                ),
+              ],
             ),
           ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Text('顏色 ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: _buildColorButtons())),
-                ],
-              ),
-              Divider(height: 12),
-              Row(
-                children: [
-                  Text('大小 ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: _buildSizeButtons())),
-                ],
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -179,7 +190,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       Color(0xFF8D6E63),
       Color(0xFF4CAF50),
     ];
-    
+
     return colors.map((color) {
       final isSelected = _selectedColor == color && !_isEraser;
       return GestureDetector(
@@ -218,19 +229,22 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           decoration: BoxDecoration(
             color: isSelected ? Colors.blue[50] : Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: isSelected ? Colors.blue[400]! : Colors.grey[300]!, width: 2),
+            border: Border.all(
+                color: isSelected ? Colors.blue[400]! : Colors.grey[300]!,
+                width: 2),
           ),
           child: Center(
             child: Container(
               width: (width / 25 * 14).clamp(4.0, 14.0),
               height: (width / 25 * 14).clamp(4.0, 14.0),
-              decoration: BoxDecoration(color: Colors.grey[800], shape: BoxShape.circle),
+              decoration:
+                  BoxDecoration(color: Colors.grey[800], shape: BoxShape.circle),
             ),
           ),
         ),
       );
     }).toList();
-    
+
     buttons.add(GestureDetector(
       onTap: () => setState(() => _isEraser = !_isEraser),
       child: Container(
@@ -239,12 +253,14 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         decoration: BoxDecoration(
           color: _isEraser ? Colors.pink[50] : Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(color: _isEraser ? Colors.pink[400]! : Colors.grey[300]!, width: 2),
+          border:
+              Border.all(color: _isEraser ? Colors.pink[400]! : Colors.grey[300]!, width: 2),
         ),
-        child: Icon(Icons.auto_fix_high, size: 20, color: _isEraser ? Colors.pink[700] : Colors.grey[600]),
+        child: Icon(Icons.auto_fix_high,
+            size: 20, color: _isEraser ? Colors.pink[700] : Colors.grey[600]),
       ),
     ));
-    
+
     buttons.add(GestureDetector(
       onTap: _drawingData.strokes.isEmpty ? null : _undoLastStroke,
       child: Container(
@@ -255,10 +271,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           shape: BoxShape.circle,
           border: Border.all(color: Colors.grey[300]!, width: 2),
         ),
-        child: Icon(Icons.undo, size: 20, color: _drawingData.strokes.isEmpty ? Colors.grey[300] : Colors.grey[700]),
+        child: Icon(Icons.undo,
+            size: 20,
+            color: _drawingData.strokes.isEmpty ? Colors.grey[300] : Colors.grey[700]),
       ),
     ));
-    
+
     return buttons;
   }
 }
@@ -270,6 +288,9 @@ class _DrawingPainter extends CustomPainter {
   final double currentStrokeWidth;
   final bool isErasing;
 
+  // Paint 緩存
+  final Paint _paintCache = Paint()..style = PaintingStyle.fill;
+
   _DrawingPainter({
     required this.strokes,
     required this.currentStroke,
@@ -280,336 +301,194 @@ class _DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 🎨 渲染所有已完成的筆劃
     for (final stroke in strokes) {
-      _drawTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
+      _drawFullTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
     }
+    
+    // 🎨 渲染當前正在繪製的筆劃
     if (currentStroke.isNotEmpty) {
-      _drawTextureBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
+      _drawFullTextureBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
     }
   }
 
-  void _drawTextureBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
-    if (points.isEmpty) return;
-    final random = math.Random(points.hashCode);
-    
-    // 🎨 色相微調輔助函數 - 讓顏色帶有自然的色彩動態
+  void _drawFullStampAtPoint(
+      Canvas canvas, Offset point, Color color, double strokeWidth, int pointIndex) {
+    // 🎯 完整8層肌理渲染 - 最佳視覺效果
+    final random = math.Random(point.hashCode + pointIndex);
+
     Color getHueVariation(Color baseColor, double variation) {
       final hslColor = HSLColor.fromColor(baseColor);
-      final hueShift = (random.nextDouble() - 0.5) * variation; // -variation/2 到 +variation/2
+      final hueShift = (random.nextDouble() - 0.5) * variation;
       return hslColor.withHue((hslColor.hue + hueShift) % 360).toColor();
     }
-    
-    // 第零層:紙張纖維紋理 - 模擬畫布底紋
-    for (int i = 0; i < points.length; i++) {
-      final point = points[i];
-      final fiberCount = 12 + random.nextInt(8); // 12-19條纖維
-      
-      for (int j = 0; j < fiberCount; j++) {
-        // 紙張纖維大致有方向性,但不完全平行
-        final baseAngle = random.nextDouble() * 2 * math.pi;
-        final angleVariation = (random.nextDouble() - 0.5) * 0.4; // ±0.2弧度的變化
-        final fiberAngle = baseAngle + angleVariation;
-        
-        // 纖維長度隨機
-        final fiberLength = strokeWidth * (0.6 + random.nextDouble() * 0.9);
-        final fiberThickness = strokeWidth * 0.05 * (0.5 + random.nextDouble());
-        
-        // 起點稍微偏移
-        final startOffsetX = (random.nextDouble() - 0.5) * strokeWidth * 1.2;
-        final startOffsetY = (random.nextDouble() - 0.5) * strokeWidth * 1.2;
-        
-        final startPoint = Offset(
-          point.dx + startOffsetX,
-          point.dy + startOffsetY,
-        );
-        final endPoint = Offset(
-          startPoint.dx + math.cos(fiberAngle) * fiberLength,
-          startPoint.dy + math.sin(fiberAngle) * fiberLength,
-        );
-        
-        // 纖維顏色非常淡,接近透明
-        final fiberColor = getHueVariation(color, 15); // 色相偏移±7.5度
-        
-        canvas.drawLine(
-          startPoint,
-          endPoint,
-          Paint()
-            ..color = fiberColor.withOpacity(0.02 + random.nextDouble() * 0.04)
-            ..strokeWidth = fiberThickness
-            ..strokeCap = StrokeCap.round
-            ..style = PaintingStyle.stroke,
-        );
-      }
-    }
-    
-    // 第一層:底層紋理擴散 - 模擬畫布纖維吸收顏料(增強隨機性)
-    for (int i = 0; i < points.length; i++) {
-      final point = points[i];
-      // 🎯 增強散布隨機性:點數量也隨機化
-      final spreadCount = 20 + random.nextInt(18); // 從25-35改為20-38,範圍更大
-      
-      for (int j = 0; j < spreadCount; j++) {
-        // 🎯 使用柏林噪聲式的角度分布,避免完全均勻
-        final angleBase = random.nextDouble() * 2 * math.pi;
-        final angleNoise = (random.nextDouble() - 0.5) * 0.8; // 額外的角度噪聲
-        final angle = angleBase + angleNoise;
-        
-        // 使用不均勻擴散,模擬真實顏料流動
-        // 🎯 增強隨機性:混合兩種分布
-        final distFactor1 = math.pow(random.nextDouble(), 0.4).toDouble();
-        final distFactor2 = random.nextDouble();
-        final distFactor = (distFactor1 * 0.7 + distFactor2 * 0.3); // 混合分布
-        
-        // 🎯 距離範圍也隨機化
-        final maxDistance = strokeWidth * (2.2 + random.nextDouble() * 1.4); // 2.2-3.6倍
-        final distance = distFactor * maxDistance;
-        
-        final offsetX = math.cos(angle) * distance;
-        final offsetY = math.sin(angle) * distance;
-        
-        // 外圍越淡,中心越濃
-        final opacity = 0.03 + (1 - distFactor) * 0.12;
-        // 🎯 點大小也更隨機
-        final dotSize = strokeWidth * (0.25 + random.nextDouble() * 0.45);
-        
-        // 🎨 加入色相變化
-        final dotColor = getHueVariation(color, 10); // 色相偏移±5度
-        
-        canvas.drawCircle(
-          Offset(point.dx + offsetX, point.dy + offsetY),
-          dotSize,
-          Paint()
-            ..color = dotColor.withOpacity(opacity)
-            ..style = PaintingStyle.fill,
-        );
-      }
-    }
-    
-    // 第二層:肌理顆粒層 - 模擬顏料顆粒和畫布質感(增強隨機性)
-    for (int i = 0; i < points.length; i++) {
-      final point = points[i];
-      // 🎯 顆粒數量隨機化
-      final particleCount = 12 + random.nextInt(15); // 從15-23改為12-27
-      
-      for (int j = 0; j < particleCount; j++) {
-        // 🎯 不規則分布 - 使用非均勻分布
-        final offsetX = (math.pow(random.nextDouble(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
-        final offsetY = (math.pow(random.nextDouble(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
-        
-        // 🎯 透明度範圍擴大
-        final opacity = 0.12 + random.nextDouble() * 0.32;
-        
-        // 🎯 顆粒大小差異更大
-        final sizeVariation = random.nextDouble();
-        final particleSize = strokeWidth * (0.2 + math.pow(sizeVariation, 0.7) * 0.6);
-        
-        // 🎨 加入色相變化
-        final particleColor = getHueVariation(color, 12); // 色相偏移±6度
-        
-        canvas.drawCircle(
-          Offset(point.dx + offsetX, point.dy + offsetY),
-          particleSize,
-          Paint()
-            ..color = particleColor.withOpacity(opacity)
-            ..style = PaintingStyle.fill,
-        );
-      }
-    }
-    
-    // 第三層:刮擦紋理 - 模擬畫刀刮過的痕跡(增強變化)
-    if (points.length > 1) {
-      for (int i = 0; i < points.length - 1; i++) {
-        final p1 = points[i];
-        final p2 = points[i + 1];
-        
-        // 計算筆劃方向並創建垂直刮痕
-        final dx = p2.dx - p1.dx;
-        final dy = p2.dy - p1.dy;
-        final distance = math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-          final angle = math.atan2(dy, dx);
-          // 🎯 刮痕數量隨機化
-          final scratchCount = 2 + random.nextInt(5); // 從3-5改為2-7
-          
-          for (int j = 0; j < scratchCount; j++) {
-            // 🎯 刮痕位置更不規則
-            final offset = (j - scratchCount / 2 + (random.nextDouble() - 0.5) * 0.6) * strokeWidth * 0.28;
-            final perpAngle = angle + math.pi / 2 + (random.nextDouble() - 0.5) * 0.3; // 角度微調
-            final offsetX = math.cos(perpAngle) * offset;
-            final offsetY = math.sin(perpAngle) * offset;
-            
-            // 🎯 刮痕透明度隨機變化範圍更大
-            final scratchOpacity = 0.08 + random.nextDouble() * 0.20;
-            
-            // 🎯 刮痕寬度變化更大
-            final scratchWidth = strokeWidth * (0.1 + math.pow(random.nextDouble(), 0.8) * 0.25);
-            
-            // 🎨 加入色相變化
-            final scratchColor = getHueVariation(color, 8); // 色相偏移±4度
-            
-            canvas.drawLine(
-              Offset(p1.dx + offsetX, p1.dy + offsetY),
-              Offset(p2.dx + offsetX, p2.dy + offsetY),
-              Paint()
-                ..color = scratchColor.withOpacity(scratchOpacity)
-                ..strokeWidth = scratchWidth
-                ..strokeCap = StrokeCap.round
-                ..style = PaintingStyle.stroke,
-            );
-          }
-        }
-      }
-    }
-    
-    // 第四層:厚塗堆積 - 模擬顏料厚塗的立體感(增強隨機性)
-    for (int i = 0; i < points.length; i++) {
-      final point = points[i];
-      // 🎯 圖層數量隨機化
-      final layerCount = 8 + random.nextInt(10); // 從10-15改為8-18
-      
-      for (int j = 0; j < layerCount; j++) {
-        // 🎯 使用簇狀分布 - 有些區域堆積更厚
-        final clusterFactor = math.pow(random.nextDouble(), 0.5).toDouble();
-        final offsetX = (random.nextDouble() - 0.5) * strokeWidth * 1.1 * clusterFactor;
-        final offsetY = (random.nextDouble() - 0.5) * strokeWidth * 1.1 * clusterFactor;
-        
-        // 🎯 透明度變化更大
-        final opacity = 0.15 + random.nextDouble() * 0.35;
-        
-        // 🎯 圖層大小隨機化
-        final layerSize = strokeWidth * (0.3 + math.pow(random.nextDouble(), 0.6) * 0.5);
-        
-        // 🎨 加入色相變化
-        final layerColor = getHueVariation(color, 10); // 色相偏移±5度
-        
-        canvas.drawCircle(
-          Offset(point.dx + offsetX, point.dy + offsetY),
-          layerSize,
-          Paint()
-            ..color = layerColor.withOpacity(opacity)
-            ..style = PaintingStyle.fill,
-        );
-      }
-    }
-    
-    // 第五層:主體輪廓 - 清晰但保持手繪感(加入色彩動態)
-    if (points.length > 1) {
-      final path = Path();
-      path.moveTo(points[0].dx, points[0].dy);
-      
-      // 使用稍微不規則的路徑模擬手繪
-      for (int i = 1; i < points.length; i++) {
-        // 🎯 抖動幅度隨機化
-        final jitterAmount = 0.06 + random.nextDouble() * 0.06; // 6%-12%
-        final jitterX = (random.nextDouble() - 0.5) * strokeWidth * jitterAmount;
-        final jitterY = (random.nextDouble() - 0.5) * strokeWidth * jitterAmount;
-        path.lineTo(
-          points[i].dx + jitterX,
-          points[i].dy + jitterY,
-        );
-      }
-      
-      // 🎨 主輪廓使用微妙的色相變化
-      final outlineColor = getHueVariation(color, 6); // 色相偏移±3度
-      
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = outlineColor.withOpacity(0.55)
-          ..strokeWidth = strokeWidth * 1.05
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round
-          ..style = PaintingStyle.stroke,
+
+    // 第0層: 紙張纖維紋理 (8-12條)
+    final fiberCount = 8 + random.nextInt(5);
+    for (int j = 0; j < fiberCount; j++) {
+      final baseAngle = random.nextDouble() * 2 * math.pi;
+      final angleVariation = (random.nextDouble() - 0.5) * 0.4;
+      final fiberAngle = baseAngle + angleVariation;
+      final fiberLength = strokeWidth * (0.6 + random.nextDouble() * 0.9);
+      final fiberThickness = strokeWidth * 0.05 * (0.5 + random.nextDouble());
+      final startOffsetX = (random.nextDouble() - 0.5) * strokeWidth * 1.2;
+      final startOffsetY = (random.nextDouble() - 0.5) * strokeWidth * 1.2;
+      final startPoint = Offset(point.dx + startOffsetX, point.dy + startOffsetY);
+      final endPoint = Offset(
+        startPoint.dx + math.cos(fiberAngle) * fiberLength,
+        startPoint.dy + math.sin(fiberAngle) * fiberLength,
       );
+      final fiberColor = getHueVariation(color, 15);
+      _paintCache
+        ..color = fiberColor.withOpacity(0.02 + random.nextDouble() * 0.04)
+        ..strokeWidth = fiberThickness
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(startPoint, endPoint, _paintCache);
     }
     
-    // 第六層:高光與陰影 - 模擬光線照射在厚顏料上的效果(增強立體感)
-    for (int i = 0; i < points.length; i += 2) {
-      final point = points[i];
-      
-      // 🎯 高光區(偏向左上) - 數量隨機化
-      final highlightCount = 3 + random.nextInt(3); // 3-6個高光
-      for (int j = 0; j < highlightCount; j++) {
-        final highlightX = point.dx + (random.nextDouble() - 0.75) * strokeWidth * 0.5;
-        final highlightY = point.dy + (random.nextDouble() - 0.75) * strokeWidth * 0.5;
-        
-        // 🎯 高光大小隨機
-        final highlightSize = strokeWidth * (0.2 + random.nextDouble() * 0.2);
-        
-        // 🎨 高光帶有微妙的色相偏移(偏向暖色)
-        final highlightColor = getHueVariation(color, 8); // 色相偏移±4度
-        
-        canvas.drawCircle(
-          Offset(highlightX, highlightY),
-          highlightSize,
-          Paint()
-            ..color = highlightColor.withOpacity(0.35 + random.nextDouble() * 0.25)
-            ..style = PaintingStyle.fill,
-        );
-      }
-      
-      // 🎯 陰影區(偏向右下) - 數量隨機化
-      final shadowCount = 2 + random.nextInt(3); // 2-5個陰影
-      for (int j = 0; j < shadowCount; j++) {
-        final shadowX = point.dx + (random.nextDouble() + 0.15) * strokeWidth * 0.4;
-        final shadowY = point.dy + (random.nextDouble() + 0.15) * strokeWidth * 0.4;
-        
-        // 🎯 陰影大小隨機
-        final shadowSize = strokeWidth * (0.15 + random.nextDouble() * 0.15);
-        
-        // 🎨 陰影帶有微妙的色相偏移(偏向冷色)
-        final shadowColor = getHueVariation(color, 8); // 色相偏移±4度
-        
-        canvas.drawCircle(
-          Offset(shadowX, shadowY),
-          shadowSize,
-          Paint()
-            ..color = shadowColor.withOpacity(0.15 + random.nextDouble() * 0.12)
-            ..style = PaintingStyle.fill,
-        );
+    // 第1層: 底層擴散 (12-20個點)
+    final spreadCount = 12 + random.nextInt(9);
+    for (int i = 0; i < spreadCount; i++) {
+      final angleBase = random.nextDouble() * 2 * math.pi;
+      final angleNoise = (random.nextDouble() - 0.5) * 0.8;
+      final angle = angleBase + angleNoise;
+      final distFactor1 = math.pow(random.nextDouble(), 0.4).toDouble();
+      final distFactor2 = random.nextDouble();
+      final distFactor = (distFactor1 * 0.7 + distFactor2 * 0.3);
+      final maxDistance = strokeWidth * (2.2 + random.nextDouble() * 1.4);
+      final distance = distFactor * maxDistance;
+      final offsetX = math.cos(angle) * distance;
+      final offsetY = math.sin(angle) * distance;
+      final opacity = 0.03 + (1 - distFactor) * 0.12;
+      final dotSize = strokeWidth * (0.25 + random.nextDouble() * 0.45);
+      final dotColor = getHueVariation(color, 10);
+      _paintCache.color = dotColor.withOpacity(opacity);
+      _paintCache.style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY), dotSize, _paintCache);
+    }
+    
+    // 第2層: 顆粒層 (8-16個點)
+    final particleCount = 8 + random.nextInt(9);
+    for (int i = 0; i < particleCount; i++) {
+      final offsetX = (math.pow(random.nextDouble(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
+      final offsetY = (math.pow(random.nextDouble(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
+      final opacity = 0.12 + random.nextDouble() * 0.32;
+      final sizeVariation = random.nextDouble();
+      final particleSize = strokeWidth * (0.2 + math.pow(sizeVariation, 0.7) * 0.6);
+      final particleColor = getHueVariation(color, 12);
+      _paintCache.color = particleColor.withOpacity(opacity);
+      canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY), particleSize, _paintCache);
+    }
+    
+    // 第3層: 刮擦紋理 (2-4條刮痕) - 只在有方向的地方添加
+    if (pointIndex > 0) {
+      final scratchCount = 2 + random.nextInt(3);
+      for (int j = 0; j < scratchCount; j++) {
+        final angle = random.nextDouble() * 2 * math.pi;
+        final offset = (j - scratchCount / 2) * strokeWidth * 0.3;
+        final perpAngle = angle + math.pi / 2;
+        final offsetX = math.cos(perpAngle) * offset;
+        final offsetY = math.sin(perpAngle) * offset;
+        final scratchLength = strokeWidth * (0.5 + random.nextDouble() * 0.5);
+        final scratchOpacity = 0.08 + random.nextDouble() * 0.15;
+        final scratchWidth = strokeWidth * (0.1 + random.nextDouble() * 0.15);
+        final scratchColor = getHueVariation(color, 8);
+        final p1 = Offset(point.dx + offsetX, point.dy + offsetY);
+        final p2 = Offset(p1.dx + math.cos(angle) * scratchLength, 
+                         p1.dy + math.sin(angle) * scratchLength);
+        _paintCache
+          ..color = scratchColor.withOpacity(scratchOpacity)
+          ..strokeWidth = scratchWidth
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(p1, p2, _paintCache);
       }
     }
     
-    // 第七層:邊緣毛邊 - 模擬顏料邊緣的自然不規則(增強真實感)
-    for (int i = 0; i < points.length; i += 2) {
-      final point = points[i];
-      // 🎯 邊緣點數量隨機化
-      final edgeCount = 5 + random.nextInt(7); // 從6-10改為5-12
-      
-      for (int j = 0; j < edgeCount; j++) {
-        // 🎯 角度分布不完全均勻
-        final angleBase = (j / edgeCount) * 2 * math.pi;
-        final angleNoise = (random.nextDouble() - 0.5) * 0.6;
-        final angle = angleBase + angleNoise;
-        
-        // 🎯 距離變化更大
-        final distanceVariation = 0.6 + random.nextDouble() * 1.2; // 從0.7-1.6改為0.6-1.8
-        final distance = strokeWidth * distanceVariation;
-        
-        final offsetX = math.cos(angle) * distance;
-        final offsetY = math.sin(angle) * distance;
-        
-        // 🎯 邊緣點大小變化更大
-        final edgeSize = strokeWidth * (0.08 + math.pow(random.nextDouble(), 0.7) * 0.25);
-        
-        // 🎯 透明度範圍擴大
-        final edgeOpacity = 0.08 + random.nextDouble() * 0.22;
-        
-        // 🎨 加入色相變化
-        final edgeColor = getHueVariation(color, 12); // 色相偏移±6度
-        
-        canvas.drawCircle(
-          Offset(point.dx + offsetX, point.dy + offsetY),
-          edgeSize,
-          Paint()
-            ..color = edgeColor.withOpacity(edgeOpacity)
-            ..style = PaintingStyle.fill,
-        );
-      }
+    // 第4層: 厚塗堆積 (5-10個層)
+    final layerCount = 5 + random.nextInt(6);
+    for (int j = 0; j < layerCount; j++) {
+      final clusterFactor = math.pow(random.nextDouble(), 0.5).toDouble();
+      final offsetX = (random.nextDouble() - 0.5) * strokeWidth * 1.1 * clusterFactor;
+      final offsetY = (random.nextDouble() - 0.5) * strokeWidth * 1.1 * clusterFactor;
+      final opacity = 0.15 + random.nextDouble() * 0.35;
+      final layerSize = strokeWidth * (0.3 + math.pow(random.nextDouble(), 0.6) * 0.5);
+      final layerColor = getHueVariation(color, 10);
+      _paintCache.color = layerColor.withOpacity(opacity);
+      _paintCache.style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY), layerSize, _paintCache);
+    }
+    
+    // 第5層: 主體核心
+    _paintCache.color = getHueVariation(color, 6).withOpacity(0.55);
+    canvas.drawCircle(point, strokeWidth * 0.5, _paintCache);
+    
+    // 第6層: 高光 (2-4個)
+    final highlightCount = 2 + random.nextInt(3);
+    for (int i = 0; i < highlightCount; i++) {
+      final offsetX = (random.nextDouble() - 0.75) * strokeWidth * 0.5;
+      final offsetY = (random.nextDouble() - 0.75) * strokeWidth * 0.5;
+      final highlightSize = strokeWidth * (0.2 + random.nextDouble() * 0.2);
+      final highlightColor = getHueVariation(color, 8);
+      _paintCache.color = highlightColor.withOpacity(0.35 + random.nextDouble() * 0.25);
+      canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY), highlightSize, _paintCache);
+    }
+    
+    // 第7層: 陰影 (1-3個)
+    final shadowCount = 1 + random.nextInt(3);
+    for (int j = 0; j < shadowCount; j++) {
+      final shadowX = (random.nextDouble() + 0.15) * strokeWidth * 0.4;
+      final shadowY = (random.nextDouble() + 0.15) * strokeWidth * 0.4;
+      final shadowSize = strokeWidth * (0.15 + random.nextDouble() * 0.15);
+      final shadowColor = getHueVariation(color, 8);
+      _paintCache.color = shadowColor.withOpacity(0.15 + random.nextDouble() * 0.12);
+      canvas.drawCircle(Offset(point.dx + shadowX, point.dy + shadowY), shadowSize, _paintCache);
+    }
+    
+    // 第8層: 邊緣毛邊 (3-6個點)
+    final edgeCount = 3 + random.nextInt(4);
+    for (int i = 0; i < edgeCount; i++) {
+      final angleBase = (i / edgeCount) * 2 * math.pi;
+      final angleNoise = (random.nextDouble() - 0.5) * 0.6;
+      final angle = angleBase + angleNoise;
+      final distanceVariation = 0.6 + random.nextDouble() * 1.2;
+      final distance = strokeWidth * distanceVariation;
+      final offsetX = math.cos(angle) * distance;
+      final offsetY = math.sin(angle) * distance;
+      final edgeSize = strokeWidth * (0.08 + math.pow(random.nextDouble(), 0.7) * 0.25);
+      final edgeOpacity = 0.08 + random.nextDouble() * 0.22;
+      final edgeColor = getHueVariation(color, 12);
+      _paintCache.color = edgeColor.withOpacity(edgeOpacity);
+      canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY), edgeSize, _paintCache);
+    }
+  }
+
+  // 完整筆劃渲染 (用於已完成的筆劃)
+  void _drawFullTextureBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+    if (points.isEmpty) return;
+
+    // 🎯 智能跳點策略 - 平衡質量與性能
+    int pointStep;
+    if (points.length <= 20) {
+      pointStep = 1; // 短筆劃：全部渲染
+    } else if (points.length <= 80) {
+      pointStep = 2; // 中等筆劃：跳1點
+    } else {
+      pointStep = 3; // 長筆劃：跳2點
+    }
+    
+    for (int i = 0; i < points.length; i += pointStep) {
+      _drawFullStampAtPoint(canvas, points[i], color, strokeWidth, i);
     }
   }
 
   @override
-  bool shouldRepaint(_DrawingPainter oldDelegate) => true;
+  bool shouldRepaint(_DrawingPainter oldDelegate) {
+    // 🎯 關鍵：只要有任何變化就重繪
+    return oldDelegate.strokes.length != strokes.length ||
+        oldDelegate.currentStroke.length != currentStroke.length ||
+        oldDelegate.currentColor != currentColor ||
+        oldDelegate.currentStrokeWidth != currentStrokeWidth;
+  }
 }

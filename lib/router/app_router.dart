@@ -18,6 +18,7 @@ import 'package:music_practice_app/pages/sheet_annotation_page.dart';
 import 'package:music_practice_app/pages/login_page.dart';
 import 'package:music_practice_app/pages/register_page.dart';
 import 'package:music_practice_app/pages/profile_page.dart';
+import 'package:music_practice_app/pages/animal_collection_page.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
@@ -157,6 +158,14 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: ProfilePage(),
+      ),
+    ),
+    // 動物圖鑑頁面
+    GoRoute(
+      path: '/animal-collection',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: AnimalCollectionPage(),
       ),
     ),
   ],

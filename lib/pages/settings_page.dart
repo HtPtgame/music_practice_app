@@ -629,6 +629,15 @@ class _SettingsPageState extends State<SettingsPage> {
     return Column(
       children: [
         _buildSettingCard(
+          icon: Icons.pets,
+          title: '動物圖鑑',
+          subtitle: '查看您收集的可愛動物',
+          onTap: () {
+            context.push('/animal-collection');
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildSettingCard(
           icon: Icons.notifications,
           title: '通知設定',
           subtitle: '管理應用程式通知',
