@@ -28,61 +28,56 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   late DrawingData _drawingData;
   List<Offset> _currentStroke = [];
   Color _selectedColor = const Color(0xFF1E88E5);
-  double _strokeWidth = 8.0; // 預設最細筆刷
+  double _strokeWidth = 8.0; // 預設最細的筆刷
   bool _isEraser = false;
   BrushType _brushType = BrushType.texture;
   
-  // 快取系統相關變數
+  // 🎨 筆刷紋理快取池
   BrushTexturePool? _texturePool;
   bool _isPoolReady = false;
+  
+  // 🚀 Canvas 快取 - 避免重複渲染已完成的筆劃
   ui.Image? _cachedBackground;
-  ui.Image? _currentStrokeCache;
   int _cachedStrokeCount = 0;
-  int _currentStrokeCachedPoints = 0;
   bool _isCacheBuilding = false;
   
-  // 歷史記錄系統（筆劃 + 快取）
+  // 🎯 當前筆劃的增量快取
+  ui.Image? _currentStrokeCache;
+  int _currentStrokeCachedPoints = 0;
+  bool _isCurrentStrokeCacheBuilding = false;
+  
+  // 📜 Undo 歷史記錄
   final List<List<DrawingStroke>> _history = [];
-  final List<ui.Image?> _cacheHistory = [];
   int _historyIndex = -1;
 
   @override
   void initState() {
     super.initState();
     _drawingData = widget.initialDrawing;
-    
-    // 初始化紋理池
     _initializeTexturePool();
     
-    // 如果有舊紀錄，建立初始快取
+    // � 初始化歷史記錄
     if (_drawingData.strokes.isNotEmpty) {
-      Future.microtask(() => _rebuildCache().then((_) {
-        if (mounted) _saveToHistory();
-      }));
-    } else {
-      // 空畫布也要保存初始狀態
-      _saveToHistory();
+      _history.add(List.from(_drawingData.strokes));
+      _historyIndex = 0;
+    }
+    
+    // �🚀 如果有舊紀錄，建立背景快取避免重複運算
+    if (_drawingData.strokes.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _rebuildCache();
+      });
     }
   }
-  
+
   @override
   void dispose() {
     _texturePool?.dispose();
+    _cachedBackground?.dispose();
     _currentStrokeCache?.dispose();
-    
-    // 清理快取歷史
-    for (var cache in _cacheHistory) {
-      cache?.dispose();
-    }
-    
-    // 如果當前快取不在歷史中，才需要 dispose
-    if (_cachedBackground != null && !_cacheHistory.contains(_cachedBackground)) {
-      _cachedBackground!.dispose();
-    }
-    
     super.dispose();
   }
-  
+
   /// 初始化紋理快取池
   Future<void> _initializeTexturePool() async {
     _texturePool = BrushTexturePool();
@@ -104,18 +99,49 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     }
   }
 
+  /// 重建紋理池（當顏色或筆刷大小改變時）
+  Future<void> _rebuildTexturePool() async {
+    await _texturePool?.buildPool(_selectedColor, _strokeWidth);
+    if (mounted) {
+      setState(() {
+        _isPoolReady = true;
+      });
+    }
+  }
+
   void _onPanStart(DragStartDetails details) {
     if (widget.isReadOnly) return;
     setState(() {
       _currentStroke = [details.localPosition];
+      // 🎯 清除當前筆劃快取，開始新筆劃
+      _currentStrokeCache?.dispose();
+      _currentStrokeCache = null;
+      _currentStrokeCachedPoints = 0;
     });
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (widget.isReadOnly) return;
+    
+    // 🎯 智能點採樣 - 避免點過密導致性能問題
+    if (_currentStroke.isNotEmpty) {
+      final lastPoint = _currentStroke.last;
+      final distance = (details.localPosition - lastPoint).distance;
+      
+      // 只有當移動距離大於 2 像素時才添加新點（更密集的採樣）
+      if (distance < 2.0) {
+        return; // 跳過太近的點
+      }
+    }
+    
     setState(() {
-      _currentStroke.add(details.localPosition);
+      // 🚀 關鍵修復：創建新的 List，而不是修改舊的
+      // 這樣 CustomPaint 才會偵測到變化並重繪！
+      _currentStroke = [..._currentStroke, details.localPosition];
     });
+    
+    // 🎯 增量更新當前筆劃快取（非同步，不阻塞 UI）
+    _updateCurrentStrokeCache();
   }
 
   void _onPanEnd(DragEndDetails details) {
@@ -123,34 +149,26 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
     if (_currentStroke.isNotEmpty) {
       if (_isEraser) {
-        // 橡皮擦：固定大小25.0，碰到整條刪除
-        const eraserRadius = 25.0;
-        final beforeCount = _drawingData.strokes.length;
-        
         setState(() {
+          final beforeCount = _drawingData.strokes.length;
           _drawingData.strokes.removeWhere((stroke) {
-            return _currentStroke.any((eraserPoint) {
+            return _currentStroke.any((point) {
               return stroke.points.any((strokePoint) {
-                final distance = (eraserPoint - strokePoint).distance;
-                final threshold = eraserRadius + (stroke.strokeWidth / 2);
-                return distance < threshold;
+                final distance = (point - strokePoint).distance;
+                return distance < 15.0;
               });
             });
           });
           _currentStroke = [];
+          
+          // 🚀 智能快取更新：只有刪除了筆劃才重建
+          if (_drawingData.strokes.length < beforeCount) {
+            _saveToHistory(); // 📜 記錄到歷史
+            _cachedStrokeCount = _drawingData.strokes.length;
+            Future.microtask(() => _rebuildCache());
+          }
         });
-        
-        // 如果有刪除筆劃，重建快取並保存到歷史
-        if (_drawingData.strokes.length < beforeCount) {
-          _cachedStrokeCount = _drawingData.strokes.length;
-          _rebuildCache().then((_) {
-            if (mounted) {
-              _saveToHistory();
-            }
-          });
-        }
       } else {
-        // 正常繪圖
         final stroke = DrawingStroke(
           points: List.from(_currentStroke),
           color: _selectedColor,
@@ -160,14 +178,13 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         setState(() {
           _drawingData.strokes.add(stroke);
           _currentStroke = [];
+          // 🎯 注意：不立即清除當前筆劃快取
+          // 讓 _updateCache() 先使用它合併到背景
         });
-        
-        // 先更新背景快取，再保存到歷史
-        _updateCacheAndCleanup().then((_) {
-          if (mounted) {
-            _saveToHistory();
-          }
-        });
+        // � 記錄到歷史
+        _saveToHistory();
+        // �🚀 新筆劃完成後更新背景快取（會在完成後自動清除當前筆劃快取）
+        _updateCacheAndCleanup();
       }
       widget.onDrawingChanged(_drawingData);
     }
@@ -180,93 +197,78 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         _drawingData.strokes.clear();
         _drawingData.strokes.addAll(List.from(_history[_historyIndex]));
         
-        // 直接使用歷史快取，零運算！
-        _cachedBackground = _cacheHistory[_historyIndex];
+        // 🚀 智能快取更新
         _cachedStrokeCount = _drawingData.strokes.length;
+        Future.microtask(() => _rebuildCache());
       });
       widget.onDrawingChanged(_drawingData);
     }
   }
   
-  /// 保存當前狀態到歷史記錄
+  /// 📜 保存當前狀態到歷史記錄
   void _saveToHistory() {
     // 如果不在最新狀態，刪除後面的歷史
     if (_historyIndex < _history.length - 1) {
       _history.removeRange(_historyIndex + 1, _history.length);
-      // 同時清理快取歷史（需要先 dispose 不再使用的 Image）
-      for (int i = _historyIndex + 1; i < _cacheHistory.length; i++) {
-        final imageToDispose = _cacheHistory[i];
-        // 只 dispose 不是當前快取的 Image
-        if (imageToDispose != null && imageToDispose != _cachedBackground) {
-          imageToDispose.dispose();
-        }
-      }
-      _cacheHistory.removeRange(_historyIndex + 1, _cacheHistory.length);
     }
     
-    // 保存當前狀態（筆劃）
+    // 保存當前狀態
     _history.add(List.from(_drawingData.strokes));
-    // 保存當前快取（避免 Undo 時重新運算）
-    _cacheHistory.add(_cachedBackground);
     _historyIndex = _history.length - 1;
     
     // 限制歷史記錄數量（最多 50 步）
     if (_history.length > 50) {
       _history.removeAt(0);
-      final oldImage = _cacheHistory[0];
-      // 只在確定不會再使用時才 dispose
-      if (oldImage != null && oldImage != _cachedBackground) {
-        oldImage.dispose();
-      }
-      _cacheHistory.removeAt(0);
       _historyIndex--;
     }
   }
   
-  /// 增量更新背景快取
+  /// 🚀 更新 Canvas 快取（增量更新）
   Future<void> _updateCache() async {
     if (_isCacheBuilding) return;
     _isCacheBuilding = true;
-
+    
     try {
       final newStrokeCount = _drawingData.strokes.length;
+      
+      // 如果沒有新筆劃，不需要更新
       if (newStrokeCount == _cachedStrokeCount) {
         _isCacheBuilding = false;
         return;
       }
-
+      
+      // 取得畫布尺寸
       final size = MediaQuery.of(context).size;
       final width = (widget.width ?? size.width).toInt();
       final height = (widget.height ?? size.height).toInt();
-
+      
+      // 建立新的 recorder
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
-
-      // 繪製已快取的背景
+      
+      // 🎨 先繪製舊的背景快取（如果有）
       if (_cachedBackground != null) {
         canvas.drawImage(_cachedBackground!, Offset.zero, Paint());
       }
-
-      // 只繪製新增的筆劃
-      for (int i = _cachedStrokeCount; i < newStrokeCount; i++) {
-        _drawStrokeToCanvas(canvas, _drawingData.strokes[i]);
-      }
       
-      // 繪製當前筆劃快取
-      if (_currentStrokeCache != null) {
+      // 🚀 優化：如果有當前筆劃快取，直接使用它（避免重新渲染）
+      if (_currentStrokeCache != null && newStrokeCount - _cachedStrokeCount == 1) {
+        // 只有一條新筆劃，且有當前筆劃快取，直接使用
         canvas.drawImage(_currentStrokeCache!, Offset.zero, Paint());
+      } else {
+        // 🎨 渲染新增的筆劃
+        for (int i = _cachedStrokeCount; i < newStrokeCount; i++) {
+          final stroke = _drawingData.strokes[i];
+          _drawStrokeToCanvas(canvas, stroke);
+        }
       }
       
       // 轉換為 Image
       final picture = recorder.endRecording();
       final newImage = await picture.toImage(width, height);
       
-      // 釋放舊快取（但不要 dispose 歷史中的 Image）
-      final oldCache = _cachedBackground;
-      final isInHistory = _cacheHistory.contains(oldCache);
-      if (oldCache != null && !isInHistory) {
-        oldCache.dispose();
-      }
+      // 釋放舊快取
+      _cachedBackground?.dispose();
       
       // 更新快取
       if (mounted) {
@@ -282,10 +284,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     }
   }
   
-  /// 更新快取並清理當前筆劃快取
+  /// 🎯 更新快取並清理當前筆劃快取
   Future<void> _updateCacheAndCleanup() async {
+    // 先更新背景快取（會使用當前筆劃快取）
     await _updateCache();
     
+    // 更新完成後，清除當前筆劃快取
     if (mounted) {
       setState(() {
         _currentStrokeCache?.dispose();
@@ -295,41 +299,32 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     }
   }
   
-  /// 重建整個快取
+  ///  重建整個快取
   Future<void> _rebuildCache() async {
     if (_isCacheBuilding) return;
     _isCacheBuilding = true;
-
+    
     try {
       if (_drawingData.strokes.isEmpty) {
-        // 沒有筆劃時，清除快取（但不要 dispose 歷史中的 Image）
-        final oldCache = _cachedBackground;
-        final isInHistory = _cacheHistory.contains(oldCache);
-        if (oldCache != null && !isInHistory) {
-          oldCache.dispose();
-        }
-        if (mounted) {
-          setState(() {
-            _cachedBackground = null;
-            _cachedStrokeCount = 0;
-          });
-        }
         _isCacheBuilding = false;
         return;
       }
       
+      // 取得畫布尺寸
       final size = MediaQuery.of(context).size;
       final width = (widget.width ?? size.width).toInt();
       final height = (widget.height ?? size.height).toInt();
       
+      // 建立新的 recorder
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
       
-      // 繪製所有筆劃
+      // 🎨 繪製所有筆劃
       for (final stroke in _drawingData.strokes) {
         _drawStrokeToCanvas(canvas, stroke);
       }
       
+      // 轉換為 Image
       final picture = recorder.endRecording();
       final newImage = await picture.toImage(width, height);
       
@@ -346,63 +341,80 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     }
   }
   
-  /// 繪製筆劃到畫布
+  /// � 增量更新當前筆劃快取
+  Future<void> _updateCurrentStrokeCache() async {
+    // 防止重複建立
+    if (_isCurrentStrokeCacheBuilding) return;
+    
+    // 如果沒有新點，不需要更新
+    if (_currentStroke.length <= _currentStrokeCachedPoints) return;
+    
+    // 如果點數太少（<3個），直接渲染不快取
+    if (_currentStroke.length < 3) return;
+    
+    _isCurrentStrokeCacheBuilding = true;
+    
+    try {
+      // 取得畫布尺寸
+      final size = MediaQuery.of(context).size;
+      final width = (widget.width ?? size.width).toInt();
+      final height = (widget.height ?? size.height).toInt();
+      
+      // 建立新的 recorder
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      
+      // 🎨 先繪製舊的快取（如果有）
+      if (_currentStrokeCache != null) {
+        canvas.drawImage(_currentStrokeCache!, Offset.zero, Paint());
+      }
+      
+      // 🎨 只繪製新增的點
+      final painter = _DrawingPainter(
+        strokes: [],
+        currentStroke: _currentStroke.sublist(_currentStrokeCachedPoints),
+        currentColor: _selectedColor,
+        currentStrokeWidth: _strokeWidth,
+        isErasing: false,
+        texturePool: _texturePool,
+        isPoolReady: _isPoolReady,
+        cachedBackground: null,
+      );
+      painter.paint(canvas, Size(width.toDouble(), height.toDouble()));
+      
+      // 轉換為 Image
+      final picture = recorder.endRecording();
+      final newImage = await picture.toImage(width, height);
+      
+      // 釋放舊快取
+      _currentStrokeCache?.dispose();
+      
+      // 更新快取
+      if (mounted) {
+        setState(() {
+          _currentStrokeCache = newImage;
+          _currentStrokeCachedPoints = _currentStroke.length;
+        });
+      }
+    } catch (e) {
+      print('❌ 當前筆劃快取更新失敗: $e');
+    } finally {
+      _isCurrentStrokeCacheBuilding = false;
+    }
+  }
+  
+  /// �🎨 將單一筆劃繪製到 Canvas
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
-    if (stroke.brushType == BrushType.texture && _texturePool != null && _isPoolReady) {
-      _drawTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
-    } else {
-      _drawSimpleBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
-    }
-  }
-  
-  /// 繪製紋理筆刷
-  void _drawTextureBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
-    if (points.isEmpty || _texturePool == null) return;
-
-    final paint = Paint()
-      ..colorFilter = ColorFilter.mode(color, BlendMode.srcIn)
-      ..isAntiAlias = true;
-
-    for (int i = 0; i < points.length; i++) {
-      final point = points[i];
-      final texture = _texturePool!.getTexture(i);
-      if (texture != null) {
-        final size = strokeWidth * 1.2;
-        final rect = Rect.fromCenter(
-          center: point,
-          width: size,
-          height: size,
-        );
-        canvas.drawImageRect(
-          texture,
-          Rect.fromLTWH(0, 0, texture.width.toDouble(), texture.height.toDouble()),
-          rect,
-          paint,
-        );
-      }
-    }
-  }
-  
-  /// 繪製簡單筆刷
-  void _drawSimpleBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
-    if (points.isEmpty) return;
-    
-    final paint = Paint()
-      ..color = color
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    
-    if (points.length == 1) {
-      canvas.drawCircle(points[0], strokeWidth / 2, paint..style = PaintingStyle.fill);
-    } else {
-      final path = Path()..moveTo(points[0].dx, points[0].dy);
-      for (int i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
-      }
-      canvas.drawPath(path, paint..style = PaintingStyle.stroke);
-    }
+    final painter = _DrawingPainter(
+      strokes: [stroke], // 只繪製這一條
+      currentStroke: [],
+      currentColor: stroke.color,
+      currentStrokeWidth: stroke.strokeWidth,
+      isErasing: false,
+      texturePool: _texturePool,
+      isPoolReady: _isPoolReady,
+    );
+    painter.paint(canvas, Size.infinite);
   }
 
   @override
@@ -439,13 +451,17 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 onPanEnd: _onPanEnd,
                 child: CustomPaint(
                   painter: _DrawingPainter(
-                    cachedBackground: _cachedBackground,
+                    strokes: _drawingData.strokes,
                     currentStroke: _currentStroke,
-                    currentColor: _isEraser ? Colors.grey.withOpacity(0.3) : _selectedColor,
-                    currentStrokeWidth: _isEraser ? 25.0 : _strokeWidth,
+                    currentColor:
+                        _isEraser ? Colors.grey.withOpacity(0.3) : _selectedColor,
+                    currentStrokeWidth: _strokeWidth, // 橡皮擦粗細跟隨畫筆
                     isErasing: _isEraser,
                     texturePool: _texturePool,
                     isPoolReady: _isPoolReady,
+                    cachedBackground: _cachedBackground, // 🚀 傳入已完成筆劃快取
+                    currentStrokeCache: _currentStrokeCache, // 🎯 傳入當前筆劃快取
+                    currentStrokeCachedPoints: _currentStrokeCachedPoints, // 🎯 已快取的點數
                   ),
                   child: Container(),
                 ),
@@ -508,10 +524,14 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     return colors.map((color) {
       final isSelected = _selectedColor == color && !_isEraser;
       return GestureDetector(
-        onTap: () => setState(() {
-          _selectedColor = color;
-          _isEraser = false;
-        }),
+        onTap: () async {
+          setState(() {
+            _selectedColor = color;
+            _isEraser = false;
+            _isPoolReady = false; // 標記為未準備
+          });
+          await _rebuildTexturePool(); // 重建紋理池
+        },
         child: Container(
           width: 36,
           height: 36,
@@ -533,10 +553,14 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     final buttons = sizes.map((width) {
       final isSelected = _strokeWidth == width && !_isEraser;
       return GestureDetector(
-        onTap: () => setState(() {
-          _strokeWidth = width;
-          _isEraser = false;
-        }),
+        onTap: () async {
+          setState(() {
+            _strokeWidth = width;
+            _isEraser = false;
+            _isPoolReady = false; // 標記為未準備
+          });
+          await _rebuildTexturePool(); // 重建紋理池
+        },
         child: Container(
           width: 36,
           height: 36,
@@ -596,97 +620,66 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 }
 
 class _DrawingPainter extends CustomPainter {
-  final ui.Image? cachedBackground;
+  final List<DrawingStroke> strokes;
   final List<Offset> currentStroke;
   final Color currentColor;
   final double currentStrokeWidth;
   final bool isErasing;
   final BrushTexturePool? texturePool;
   final bool isPoolReady;
+  final ui.Image? cachedBackground; // 🚀 已完成筆劃的快取
+  final ui.Image? currentStrokeCache; // 🎯 當前筆劃的快取
+  final int currentStrokeCachedPoints; // 🎯 當前筆劃已快取的點數
+
+  // Paint 緩存
+  final Paint _paintCache = Paint()..style = PaintingStyle.fill;
 
   _DrawingPainter({
-    this.cachedBackground,
+    required this.strokes,
     required this.currentStroke,
     required this.currentColor,
     required this.currentStrokeWidth,
     this.isErasing = false,
     this.texturePool,
     this.isPoolReady = false,
+    this.cachedBackground, // 🚀 傳入已完成筆劃快取
+    this.currentStrokeCache, // 🎯 傳入當前筆劃快取
+    this.currentStrokeCachedPoints = 0, // 🎯 傳入已快取的點數
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 繪製快取的背景
+    // 🚀 優先使用快取背景（已完成的筆劃）
     if (cachedBackground != null) {
+      // 直接繪製快取的背景圖片
       canvas.drawImage(cachedBackground!, Offset.zero, Paint());
-    }
-    
-    // 繪製當前正在繪製的筆劃（橡皮擦用簡單筆刷）
-    if (currentStroke.isNotEmpty) {
-      _drawSimpleBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
-    }
-  }
-  
-  /// 繪製簡單筆刷
-  void _drawSimpleBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
-    if (points.isEmpty) return;
-    
-    final paint = Paint()
-      ..color = color
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    
-    if (points.length == 1) {
-      canvas.drawCircle(points[0], strokeWidth / 2, paint..style = PaintingStyle.fill);
     } else {
-      final path = Path()..moveTo(points[0].dx, points[0].dy);
-      for (int i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
+      // 沒有快取時，渲染所有已完成的筆劃
+      for (final stroke in strokes) {
+        _drawFullTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth, useSkipping: true);
       }
-      canvas.drawPath(path, paint..style = PaintingStyle.stroke);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DrawingPainter oldDelegate) {
-    return oldDelegate.cachedBackground != cachedBackground ||
-        oldDelegate.currentStroke.length != currentStroke.length ||
-        oldDelegate.currentColor != currentColor ||
-        oldDelegate.currentStrokeWidth != currentStrokeWidth;
-  }
-}
-
-// 舊的複雜紋理畫家（暫時保留但不使用）
-class _LegacyDrawingPainter extends CustomPainter {
-  final List<DrawingStroke> strokes;
-  final List<Offset> currentStroke;
-  final Color currentColor;
-  final double currentStrokeWidth;
-  final bool isErasing;
-
-  // Paint 緩存
-  final Paint _paintCache = Paint()..style = PaintingStyle.fill;
-
-  _LegacyDrawingPainter({
-    required this.strokes,
-    required this.currentStroke,
-    required this.currentColor,
-    required this.currentStrokeWidth,
-    this.isErasing = false,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 渲染所有已完成的筆劃
-    for (final stroke in strokes) {
-      _drawFullTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
     }
     
-    // 渲染當前正在繪製的筆劃
+    // � 渲染當前正在繪製的筆劃（使用增量快取）
     if (currentStroke.isNotEmpty) {
-      _drawFullTextureBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
+      if (isErasing) {
+        // 🧹 橡皮擦：使用簡單原始筆刷
+        _drawSimpleBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
+      } else {
+        // 🎨 一般繪圖：使用增量快取
+        if (currentStrokeCache != null && currentStrokeCachedPoints > 0) {
+          canvas.drawImage(currentStrokeCache!, Offset.zero, Paint());
+          
+          // 只渲染新增的點（從快取點數開始）
+          if (currentStroke.length > currentStrokeCachedPoints) {
+            final newPoints = currentStroke.sublist(currentStrokeCachedPoints);
+            _drawFullTextureBrush(canvas, newPoints, currentColor, currentStrokeWidth, useSkipping: false);
+          }
+        } else {
+          // 沒有快取時，渲染所有點
+          _drawFullTextureBrush(canvas, currentStroke, currentColor, currentStrokeWidth, useSkipping: false);
+        }
+      }
     }
   }
 
@@ -843,75 +836,336 @@ class _LegacyDrawingPainter extends CustomPainter {
   }
 
   // 完整筆劃渲染 (用於已完成的筆劃)
-  void _drawFullTextureBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+  void _drawFullTextureBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth, {bool useSkipping = true}) {
     if (points.isEmpty) return;
 
     // 🎯 智能跳點策略 - 平衡質量與性能
-    int pointStep;
-    if (points.length <= 20) {
-      pointStep = 1; // 短筆劃：全部渲染
-    } else if (points.length <= 80) {
-      pointStep = 2; // 中等筆劃：跳1點
-    } else {
-      pointStep = 3; // 長筆劃：跳2點
+    int pointStep = 1; // 預設不跳點
+    
+    if (useSkipping) {
+      // 只有已完成的筆劃才使用跳點優化
+      if (points.length <= 20) {
+        pointStep = 1; // 短筆劃：全部渲染
+      } else if (points.length <= 80) {
+        pointStep = 2; // 中等筆劃：跳1點
+      } else {
+        pointStep = 3; // 長筆劃：跳2點
+      }
     }
     
     for (int i = 0; i < points.length; i += pointStep) {
-      _drawFullStampAtPoint(canvas, points[i], color, strokeWidth, i);
+      // 🚀 使用紋理池優化渲染
+      if (isPoolReady && texturePool != null) {
+        _drawStampFromPool(canvas, points[i], strokeWidth, i);
+      } else {
+        // 降級方案：使用簡化渲染（當前筆劃）或完整渲染（已完成筆劃）
+        if (!useSkipping) {
+          // 當前筆劃：使用快速簡化版本
+          _drawQuickStamp(canvas, points[i], color, strokeWidth);
+        } else {
+          // 已完成筆劃：使用完整8層渲染
+          _drawFullStampAtPoint(canvas, points[i], color, strokeWidth, i);
+        }
+      }
     }
+  }
+  
+  /// ⚡ 快速簡化版 stamp - 用於即時顯示當前筆劃
+  void _drawQuickStamp(Canvas canvas, Offset point, Color color, double strokeWidth) {
+    // 只渲染核心 3 層，保證速度
+    final random = math.Random(point.hashCode);
+    
+    // 第1層: 底層擴散（簡化）
+    final diffusionCount = 6; // 減少數量
+    for (int i = 0; i < diffusionCount; i++) {
+      final angle = (i / diffusionCount) * 2 * math.pi;
+      final distance = strokeWidth * (0.3 + random.nextDouble() * 0.5);
+      final offsetX = math.cos(angle) * distance;
+      final offsetY = math.sin(angle) * distance;
+      final size = strokeWidth * 0.2;
+      _paintCache.color = color.withOpacity(0.1);
+      canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY), size, _paintCache);
+    }
+    
+    // 第2層: 主體核心
+    _paintCache.color = color.withOpacity(0.7);
+    canvas.drawCircle(point, strokeWidth * 0.5, _paintCache);
+    
+    // 第3層: 高光
+    _paintCache.color = color.withOpacity(0.4);
+    canvas.drawCircle(Offset(point.dx - strokeWidth * 0.15, point.dy - strokeWidth * 0.15), 
+                      strokeWidth * 0.25, _paintCache);
+  }
+  
+  /// 🧹 簡單原始筆刷 - 用於橡皮擦，不經過任何運算
+  void _drawSimpleBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+    if (points.isEmpty) return;
+    
+    final paint = Paint()
+      ..color = color
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    
+    if (points.length == 1) {
+      // 單點：畫圓
+      canvas.drawCircle(points[0], strokeWidth / 2, paint..style = PaintingStyle.fill);
+    } else {
+      // 多點：連線
+      final path = Path()..moveTo(points[0].dx, points[0].dy);
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, paint..style = PaintingStyle.stroke);
+    }
+  }
+  
+  /// 🚀 從紋理池繪製 stamp (O(1) 複雜度)
+  void _drawStampFromPool(Canvas canvas, Offset point, double strokeWidth, int pointIndex) {
+    final texture = texturePool!.getRandomTexture();
+    if (texture == null) return;
+    
+    final random = math.Random(point.hashCode + pointIndex);
+    
+    // 計算 stamp 實際大小
+    final stampDisplaySize = strokeWidth * 4;
+    
+    canvas.save();
+    
+    // 移動到繪製點
+    canvas.translate(point.dx, point.dy);
+    
+    // 🎨 輕微旋轉 (±8°)
+    final rotation = (random.nextDouble() - 0.5) * 0.28; // ±8° ≈ 0.14 rad
+    canvas.rotate(rotation);
+    
+    // 🎨 微縮放 (95%~105%)
+    final scale = 0.95 + random.nextDouble() * 0.1;
+    canvas.scale(scale);
+    
+    // 居中 stamp
+    canvas.translate(-stampDisplaySize / 2, -stampDisplaySize / 2);
+    
+    // 繪製紋理
+    final srcRect = Rect.fromLTWH(0, 0, texture.width.toDouble(), texture.height.toDouble());
+    final dstRect = Rect.fromLTWH(0, 0, stampDisplaySize, stampDisplaySize);
+    
+    canvas.drawImageRect(texture, srcRect, dstRect, _paintCache);
+    
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_LegacyDrawingPainter oldDelegate) {
+  bool shouldRepaint(_DrawingPainter oldDelegate) {
+    // 🎯 關鍵：只要有任何變化就重繪
+    // ✅ 現在 currentStroke 每次都是新的 List，可以正確比較
     return oldDelegate.strokes.length != strokes.length ||
         oldDelegate.currentStroke.length != currentStroke.length ||
         oldDelegate.currentColor != currentColor ||
-        oldDelegate.currentStrokeWidth != currentStrokeWidth;
+        oldDelegate.currentStrokeWidth != currentStrokeWidth ||
+        oldDelegate.cachedBackground != cachedBackground ||
+        oldDelegate.currentStrokeCache != currentStrokeCache || // 🎯 當前筆劃快取變化
+        oldDelegate.currentStrokeCachedPoints != currentStrokeCachedPoints; // 🎯 快取點數變化
   }
 }
 
-/// 筆刷紋理快取池
+/// 🎨 筆刷紋理快取池
 class BrushTexturePool {
-  static const int poolSize = 16;
-  static const int textureSize = 128;
+  static const int _poolSize = 16; // 16 張紋理足夠隨機
+  static const int _stampSize = 128; // 紋理圖片尺寸
   
-  final List<ui.Image?> _textures = List.filled(poolSize, null);
-  bool _isBuilt = false;
+  List<ui.Image> _textures = [];
+  final math.Random _random = math.Random();
   
+  bool get isReady => _textures.length == _poolSize;
+  
+  /// 建立紋理池
   Future<void> buildPool(Color color, double strokeWidth) async {
-    if (_isBuilt) return;
+    // 清除舊紋理
+    _disposeTextures();
+    _textures = [];
     
-    for (int i = 0; i < poolSize; i++) {
-      _textures[i] = await _generateTexture(i, color, strokeWidth);
+    // 建立 16 張不同的紋理
+    final List<Future<ui.Image>> futures = [];
+    for (int i = 0; i < _poolSize; i++) {
+      futures.add(_createStamp(color, strokeWidth, i * 1000));
     }
-    _isBuilt = true;
+    
+    _textures = await Future.wait(futures);
   }
   
-  Future<ui.Image> _generateTexture(int seed, Color color, double strokeWidth) async {
+  /// 建立單一紋理 stamp
+  Future<ui.Image> _createStamp(Color color, double strokeWidth, int seed) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     final random = math.Random(seed);
+    final paint = Paint()..style = PaintingStyle.fill;
     
-    final paint = Paint()
-      ..color = color.withOpacity(0.6 + random.nextDouble() * 0.3)
-      ..style = PaintingStyle.fill;
+    final center = Offset(_stampSize / 2, _stampSize / 2);
+    final scale = _stampSize / (strokeWidth * 4); // 縮放到合適大小
     
-    final center = Offset(textureSize / 2, textureSize / 2);
-    final radius = (textureSize / 4) + random.nextDouble() * (textureSize / 8);
-    
-    canvas.drawCircle(center, radius, paint);
-    
-    final picture = recorder.endRecording();
-    return await picture.toImage(textureSize, textureSize);
-  }
-  
-  ui.Image? getTexture(int index) {
-    return _textures[index % poolSize];
-  }
-  
-  void dispose() {
-    for (var texture in _textures) {
-      texture?.dispose();
+    Color getHueVariation(Color baseColor, double variation) {
+      final hslColor = HSLColor.fromColor(baseColor);
+      final hueShift = (random.nextDouble() - 0.5) * variation;
+      return hslColor.withHue((hslColor.hue + hueShift) % 360).toColor();
     }
+    
+    // 🎨 繪製 8 層肌理（整合到單一 stamp）
+    
+    // 第0層: 紙張纖維紋理
+    final fiberCount = 8 + random.nextInt(5);
+    for (int j = 0; j < fiberCount; j++) {
+      final baseAngle = random.nextDouble() * 2 * math.pi;
+      final angleVariation = (random.nextDouble() - 0.5) * 0.4;
+      final fiberAngle = baseAngle + angleVariation;
+      final fiberLength = strokeWidth * scale * (0.6 + random.nextDouble() * 0.9);
+      final fiberThickness = strokeWidth * scale * 0.05 * (0.5 + random.nextDouble());
+      final startOffsetX = (random.nextDouble() - 0.5) * strokeWidth * scale * 1.2;
+      final startOffsetY = (random.nextDouble() - 0.5) * strokeWidth * scale * 1.2;
+      final startPoint = Offset(center.dx + startOffsetX, center.dy + startOffsetY);
+      final endPoint = Offset(
+        startPoint.dx + math.cos(fiberAngle) * fiberLength,
+        startPoint.dy + math.sin(fiberAngle) * fiberLength,
+      );
+      final fiberColor = getHueVariation(color, 15);
+      paint
+        ..color = fiberColor.withOpacity(0.02 + random.nextDouble() * 0.04)
+        ..strokeWidth = fiberThickness
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(startPoint, endPoint, paint);
+    }
+    
+    // 第1層: 底層擴散
+    final spreadCount = 12 + random.nextInt(9);
+    for (int i = 0; i < spreadCount; i++) {
+      final angle = random.nextDouble() * 2 * math.pi;
+      final distFactor = math.pow(random.nextDouble(), 0.4).toDouble();
+      final maxDistance = strokeWidth * scale * (2.2 + random.nextDouble() * 1.4);
+      final distance = distFactor * maxDistance;
+      final offsetX = math.cos(angle) * distance;
+      final offsetY = math.sin(angle) * distance;
+      final opacity = 0.03 + (1 - distFactor) * 0.12;
+      final dotSize = strokeWidth * scale * (0.25 + random.nextDouble() * 0.45);
+      final dotColor = getHueVariation(color, 10);
+      paint.color = dotColor.withOpacity(opacity);
+      paint.style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY), dotSize, paint);
+    }
+    
+    // 第2層: 顆粒層
+    final particleCount = 8 + random.nextInt(9);
+    for (int i = 0; i < particleCount; i++) {
+      final offsetX = (random.nextDouble() - 0.5) * 2 * strokeWidth * scale * 1.6;
+      final offsetY = (random.nextDouble() - 0.5) * 2 * strokeWidth * scale * 1.6;
+      final opacity = 0.12 + random.nextDouble() * 0.32;
+      final particleSize = strokeWidth * scale * (0.2 + math.pow(random.nextDouble(), 0.7) * 0.6);
+      final particleColor = getHueVariation(color, 12);
+      paint.color = particleColor.withOpacity(opacity);
+      canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY), particleSize, paint);
+    }
+    
+    // 第3層: 刮擦紋理
+    final scratchCount = 2 + random.nextInt(3);
+    for (int j = 0; j < scratchCount; j++) {
+      final angle = random.nextDouble() * 2 * math.pi;
+      final offset = (j - scratchCount / 2) * strokeWidth * scale * 0.3;
+      final perpAngle = angle + math.pi / 2;
+      final offsetX = math.cos(perpAngle) * offset;
+      final offsetY = math.sin(perpAngle) * offset;
+      final scratchLength = strokeWidth * scale * (0.5 + random.nextDouble() * 0.5);
+      final scratchOpacity = 0.08 + random.nextDouble() * 0.15;
+      final scratchWidth = strokeWidth * scale * (0.1 + random.nextDouble() * 0.15);
+      final scratchColor = getHueVariation(color, 8);
+      final p1 = Offset(center.dx + offsetX, center.dy + offsetY);
+      final p2 = Offset(p1.dx + math.cos(angle) * scratchLength, 
+                       p1.dy + math.sin(angle) * scratchLength);
+      paint
+        ..color = scratchColor.withOpacity(scratchOpacity)
+        ..strokeWidth = scratchWidth
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(p1, p2, paint);
+    }
+    
+    // 第4層: 厚塗堆積
+    final layerCount = 5 + random.nextInt(6);
+    for (int j = 0; j < layerCount; j++) {
+      final offsetX = (random.nextDouble() - 0.5) * strokeWidth * scale * 1.1;
+      final offsetY = (random.nextDouble() - 0.5) * strokeWidth * scale * 1.1;
+      final opacity = 0.15 + random.nextDouble() * 0.35;
+      final layerSize = strokeWidth * scale * (0.3 + math.pow(random.nextDouble(), 0.6) * 0.5);
+      final layerColor = getHueVariation(color, 10);
+      paint.color = layerColor.withOpacity(opacity);
+      paint.style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY), layerSize, paint);
+    }
+    
+    // 第5層: 主體核心
+    paint.color = getHueVariation(color, 6).withOpacity(0.55);
+    canvas.drawCircle(center, strokeWidth * scale * 0.5, paint);
+    
+    // 第6層: 高光
+    final highlightCount = 2 + random.nextInt(3);
+    for (int i = 0; i < highlightCount; i++) {
+      final offsetX = (random.nextDouble() - 0.75) * strokeWidth * scale * 0.5;
+      final offsetY = (random.nextDouble() - 0.75) * strokeWidth * scale * 0.5;
+      final highlightSize = strokeWidth * scale * (0.2 + random.nextDouble() * 0.2);
+      final highlightColor = getHueVariation(color, 8);
+      paint.color = highlightColor.withOpacity(0.35 + random.nextDouble() * 0.25);
+      canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY), highlightSize, paint);
+    }
+    
+    // 第7層: 陰影
+    final shadowCount = 1 + random.nextInt(3);
+    for (int j = 0; j < shadowCount; j++) {
+      final shadowX = (random.nextDouble() + 0.15) * strokeWidth * scale * 0.4;
+      final shadowY = (random.nextDouble() + 0.15) * strokeWidth * scale * 0.4;
+      final shadowSize = strokeWidth * scale * (0.15 + random.nextDouble() * 0.15);
+      final shadowColor = getHueVariation(color, 8);
+      paint.color = shadowColor.withOpacity(0.15 + random.nextDouble() * 0.12);
+      canvas.drawCircle(Offset(center.dx + shadowX, center.dy + shadowY), shadowSize, paint);
+    }
+    
+    // 第8層: 邊緣毛邊
+    final edgeCount = 3 + random.nextInt(4);
+    for (int i = 0; i < edgeCount; i++) {
+      final angleBase = (i / edgeCount) * 2 * math.pi;
+      final angleNoise = (random.nextDouble() - 0.5) * 0.6;
+      final angle = angleBase + angleNoise;
+      final distanceVariation = 0.6 + random.nextDouble() * 1.2;
+      final distance = strokeWidth * scale * distanceVariation;
+      final offsetX = math.cos(angle) * distance;
+      final offsetY = math.sin(angle) * distance;
+      final edgeSize = strokeWidth * scale * (0.08 + math.pow(random.nextDouble(), 0.7) * 0.25);
+      final edgeOpacity = 0.08 + random.nextDouble() * 0.22;
+      final edgeColor = getHueVariation(color, 12);
+      paint.color = edgeColor.withOpacity(edgeOpacity);
+      canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY), edgeSize, paint);
+    }
+    
+    // 轉換為圖片
+    final picture = recorder.endRecording();
+    return await picture.toImage(_stampSize, _stampSize);
+  }
+  
+  /// 從池中取得隨機紋理
+  ui.Image? getRandomTexture() {
+    if (_textures.isEmpty) return null;
+    return _textures[_random.nextInt(_textures.length)];
+  }
+  
+  /// 清理紋理
+  void _disposeTextures() {
+    for (var texture in _textures) {
+      texture.dispose();
+    }
+  }
+  
+  /// 釋放資源
+  void dispose() {
+    _disposeTextures();
+    _textures = [];
   }
 }
