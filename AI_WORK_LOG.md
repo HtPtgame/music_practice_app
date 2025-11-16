@@ -4,11 +4,358 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-11月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年11月14日
+**最後更新**: 2025年11月16日
 
 ---
 
-## 📅 最新更新 (2025/11/14)
+## 📅 最新更新 (2025/11/16)
+
+### 🎨 動物圖鑑入口優化
+
+#### 調整項目
+
+**1. 調整首頁入口位置**
+- **原位置**: 練習計時卡片下方
+- **新位置**: 打卡卡片和練習計時卡片中間 ✅
+- **原因**: 更符合邏輯順序（打卡 → 查看圖鑑 → 開始練習）
+
+**2. 卡片視覺風格優化**
+- **原設計**: 漸層藍色背景 (藍400 → 藍600)
+- **新設計**: 白色背景 ✅
+- **文字顏色調整**:
+  - 圖示: 白色 → 藍700
+  - 標題: 白色 → dynamicTextDark (深色)
+  - 描述: 白色半透明 → dynamicTextLight (淺色)
+  - 箭頭: 白色 → dynamicTextLight
+
+**3. 移除設定頁入口**
+- **位置**: `lib/pages/settings_page.dart` - 其他設定區塊
+- **原因**: 首頁已有明顯入口，避免重複
+- **效果**: 簡化設定頁面，減少混淆
+
+#### 修改前後對比
+
+**首頁卡片順序**：
+```
+修改前:
+1. 打卡卡片
+2. 練習計時卡片
+3. 動物圖鑑入口 (漸層藍色背景)
+
+修改後:
+1. 打卡卡片
+2. 動物圖鑑入口 (白色背景) ✅
+3. 練習計時卡片
+```
+
+**卡片視覺效果**：
+```dart
+// ❌ 舊版：漸層藍色背景
+decoration: BoxDecoration(
+  gradient: LinearGradient(
+    colors: [Colors.blue[400]!, Colors.blue[600]!],
+  ),
+),
+Icon(Icons.pets, color: Colors.white),
+Text('動物圖鑑', style: TextStyle(color: Colors.white)),
+
+// ✅ 新版：白色背景
+decoration: BoxDecoration(
+  color: Colors.white,
+),
+Icon(Icons.pets, color: Colors.blue[700]),
+Text('動物圖鑑', style: TextStyle(color: AppColors.dynamicTextDark)),
+```
+
+**設定頁簡化**：
+```
+修改前:
+- 動物圖鑑 (重複入口)
+- 通知設定
+- 主題設定
+- 關於應用程式
+
+修改後:
+- 通知設定
+- 主題設定
+- 關於應用程式
+```
+
+#### 修改檔案
+
+1. **lib/pages/home_page.dart**
+   - 調整 `_HomePageContent` 中卡片順序
+   - 修改 `_AnimalCollectionEntryCard` 背景為白色
+   - 更新所有文字和圖示顏色以配合白色背景
+
+2. **lib/pages/settings_page.dart**
+   - 刪除 `_buildOtherSettingsCards()` 中的動物圖鑑入口卡片
+
+#### 優點
+
+- ✅ **更好的視覺平衡**: 白色卡片與其他卡片風格一致
+- ✅ **更合理的流程**: 打卡 → 查看收集 → 開始練習
+- ✅ **減少重複**: 移除設定頁重複入口
+- ✅ **更清晰的導航**: 首頁作為主要入口
+
+---
+
+### 🎨 動物圖鑑 UI/UX 優化 (早期更新)
+
+#### 優化項目
+
+**1. 移除重新整理按鈕**
+- **原因**: 使用頻率低，界面更簡潔
+- **修改**: 移除 AppBar 右上角的重新整理按鈕
+- **替代方案**: 頁面每次進入時自動載入最新數據
+
+**2. 動物卡片文字優化**
+- **問題**: 原本顯示「還需X天」，用戶不清楚總共需要多少天
+- **修改**: 改為顯示「需X天」（總天數）
+- **範例**: 
+  - ❌ 舊版: 「需3天」（還需3天）
+  - ✅ 新版: 「需7天」（總共需要7天）
+
+**3. 統計卡片改為可滑動**
+- **問題**: 統計卡片置頂佔用大量空間，影響內容顯示
+- **解決**: 使用 `CustomScrollView` + `SliverToBoxAdapter`
+- **優點**: 
+  - ✅ 統計卡片可隨圖鑑一起滑動
+  - ✅ 節省螢幕空間
+  - ✅ 更好的滑動體驗
+
+**修改前**：
+```dart
+body: Column(
+  children: [
+    _buildStatsCard(), // 固定在頂部
+    Expanded(
+      child: GridView.builder(...),
+    ),
+  ],
+)
+```
+
+**修改後**：
+```dart
+body: CustomScrollView(
+  slivers: [
+    SliverToBoxAdapter(
+      child: _buildStatsCard(), // 可滑動
+    ),
+    SliverPadding(
+      padding: EdgeInsets.all(16),
+      sliver: SliverGrid(...),
+    ),
+  ],
+)
+```
+
+**4. 首頁新增圖鑑入口**
+- **問題**: 原本需要到設定頁才能進入動物圖鑑
+- **解決**: 在首頁新增專屬入口卡片
+- **位置**: 練習計時卡片下方
+- **設計**: 
+  - 漸層藍色背景
+  - 寵物圖示 🐾
+  - 「收集可愛動物，打卡解鎖驚喜！」標語
+  - 右側箭頭指示可點擊
+
+**首頁入口卡片程式碼**：
+```dart
+class _AnimalCollectionEntryCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: () => context.push('/animal-collection'),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[400]!, Colors.blue[600]!],
+            ),
+          ),
+          child: Row(
+            children: [
+              // 圖示 + 標題 + 描述
+              Icon(Icons.pets),
+              Text('動物圖鑑'),
+              Text('收集可愛動物，打卡解鎖驚喜！'),
+              // 箭頭
+              Icon(Icons.arrow_forward_ios),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+#### 修改檔案
+
+1. **lib/pages/animal_collection_page.dart**
+   - 移除 AppBar 的 actions 按鈕
+   - 將 `Column` + `GridView.builder` 改為 `CustomScrollView` + `SliverGrid`
+   - 修改 `_AnimalCard` 顯示總天數而非剩餘天數
+
+2. **lib/pages/home_page.dart**
+   - 新增 `_AnimalCollectionEntryCard` 組件
+   - 在 `_HomePageContent` 的 ListView 中添加圖鑑入口卡片
+
+#### 使用流程優化
+
+**優化前**：
+```
+首頁 → 設定頁 → 動物圖鑑
+```
+
+**優化後**：
+```
+首頁 → 點擊動物圖鑑卡片 → 動物圖鑑 ✅ (減少一層導航)
+```
+
+#### 測試驗證
+
+- ✅ 統計卡片可正常滑動
+- ✅ 動物網格顯示正確
+- ✅ 動物卡片顯示「需X天」（總天數）
+- ✅ 首頁圖鑑入口卡片可點擊
+- ✅ 點擊後正確跳轉到圖鑑頁面
+- ✅ 漸層背景和圖示正確顯示
+
+---
+
+## 📅 歷史更新 (2025/11/16 早期)
+
+### 🐾 動物圖鑑打卡系統整合
+
+#### 問題描述
+組員新增的動物圖鑑功能使用了獨立的打卡系統（`CheckInService`），與首頁的打卡日曆系統（`CheckInCard`）完全分離，導致：
+- ❌ 兩套打卡系統數據不同步
+- ❌ 用戶需要在兩個地方分別打卡
+- ❌ 數據儲存格式不一致（`check_in_dates` vs `checked_dates`）
+- ❌ 維護成本高，容易產生 bug
+
+#### 解決方案
+
+**目標**：將動物圖鑑的打卡系統改為同步首頁的打卡系統
+
+**修改檔案**：`lib/pages/animal_collection_page.dart`
+
+**主要變更**：
+
+1. **移除獨立打卡系統**
+```dart
+// ❌ 舊版：使用獨立的 CheckInService
+import '../services/check_in_service.dart';
+late CheckInService _checkInService;
+await _checkInService.loadCheckInData();
+
+// ✅ 新版：直接讀取首頁的打卡數據
+import 'package:shared_preferences/shared_preferences.dart';
+Set<String> _checkedDates = {};
+int _consecutiveDays = 0;
+
+final prefs = await SharedPreferences.getInstance();
+final checkedDatesJson = prefs.getStringList('checked_dates') ?? [];
+_checkedDates = checkedDatesJson.toSet();
+```
+
+2. **統一數據源**
+```dart
+// 使用首頁的打卡天數計算解鎖進度
+_collectionService.checkAndUnlockAnimals(_checkedDates.length);
+
+// 統計卡片顯示首頁的數據
+_buildStatItem('總打卡天數', '${_checkedDates.length}', Icons.calendar_today);
+_buildStatItem('連續打卡', '${_consecutiveDays}天', Icons.local_fire_department);
+```
+
+3. **引導用戶到首頁打卡**
+```dart
+// 點擊打卡按鈕顯示引導對話框
+Future<void> _handleCheckIn() async {
+  if (_hasCheckedToday()) {
+    ScaffoldMessenger.showSnackBar('今天已經打卡過了！請到首頁查看打卡日曆');
+    return;
+  }
+
+  // 顯示引導對話框
+  final shouldGoHome = await showDialog<bool>(
+    builder: (context) => AlertDialog(
+      title: Text('打卡提示'),
+      content: Text('請到首頁的打卡日曆進行打卡\n\n打卡後，動物圖鑑會自動同步解鎖進度！'),
+      actions: [
+        TextButton(child: Text('取消')),
+        FilledButton(child: Text('前往首頁')),
+      ],
+    ),
+  );
+
+  if (shouldGoHome == true) {
+    Navigator.pop(context); // 返回首頁
+  }
+}
+```
+
+4. **添加重新整理功能**
+```dart
+// AppBar 添加重新整理按鈕
+appBar: AppBar(
+  actions: [
+    IconButton(
+      icon: Icon(Icons.refresh),
+      onPressed: _loadData, // 重新載入最新打卡數據
+      tooltip: '重新整理',
+    ),
+  ],
+)
+```
+
+#### 整合效果
+
+**數據流程**：
+```
+首頁打卡 → SharedPreferences (checked_dates) → 動物圖鑑讀取 → 自動解鎖動物
+            ↓
+         Firebase 雲端同步 ← 跨設備數據一致
+```
+
+**優點**：
+- ✅ **單一數據源**: 避免數據不一致問題
+- ✅ **自動同步**: 首頁打卡後，圖鑑自動更新
+- ✅ **統一入口**: 用戶只需在一個地方打卡
+- ✅ **雲端同步**: 打卡記錄透過 Firebase 同步
+- ✅ **簡化維護**: 減少冗餘代碼
+- ✅ **更好的 UX**: 清晰的打卡流程
+
+**使用流程**：
+1. 用戶在首頁的「練習打卡」日曆點擊打卡
+2. 打卡記錄儲存到 `checked_dates`
+3. 如已登入，自動同步到 Firebase
+4. 進入動物圖鑑頁面，自動讀取最新打卡數據
+5. 達到指定天數時，動物自動解鎖
+
+#### 測試驗證
+
+- ✅ 首頁打卡後，圖鑑天數正確更新
+- ✅ 點擊圖鑑打卡按鈕顯示引導對話框
+- ✅ 點擊「前往首頁」按鈕正確返回
+- ✅ 重新整理按鈕可立即同步最新數據
+- ✅ 連續天數與首頁一致
+- ✅ 總打卡天數與首頁一致
+- ✅ 動物解鎖邏輯正常運作
+
+#### 文檔更新
+
+已同步更新以下文檔：
+- ✅ `ANIMAL_COLLECTION_GUIDE.md` - 新增整合說明章節
+- ✅ 測試清單更新為整合後的測試項目
+
+---
+
+## 📅 歷史更新 (2025/11/14)
 
 ### 📊 UI 優化與數據精度改進
 
