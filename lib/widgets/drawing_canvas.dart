@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'dart:async';
 import '../models/drawing_data.dart';
 
 class DrawingCanvas extends StatefulWidget {
@@ -26,14 +28,80 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   late DrawingData _drawingData;
   List<Offset> _currentStroke = [];
   Color _selectedColor = const Color(0xFF1E88E5);
-  double _strokeWidth = 15.0;
+  double _strokeWidth = 8.0; // 預設最細筆刷
   bool _isEraser = false;
   BrushType _brushType = BrushType.texture;
+  
+  // 快取系統相關變數
+  BrushTexturePool? _texturePool;
+  bool _isPoolReady = false;
+  ui.Image? _cachedBackground;
+  ui.Image? _currentStrokeCache;
+  int _cachedStrokeCount = 0;
+  int _currentStrokeCachedPoints = 0;
+  bool _isCacheBuilding = false;
+  
+  // 歷史記錄系統（筆劃 + 快取）
+  final List<List<DrawingStroke>> _history = [];
+  final List<ui.Image?> _cacheHistory = [];
+  int _historyIndex = -1;
 
   @override
   void initState() {
     super.initState();
     _drawingData = widget.initialDrawing;
+    
+    // 初始化紋理池
+    _initializeTexturePool();
+    
+    // 如果有舊紀錄，建立初始快取
+    if (_drawingData.strokes.isNotEmpty) {
+      Future.microtask(() => _rebuildCache().then((_) {
+        if (mounted) _saveToHistory();
+      }));
+    } else {
+      // 空畫布也要保存初始狀態
+      _saveToHistory();
+    }
+  }
+  
+  @override
+  void dispose() {
+    _texturePool?.dispose();
+    _currentStrokeCache?.dispose();
+    
+    // 清理快取歷史
+    for (var cache in _cacheHistory) {
+      cache?.dispose();
+    }
+    
+    // 如果當前快取不在歷史中，才需要 dispose
+    if (_cachedBackground != null && !_cacheHistory.contains(_cachedBackground)) {
+      _cachedBackground!.dispose();
+    }
+    
+    super.dispose();
+  }
+  
+  /// 初始化紋理快取池
+  Future<void> _initializeTexturePool() async {
+    _texturePool = BrushTexturePool();
+    try {
+      await _texturePool!.buildPool(_selectedColor, _strokeWidth);
+      if (mounted) {
+        setState(() {
+          _isPoolReady = true;
+        });
+        print('✅ 紋理池初始化完成');
+      }
+    } catch (e) {
+      print('❌ 紋理池初始化失敗: $e');
+      if (mounted) {
+        setState(() {
+          _isPoolReady = false;
+        });
+      }
+    }
   }
 
   void _onPanStart(DragStartDetails details) {
@@ -55,18 +123,34 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
     if (_currentStroke.isNotEmpty) {
       if (_isEraser) {
+        // 橡皮擦：固定大小25.0，碰到整條刪除
+        const eraserRadius = 25.0;
+        final beforeCount = _drawingData.strokes.length;
+        
         setState(() {
           _drawingData.strokes.removeWhere((stroke) {
-            return _currentStroke.any((point) {
+            return _currentStroke.any((eraserPoint) {
               return stroke.points.any((strokePoint) {
-                final distance = (point - strokePoint).distance;
-                return distance < 15.0;
+                final distance = (eraserPoint - strokePoint).distance;
+                final threshold = eraserRadius + (stroke.strokeWidth / 2);
+                return distance < threshold;
               });
             });
           });
           _currentStroke = [];
         });
+        
+        // 如果有刪除筆劃，重建快取並保存到歷史
+        if (_drawingData.strokes.length < beforeCount) {
+          _cachedStrokeCount = _drawingData.strokes.length;
+          _rebuildCache().then((_) {
+            if (mounted) {
+              _saveToHistory();
+            }
+          });
+        }
       } else {
+        // 正常繪圖
         final stroke = DrawingStroke(
           points: List.from(_currentStroke),
           color: _selectedColor,
@@ -77,17 +161,247 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           _drawingData.strokes.add(stroke);
           _currentStroke = [];
         });
+        
+        // 先更新背景快取，再保存到歷史
+        _updateCacheAndCleanup().then((_) {
+          if (mounted) {
+            _saveToHistory();
+          }
+        });
       }
       widget.onDrawingChanged(_drawingData);
     }
   }
 
   void _undoLastStroke() {
-    if (_drawingData.strokes.isNotEmpty) {
+    if (_historyIndex > 0) {
       setState(() {
-        _drawingData.strokes.removeLast();
+        _historyIndex--;
+        _drawingData.strokes.clear();
+        _drawingData.strokes.addAll(List.from(_history[_historyIndex]));
+        
+        // 直接使用歷史快取，零運算！
+        _cachedBackground = _cacheHistory[_historyIndex];
+        _cachedStrokeCount = _drawingData.strokes.length;
       });
       widget.onDrawingChanged(_drawingData);
+    }
+  }
+  
+  /// 保存當前狀態到歷史記錄
+  void _saveToHistory() {
+    // 如果不在最新狀態，刪除後面的歷史
+    if (_historyIndex < _history.length - 1) {
+      _history.removeRange(_historyIndex + 1, _history.length);
+      // 同時清理快取歷史（需要先 dispose 不再使用的 Image）
+      for (int i = _historyIndex + 1; i < _cacheHistory.length; i++) {
+        final imageToDispose = _cacheHistory[i];
+        // 只 dispose 不是當前快取的 Image
+        if (imageToDispose != null && imageToDispose != _cachedBackground) {
+          imageToDispose.dispose();
+        }
+      }
+      _cacheHistory.removeRange(_historyIndex + 1, _cacheHistory.length);
+    }
+    
+    // 保存當前狀態（筆劃）
+    _history.add(List.from(_drawingData.strokes));
+    // 保存當前快取（避免 Undo 時重新運算）
+    _cacheHistory.add(_cachedBackground);
+    _historyIndex = _history.length - 1;
+    
+    // 限制歷史記錄數量（最多 50 步）
+    if (_history.length > 50) {
+      _history.removeAt(0);
+      final oldImage = _cacheHistory[0];
+      // 只在確定不會再使用時才 dispose
+      if (oldImage != null && oldImage != _cachedBackground) {
+        oldImage.dispose();
+      }
+      _cacheHistory.removeAt(0);
+      _historyIndex--;
+    }
+  }
+  
+  /// 增量更新背景快取
+  Future<void> _updateCache() async {
+    if (_isCacheBuilding) return;
+    _isCacheBuilding = true;
+
+    try {
+      final newStrokeCount = _drawingData.strokes.length;
+      if (newStrokeCount == _cachedStrokeCount) {
+        _isCacheBuilding = false;
+        return;
+      }
+
+      final size = MediaQuery.of(context).size;
+      final width = (widget.width ?? size.width).toInt();
+      final height = (widget.height ?? size.height).toInt();
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      // 繪製已快取的背景
+      if (_cachedBackground != null) {
+        canvas.drawImage(_cachedBackground!, Offset.zero, Paint());
+      }
+
+      // 只繪製新增的筆劃
+      for (int i = _cachedStrokeCount; i < newStrokeCount; i++) {
+        _drawStrokeToCanvas(canvas, _drawingData.strokes[i]);
+      }
+      
+      // 繪製當前筆劃快取
+      if (_currentStrokeCache != null) {
+        canvas.drawImage(_currentStrokeCache!, Offset.zero, Paint());
+      }
+      
+      // 轉換為 Image
+      final picture = recorder.endRecording();
+      final newImage = await picture.toImage(width, height);
+      
+      // 釋放舊快取（但不要 dispose 歷史中的 Image）
+      final oldCache = _cachedBackground;
+      final isInHistory = _cacheHistory.contains(oldCache);
+      if (oldCache != null && !isInHistory) {
+        oldCache.dispose();
+      }
+      
+      // 更新快取
+      if (mounted) {
+        setState(() {
+          _cachedBackground = newImage;
+          _cachedStrokeCount = newStrokeCount;
+        });
+      }
+    } catch (e) {
+      print('❌ 快取更新失敗: $e');
+    } finally {
+      _isCacheBuilding = false;
+    }
+  }
+  
+  /// 更新快取並清理當前筆劃快取
+  Future<void> _updateCacheAndCleanup() async {
+    await _updateCache();
+    
+    if (mounted) {
+      setState(() {
+        _currentStrokeCache?.dispose();
+        _currentStrokeCache = null;
+        _currentStrokeCachedPoints = 0;
+      });
+    }
+  }
+  
+  /// 重建整個快取
+  Future<void> _rebuildCache() async {
+    if (_isCacheBuilding) return;
+    _isCacheBuilding = true;
+
+    try {
+      if (_drawingData.strokes.isEmpty) {
+        // 沒有筆劃時，清除快取（但不要 dispose 歷史中的 Image）
+        final oldCache = _cachedBackground;
+        final isInHistory = _cacheHistory.contains(oldCache);
+        if (oldCache != null && !isInHistory) {
+          oldCache.dispose();
+        }
+        if (mounted) {
+          setState(() {
+            _cachedBackground = null;
+            _cachedStrokeCount = 0;
+          });
+        }
+        _isCacheBuilding = false;
+        return;
+      }
+      
+      final size = MediaQuery.of(context).size;
+      final width = (widget.width ?? size.width).toInt();
+      final height = (widget.height ?? size.height).toInt();
+      
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      
+      // 繪製所有筆劃
+      for (final stroke in _drawingData.strokes) {
+        _drawStrokeToCanvas(canvas, stroke);
+      }
+      
+      final picture = recorder.endRecording();
+      final newImage = await picture.toImage(width, height);
+      
+      if (mounted) {
+        setState(() {
+          _cachedBackground = newImage;
+          _cachedStrokeCount = _drawingData.strokes.length;
+        });
+      }
+    } catch (e) {
+      print('❌ 快取重建失敗: $e');
+    } finally {
+      _isCacheBuilding = false;
+    }
+  }
+  
+  /// 繪製筆劃到畫布
+  void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
+    if (stroke.brushType == BrushType.texture && _texturePool != null && _isPoolReady) {
+      _drawTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
+    } else {
+      _drawSimpleBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
+    }
+  }
+  
+  /// 繪製紋理筆刷
+  void _drawTextureBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+    if (points.isEmpty || _texturePool == null) return;
+
+    final paint = Paint()
+      ..colorFilter = ColorFilter.mode(color, BlendMode.srcIn)
+      ..isAntiAlias = true;
+
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
+      final texture = _texturePool!.getTexture(i);
+      if (texture != null) {
+        final size = strokeWidth * 1.2;
+        final rect = Rect.fromCenter(
+          center: point,
+          width: size,
+          height: size,
+        );
+        canvas.drawImageRect(
+          texture,
+          Rect.fromLTWH(0, 0, texture.width.toDouble(), texture.height.toDouble()),
+          rect,
+          paint,
+        );
+      }
+    }
+  }
+  
+  /// 繪製簡單筆刷
+  void _drawSimpleBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+    if (points.isEmpty) return;
+    
+    final paint = Paint()
+      ..color = color
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    
+    if (points.length == 1) {
+      canvas.drawCircle(points[0], strokeWidth / 2, paint..style = PaintingStyle.fill);
+    } else {
+      final path = Path()..moveTo(points[0].dx, points[0].dy);
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, paint..style = PaintingStyle.stroke);
     }
   }
 
@@ -125,13 +439,13 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 onPanEnd: _onPanEnd,
                 child: CustomPaint(
                   painter: _DrawingPainter(
-                    strokes: _drawingData.strokes,
+                    cachedBackground: _cachedBackground,
                     currentStroke: _currentStroke,
-                    currentColor:
-                        _isEraser ? Colors.pink.withOpacity(0.3) : _selectedColor,
-                    currentStrokeWidth:
-                        _isEraser ? 25.0 : _strokeWidth,
+                    currentColor: _isEraser ? Colors.grey.withOpacity(0.3) : _selectedColor,
+                    currentStrokeWidth: _isEraser ? 25.0 : _strokeWidth,
                     isErasing: _isEraser,
+                    texturePool: _texturePool,
+                    isPoolReady: _isPoolReady,
                   ),
                   child: Container(),
                 ),
@@ -282,6 +596,70 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 }
 
 class _DrawingPainter extends CustomPainter {
+  final ui.Image? cachedBackground;
+  final List<Offset> currentStroke;
+  final Color currentColor;
+  final double currentStrokeWidth;
+  final bool isErasing;
+  final BrushTexturePool? texturePool;
+  final bool isPoolReady;
+
+  _DrawingPainter({
+    this.cachedBackground,
+    required this.currentStroke,
+    required this.currentColor,
+    required this.currentStrokeWidth,
+    this.isErasing = false,
+    this.texturePool,
+    this.isPoolReady = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 繪製快取的背景
+    if (cachedBackground != null) {
+      canvas.drawImage(cachedBackground!, Offset.zero, Paint());
+    }
+    
+    // 繪製當前正在繪製的筆劃（橡皮擦用簡單筆刷）
+    if (currentStroke.isNotEmpty) {
+      _drawSimpleBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
+    }
+  }
+  
+  /// 繪製簡單筆刷
+  void _drawSimpleBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+    if (points.isEmpty) return;
+    
+    final paint = Paint()
+      ..color = color
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    
+    if (points.length == 1) {
+      canvas.drawCircle(points[0], strokeWidth / 2, paint..style = PaintingStyle.fill);
+    } else {
+      final path = Path()..moveTo(points[0].dx, points[0].dy);
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, paint..style = PaintingStyle.stroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DrawingPainter oldDelegate) {
+    return oldDelegate.cachedBackground != cachedBackground ||
+        oldDelegate.currentStroke.length != currentStroke.length ||
+        oldDelegate.currentColor != currentColor ||
+        oldDelegate.currentStrokeWidth != currentStrokeWidth;
+  }
+}
+
+// 舊的複雜紋理畫家（暫時保留但不使用）
+class _LegacyDrawingPainter extends CustomPainter {
   final List<DrawingStroke> strokes;
   final List<Offset> currentStroke;
   final Color currentColor;
@@ -291,7 +669,7 @@ class _DrawingPainter extends CustomPainter {
   // Paint 緩存
   final Paint _paintCache = Paint()..style = PaintingStyle.fill;
 
-  _DrawingPainter({
+  _LegacyDrawingPainter({
     required this.strokes,
     required this.currentStroke,
     required this.currentColor,
@@ -301,12 +679,12 @@ class _DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 🎨 渲染所有已完成的筆劃
+    // 渲染所有已完成的筆劃
     for (final stroke in strokes) {
       _drawFullTextureBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
     }
     
-    // 🎨 渲染當前正在繪製的筆劃
+    // 渲染當前正在繪製的筆劃
     if (currentStroke.isNotEmpty) {
       _drawFullTextureBrush(canvas, currentStroke, currentColor, currentStrokeWidth);
     }
@@ -484,11 +862,56 @@ class _DrawingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DrawingPainter oldDelegate) {
-    // 🎯 關鍵：只要有任何變化就重繪
+  bool shouldRepaint(_LegacyDrawingPainter oldDelegate) {
     return oldDelegate.strokes.length != strokes.length ||
         oldDelegate.currentStroke.length != currentStroke.length ||
         oldDelegate.currentColor != currentColor ||
         oldDelegate.currentStrokeWidth != currentStrokeWidth;
+  }
+}
+
+/// 筆刷紋理快取池
+class BrushTexturePool {
+  static const int poolSize = 16;
+  static const int textureSize = 128;
+  
+  final List<ui.Image?> _textures = List.filled(poolSize, null);
+  bool _isBuilt = false;
+  
+  Future<void> buildPool(Color color, double strokeWidth) async {
+    if (_isBuilt) return;
+    
+    for (int i = 0; i < poolSize; i++) {
+      _textures[i] = await _generateTexture(i, color, strokeWidth);
+    }
+    _isBuilt = true;
+  }
+  
+  Future<ui.Image> _generateTexture(int seed, Color color, double strokeWidth) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final random = math.Random(seed);
+    
+    final paint = Paint()
+      ..color = color.withOpacity(0.6 + random.nextDouble() * 0.3)
+      ..style = PaintingStyle.fill;
+    
+    final center = Offset(textureSize / 2, textureSize / 2);
+    final radius = (textureSize / 4) + random.nextDouble() * (textureSize / 8);
+    
+    canvas.drawCircle(center, radius, paint);
+    
+    final picture = recorder.endRecording();
+    return await picture.toImage(textureSize, textureSize);
+  }
+  
+  ui.Image? getTexture(int index) {
+    return _textures[index % poolSize];
+  }
+  
+  void dispose() {
+    for (var texture in _textures) {
+      texture?.dispose();
+    }
   }
 }
