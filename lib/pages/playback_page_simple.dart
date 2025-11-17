@@ -56,16 +56,19 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     child: Slider(
                       value: _currentPosition,
                       max: _totalDuration,
-                      onChanged: _isPlaying ? (value) {
-                        setState(() {
-                          _currentPosition = value;
-                        });
-                      } : null,
+                      onChanged: _isPlaying
+                          ? (value) {
+                              setState(() {
+                                _currentPosition = value;
+                              });
+                            }
+                          : null,
                       activeColor: AppColors.dynamicPrimary,
-                      inactiveColor: AppColors.dynamicTextLight.withOpacity(0.3),
+                      inactiveColor:
+                          AppColors.dynamicTextLight.withOpacity(0.3),
                     ),
                   ),
-                  
+
                   // 時間顯示
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -90,9 +93,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // 控制按鈕
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -106,7 +109,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     color: AppColors.dynamicTextDark,
                   ),
                 ),
-                
+
                 // 播放/暫停按鈕
                 IconButton(
                   onPressed: _togglePlayPause,
@@ -116,7 +119,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                     color: AppColors.dynamicPrimary,
                   ),
                 ),
-                
+
                 // 停止按鈕
                 IconButton(
                   onPressed: _stop,
@@ -128,9 +131,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // 狀態顯示
             Container(
               padding: const EdgeInsets.all(16.0),
@@ -220,4 +223,3 @@ class _PlaybackPageState extends State<PlaybackPage> {
     }
   }
 }
-

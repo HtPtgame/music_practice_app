@@ -2,16 +2,16 @@ import 'dart:math';
 import 'package:music_practice_app/services/audio_analysis/sequence_matcher_service.dart';
 
 /// Phase 1C: Dynamic Time Warping (DTW) 動態時間對齊
-/// 
+///
 /// 用於處理演奏中的中斷、暫停、重新開始等情況。
 /// DTW 可以找到兩個時間序列之間的最佳對齊路徑，
 /// 即使它們在時間上有延遲、速度變化或中斷。
 class DynamicTimeWarping {
   /// 使用 DTW 對齊檢測到的音符和期望的音符
-  /// 
+  ///
   /// [detectedNotes] - 從錄音中檢測到的音符序列
-  /// [expectedNotes] - MIDI 檔案中期望的音符序列  
-  /// 
+  /// [expectedNotes] - MIDI 檔案中期望的音符序列
+  ///
   /// 返回對齊結果，包含匹配對和時間偏移資訊
   AlignmentResult align(
     List<DetectedNote> detectedNotes,
@@ -46,19 +46,20 @@ class DynamicTimeWarping {
           expectedNotes[j - 1],
         );
 
-        dtw[i][j] = cost + min(
-          min(
-            dtw[i - 1][j],     // 插入 (detected 多了一個音符)
-            dtw[i][j - 1],     // 刪除 (expected 多了一個音符)
-          ),
-          dtw[i - 1][j - 1],   // 匹配
-        );
+        dtw[i][j] = cost +
+            min(
+              min(
+                dtw[i - 1][j], // 插入 (detected 多了一個音符)
+                dtw[i][j - 1], // 刪除 (expected 多了一個音符)
+              ),
+              dtw[i - 1][j - 1], // 匹配
+            );
       }
     }
 
     // 回溯找到最佳對齊路徑
     final matches = _backtrack(dtw, detectedNotes, expectedNotes);
-    
+
     // 計算平均時間偏移
     final timeOffset = _calculateTimeOffset(matches);
 
@@ -71,7 +72,7 @@ class DynamicTimeWarping {
   }
 
   /// 計算兩個音符之間的成本 (距離)
-  /// 
+  ///
   /// 成本越低表示兩個音符越相似
   /// - 音高相同: 成本 = 0
   /// - 音高差異: 成本 = |pitch1 - pitch2| / 12 (半音距離正規化)
@@ -84,7 +85,7 @@ class DynamicTimeWarping {
     // 如果音高完全相同，檢查時間差異
     if (pitchDiff == 0) {
       final timeDiff = (detected.time - expected.time).abs();
-      
+
       // 時間差異在合理範圍內 (±2秒)，成本很低
       if (timeDiff < 2.0) {
         cost = timeDiff * 0.1; // 時間匹配獎勵
@@ -171,7 +172,7 @@ class DynamicTimeWarping {
   }
 
   /// 計算平均時間偏移
-  /// 
+  ///
   /// 找出 detected 和 expected 音符的平均時間差異
   double _calculateTimeOffset(List<NoteMatch> matches) {
     if (matches.isEmpty) return 0.0;
@@ -182,8 +183,7 @@ class DynamicTimeWarping {
       if (match.type == MatchType.match &&
           match.detectedNote != null &&
           match.expectedNote != null) {
-        final offset = match.detectedNote!.time - 
-                      match.expectedNote!.time;
+        final offset = match.detectedNote!.time - match.expectedNote!.time;
         offsets.add(offset);
       }
     }
@@ -201,7 +201,7 @@ class DynamicTimeWarping {
   }
 
   /// 檢測演奏中的中斷點
-  /// 
+  ///
   /// 識別出用戶可能暫停、重新開始的位置
   List<InterruptionPoint> detectInterruptions(
     List<DetectedNote> detectedNotes, {
@@ -234,7 +234,7 @@ class DynamicTimeWarping {
   }
 
   /// 分段對齊：處理有中斷的演奏
-  /// 
+  ///
   /// 將演奏分成多個連續段落，分別進行 DTW 對齊
   SegmentedAlignmentResult alignWithInterruptions(
     List<DetectedNote> detectedNotes,
@@ -247,13 +247,15 @@ class DynamicTimeWarping {
       // 沒有中斷，直接整體對齊
       final result = align(detectedNotes, expectedNotes);
       return SegmentedAlignmentResult(
-        segments: [AlignmentSegment(
-          detectedStart: 0,
-          detectedEnd: detectedNotes.length,
-          expectedStart: 0,
-          expectedEnd: expectedNotes.length,
-          alignment: result,
-        )],
+        segments: [
+          AlignmentSegment(
+            detectedStart: 0,
+            detectedEnd: detectedNotes.length,
+            expectedStart: 0,
+            expectedEnd: expectedNotes.length,
+            alignment: result,
+          )
+        ],
         interruptions: [],
       );
     }
@@ -270,14 +272,17 @@ class DynamicTimeWarping {
 
       if (detectedEnd > detectedStart) {
         // 提取當前段落
-        final detectedSegment = detectedNotes.sublist(detectedStart, detectedEnd);
-        
+        final detectedSegment =
+            detectedNotes.sublist(detectedStart, detectedEnd);
+
         // 在 expected 中尋找最佳匹配段落
         AlignmentResult? bestAlignment;
         int bestExpectedEnd = expectedStart;
         double bestCost = double.infinity;
 
-        for (int expEnd = expectedStart + 1; expEnd <= expectedNotes.length; expEnd++) {
+        for (int expEnd = expectedStart + 1;
+            expEnd <= expectedNotes.length;
+            expEnd++) {
           final expectedSegment = expectedNotes.sublist(expectedStart, expEnd);
           final alignment = align(detectedSegment, expectedSegment);
 
@@ -331,10 +336,10 @@ class AlignmentResult {
   /// 計算對齊品質分數 (0-1, 越高越好)
   double get qualityScore {
     if (matches.isEmpty) return 0.0;
-    
+
     final matchCount = matches.where((m) => m.type == MatchType.match).length;
     final totalNotes = matches.length;
-    
+
     return matchCount / totalNotes;
   }
 }
@@ -353,28 +358,28 @@ class NoteMatch {
     required this.type,
   });
 
-  bool get isPerfectMatch => 
-    type == MatchType.match &&
-    detectedNote != null &&
-    expectedNote != null &&
-    detectedNote!.midiNote == expectedNote!.midiNote &&
-    cost < 0.3;
+  bool get isPerfectMatch =>
+      type == MatchType.match &&
+      detectedNote != null &&
+      expectedNote != null &&
+      detectedNote!.midiNote == expectedNote!.midiNote &&
+      cost < 0.3;
 }
 
 /// 匹配類型
 enum MatchType {
-  match,      // 匹配
-  insertion,  // 插入 (錯音)
-  deletion,   // 刪除 (漏音)
+  match, // 匹配
+  insertion, // 插入 (錯音)
+  deletion, // 刪除 (漏音)
 }
 
 /// 中斷點
 class InterruptionPoint {
-  final int indexBefore;  // 中斷前的音符索引
-  final int indexAfter;   // 中斷後的音符索引
+  final int indexBefore; // 中斷前的音符索引
+  final int indexAfter; // 中斷後的音符索引
   final double gapDuration; // 間隔時長 (秒)
-  final double timeBefore;  // 中斷前的時間點
-  final double timeAfter;   // 中斷後的時間點
+  final double timeBefore; // 中斷前的時間點
+  final double timeAfter; // 中斷後的時間點
 
   InterruptionPoint({
     required this.indexBefore,
@@ -398,11 +403,10 @@ class SegmentedAlignmentResult {
   /// 總體品質分數
   double get overallQuality {
     if (segments.isEmpty) return 0.0;
-    
-    final totalQuality = segments
-        .map((s) => s.alignment.qualityScore)
-        .reduce((a, b) => a + b);
-    
+
+    final totalQuality =
+        segments.map((s) => s.alignment.qualityScore).reduce((a, b) => a + b);
+
     return totalQuality / segments.length;
   }
 

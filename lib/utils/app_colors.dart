@@ -12,10 +12,15 @@ class AppColors {
   static const Color textLight = Color(0xFF888888);
 
   // 動態主題顏色（主題切換時使用）
-  static Color get dynamicPrimary => ThemeManager.instance.currentColors['primary']!;
-  static Color get dynamicBackground => ThemeManager.instance.currentColors['background']!;
+  static Color get dynamicPrimary =>
+      ThemeManager.instance.currentColors['primary']!;
+  static Color get dynamicBackground =>
+      ThemeManager.instance.currentColors['background']!;
   static Color get dynamicCard => ThemeManager.instance.currentColors['card']!;
-  static Color get dynamicAccent => ThemeManager.instance.currentColors['accent']!;
-  static Color get dynamicTextDark => ThemeManager.instance.currentColors['textDark']!;
-  static Color get dynamicTextLight => ThemeManager.instance.currentColors['textLight']!;
+  static Color get dynamicAccent =>
+      ThemeManager.instance.currentColors['accent']!;
+  static Color get dynamicTextDark =>
+      ThemeManager.instance.currentColors['textDark']!;
+  static Color get dynamicTextLight =>
+      ThemeManager.instance.currentColors['textLight']!;
 }

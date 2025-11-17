@@ -23,7 +23,8 @@ class AnnotatableImageViewer extends StatefulWidget {
 
 class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
   List<AnnotationMarker> _markers = [];
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   bool _isFullScreen = false;
 
   @override
@@ -50,7 +51,8 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
     _showNoteDialog(relativePosition);
   }
 
-  void _showNoteDialog(Offset relativePosition, [AnnotationMarker? existingMarker]) {
+  void _showNoteDialog(Offset relativePosition,
+      [AnnotationMarker? existingMarker]) {
     final TextEditingController noteController = TextEditingController(
       text: existingMarker?.note ?? '',
     );
@@ -96,7 +98,9 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                         color: color,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: selectedColor == color ? Colors.black : Colors.transparent,
+                          color: selectedColor == color
+                              ? Colors.black
+                              : Colors.transparent,
                           width: 3,
                         ),
                       ),
@@ -135,7 +139,8 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                 setState(() {
                   if (existingMarker != null) {
                     // 更新現有標記
-                    final index = _markers.indexWhere((m) => m.id == existingMarker.id);
+                    final index =
+                        _markers.indexWhere((m) => m.id == existingMarker.id);
                     if (index != -1) {
                       _markers[index] = AnnotationMarker(
                         id: existingMarker.id,
@@ -182,50 +187,57 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
             final imageSize = snapshot.data!;
             final screenWidth = constraints.maxWidth;
             final screenHeight = constraints.maxHeight;
-            
+
             // 計算縮放比例以適應螢幕
             final widthRatio = screenWidth / imageSize.width;
             final heightRatio = screenHeight / imageSize.height;
             final scale = widthRatio < heightRatio ? widthRatio : heightRatio;
-            
+
             // 計算實際顯示尺寸
             final displayWidth = imageSize.width * scale;
             final displayHeight = imageSize.height * scale;
-            
+
             // 全螢幕模式時的 padding 和樣式
             final outerPadding = _isFullScreen ? 0.0 : 16.0;
             final cardPadding = _isFullScreen ? 0.0 : 12.0; // Card 內部 padding
             final borderRadius = _isFullScreen ? 0.0 : 20.0;
             final showShadow = !_isFullScreen;
-            
+
             return Container(
               padding: EdgeInsets.all(outerPadding),
               child: Center(
                 child: Container(
-                  width: _isFullScreen ? screenWidth : displayWidth + cardPadding * 2,
-                  height: _isFullScreen ? screenHeight : displayHeight + cardPadding * 2,
+                  width: _isFullScreen
+                      ? screenWidth
+                      : displayWidth + cardPadding * 2,
+                  height: _isFullScreen
+                      ? screenHeight
+                      : displayHeight + cardPadding * 2,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(borderRadius),
-                    boxShadow: showShadow ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                        spreadRadius: 2,
-                      ),
-                      BoxShadow(
-                        color: AppColors.dynamicPrimary.withOpacity(0.1),
-                        blurRadius: 40,
-                        offset: const Offset(0, 4),
-                        spreadRadius: -10,
-                      ),
-                    ] : null,
+                    boxShadow: showShadow
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                              spreadRadius: 2,
+                            ),
+                            BoxShadow(
+                              color: AppColors.dynamicPrimary.withOpacity(0.1),
+                              blurRadius: 40,
+                              offset: const Offset(0, 4),
+                              spreadRadius: -10,
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(cardPadding),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(_isFullScreen ? 0 : borderRadius - 8),
+                      borderRadius: BorderRadius.circular(
+                          _isFullScreen ? 0 : borderRadius - 8),
                       child: InteractiveViewer(
                         transformationController: _transformationController,
                         minScale: 0.5,
@@ -235,86 +247,116 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                           onDoubleTap: _toggleFullScreen,
                           onTapDown: widget.isEditable
                               ? (details) {
-                                  final RenderBox box = context.findRenderObject() as RenderBox;
-                                  final localPosition = box.globalToLocal(details.globalPosition);
-                                  
+                                  final RenderBox box =
+                                      context.findRenderObject() as RenderBox;
+                                  final localPosition =
+                                      box.globalToLocal(details.globalPosition);
+
                                   // 調整位置以考慮所有 padding
-                                  final totalPadding = outerPadding + cardPadding;
+                                  final totalPadding =
+                                      outerPadding + cardPadding;
                                   final adjustedPosition = Offset(
                                     localPosition.dx - totalPadding,
                                     localPosition.dy - totalPadding,
                                   );
-                                  
-                                  final contentWidth = _isFullScreen ? screenWidth : displayWidth;
-                                  final contentHeight = _isFullScreen ? screenHeight : displayHeight;
-                                  
+
+                                  final contentWidth = _isFullScreen
+                                      ? screenWidth
+                                      : displayWidth;
+                                  final contentHeight = _isFullScreen
+                                      ? screenHeight
+                                      : displayHeight;
+
                                   // 檢查是否點擊到現有標記
                                   for (final marker in _markers) {
                                     final markerPos = Offset(
                                       marker.position.dx * contentWidth,
                                       marker.position.dy * contentHeight,
                                     );
-                                    final distance = (adjustedPosition - markerPos).distance;
+                                    final distance =
+                                        (adjustedPosition - markerPos).distance;
                                     if (distance < 20) {
                                       _showNoteDialog(marker.position, marker);
                                       return;
                                     }
                                   }
-                                  
+
                                   // 新增標記
-                                  _addMarker(adjustedPosition, Size(contentWidth, contentHeight));
+                                  _addMarker(adjustedPosition,
+                                      Size(contentWidth, contentHeight));
                                 }
                               : null,
                           child: Stack(
                             children: [
                               // 背景圖片 - 帶邊框
                               Container(
-                                width: _isFullScreen ? screenWidth : displayWidth,
-                                height: _isFullScreen ? screenHeight : displayHeight,
+                                width:
+                                    _isFullScreen ? screenWidth : displayWidth,
+                                height: _isFullScreen
+                                    ? screenHeight
+                                    : displayHeight,
                                 decoration: BoxDecoration(
-                                  border: _isFullScreen ? null : Border.all(
-                                    color: AppColors.dynamicPrimary.withOpacity(0.2),
-                                    width: 3,
-                                  ),
-                                  borderRadius: _isFullScreen ? null : BorderRadius.circular(borderRadius - 10),
+                                  border: _isFullScreen
+                                      ? null
+                                      : Border.all(
+                                          color: AppColors.dynamicPrimary
+                                              .withOpacity(0.2),
+                                          width: 3,
+                                        ),
+                                  borderRadius: _isFullScreen
+                                      ? null
+                                      : BorderRadius.circular(
+                                          borderRadius - 10),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(_isFullScreen ? 0 : borderRadius - 12),
+                                  borderRadius: BorderRadius.circular(
+                                      _isFullScreen ? 0 : borderRadius - 12),
                                   child: Image.file(
                                     File(widget.sheet.filePath),
                                     fit: BoxFit.contain,
-                                    width: _isFullScreen ? screenWidth : displayWidth,
-                                    height: _isFullScreen ? screenHeight : displayHeight,
+                                    width: _isFullScreen
+                                        ? screenWidth
+                                        : displayWidth,
+                                    height: _isFullScreen
+                                        ? screenHeight
+                                        : displayHeight,
                                   ),
                                 ),
                               ),
-                              
+
                               // 標記圖標
                               ..._markers.map((marker) {
-                                final contentWidth = _isFullScreen ? screenWidth : displayWidth;
-                                final contentHeight = _isFullScreen ? screenHeight : displayHeight;
-                                
+                                final contentWidth =
+                                    _isFullScreen ? screenWidth : displayWidth;
+                                final contentHeight = _isFullScreen
+                                    ? screenHeight
+                                    : displayHeight;
+
                                 return Positioned(
                                   left: marker.position.dx * contentWidth - 14,
                                   top: marker.position.dy * contentHeight - 14,
                                   child: GestureDetector(
-                                    onTap: () => _showNoteDialog(marker.position, marker),
+                                    onTap: () => _showNoteDialog(
+                                        marker.position, marker),
                                     child: Container(
                                       width: 28,
                                       height: 28,
                                       decoration: BoxDecoration(
                                         color: marker.color,
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 3),
+                                        border: Border.all(
+                                            color: Colors.white, width: 3),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.3),
+                                            color:
+                                                Colors.black.withOpacity(0.3),
                                             blurRadius: 8,
                                             offset: const Offset(0, 3),
                                             spreadRadius: 1,
                                           ),
                                           BoxShadow(
-                                            color: marker.color.withOpacity(0.4),
+                                            color:
+                                                marker.color.withOpacity(0.4),
                                             blurRadius: 12,
                                             offset: const Offset(0, 0),
                                             spreadRadius: 2,

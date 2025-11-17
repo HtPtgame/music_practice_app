@@ -1,5 +1,5 @@
 /// 動態參數整合示範 (Round 9)
-/// 
+///
 /// 展示如何在 PerformanceAnalyzer 中使用動態參數系統
 /// 這是整合指南,實際整合需要修改 performance_analyzer.dart
 library;
@@ -8,7 +8,7 @@ import 'package:music_practice_app/services/audio_analysis/dynamic_parameter_ser
 import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
 
 /// 示範：如何使用動態參數系統
-/// 
+///
 /// 使用步驟：
 /// 1. 解析 MIDI 檔案
 /// 2. 創建 MidiTimeline
@@ -23,22 +23,22 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   // 範例 1: 簡單曲目（生日快樂）
   // ═══════════════════════════════════════════════════════════
-  
+
   print('【範例 1: 簡單曲目 - 生日快樂】\n');
-  
+
   // 假設已解析 MIDI
   final timeline1 = _createMockTimeline(
     noteCount: 25,
     duration: 17.4,
     name: '生日快樂',
   );
-  
+
   // 創建動態參數服務
   final paramService = DynamicParameterService();
-  
+
   // 計算動態參數
   final params1 = paramService.calculateParameters(timeline1);
-  
+
   print('📊 樂曲分析:');
   print('   音符數: ${params1.noteCount}');
   print('   時長: ${params1.duration.toStringAsFixed(1)}秒');
@@ -46,8 +46,10 @@ void main() {
   print('   難度: ${_getDifficultyStr(params1.difficulty)}');
   print('');
   print('🎚️ 動態參數:');
-  print('   energyThreshold: ${params1.energyThreshold.toStringAsFixed(2)} (高閾值，減少噪音)');
-  print('   timingTolerance: ±${(params1.timingTolerance * 1000).toStringAsFixed(0)}ms (寬容錯)');
+  print(
+      '   energyThreshold: ${params1.energyThreshold.toStringAsFixed(2)} (高閾值，減少噪音)');
+  print(
+      '   timingTolerance: ±${(params1.timingTolerance * 1000).toStringAsFixed(0)}ms (寬容錯)');
   print('');
   print('💡 效果預期:');
   print('   ✅ 噪音過濾優秀 (0.39 > 0.38)');
@@ -60,17 +62,17 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   // 範例 2: 複雜曲目（名偵探柯南）
   // ═══════════════════════════════════════════════════════════
-  
+
   print('【範例 2: 複雜曲目 - 名偵探柯南】\n');
-  
+
   final timeline2 = _createMockTimeline(
     noteCount: 1431,
     duration: 163.8,
     name: '名偵探柯南',
   );
-  
+
   final params2 = paramService.calculateParameters(timeline2);
-  
+
   print('📊 樂曲分析:');
   print('   音符數: ${params2.noteCount}');
   print('   時長: ${params2.duration.toStringAsFixed(1)}秒');
@@ -78,8 +80,10 @@ void main() {
   print('   難度: ${_getDifficultyStr(params2.difficulty)}');
   print('');
   print('🎚️ 動態參數:');
-  print('   energyThreshold: ${params2.energyThreshold.toStringAsFixed(2)} (低閾值，高靈敏度)');
-  print('   timingTolerance: ±${(params2.timingTolerance * 1000).toStringAsFixed(0)}ms (嚴格)');
+  print(
+      '   energyThreshold: ${params2.energyThreshold.toStringAsFixed(2)} (低閾值，高靈敏度)');
+  print(
+      '   timingTolerance: ±${(params2.timingTolerance * 1000).toStringAsFixed(0)}ms (嚴格)');
   print('');
   print('💡 效果預期:');
   print('   ✅ 召回率提升 (0.30 < 0.38，提升 ~5%)');
@@ -92,7 +96,7 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   // 範例 3: 整合代碼示範
   // ═══════════════════════════════════════════════════════════
-  
+
   print('【範例 3: 整合代碼示範】\n');
   print('```dart');
   print('// 在 PerformanceAnalyzer.analyze() 中:');
@@ -124,7 +128,7 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   // 參數對比
   // ═══════════════════════════════════════════════════════════
-  
+
   print('【參數對比：固定 vs 動態】\n');
   print('┌────────────────────────────────────────────────────────────┐');
   print('│ 樂曲         │ 固定參數      │ 動態參數      │ 差異      │');
@@ -145,7 +149,7 @@ void main() {
   print('⭐ 最大改善：柯南的 energyThreshold 從 0.38 降至 0.30');
   print('   預期效果：召回率從 75.1% 提升至 ~80%');
   print('');
-  
+
   print('🎉 示範完成！');
   print('');
   print('📝 下一步：');
@@ -162,7 +166,7 @@ MidiTimeline _createMockTimeline({
 }) {
   final events = <NoteEvent>[];
   final interval = duration / noteCount;
-  
+
   for (int i = 0; i < noteCount; i++) {
     events.add(NoteEvent(
       midiNote: 60 + (i % 12),
@@ -170,7 +174,7 @@ MidiTimeline _createMockTimeline({
       endTime: (i + 0.5) * interval,
     ));
   }
-  
+
   return MidiTimeline(
     events: events,
     duration: duration,

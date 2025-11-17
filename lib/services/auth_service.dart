@@ -22,12 +22,12 @@ class AuthService extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('current_user');
-    
+
     if (userJson != null) {
       try {
         final userMap = jsonDecode(userJson) as Map<String, dynamic>;
         _currentUser = User.fromJson(userMap);
-        
+
         // 更新最後登入時間
         _currentUser = _currentUser!.copyWith(lastLoginAt: DateTime.now());
         await _saveCurrentUser();
@@ -71,11 +71,11 @@ class AuthService extends ChangeNotifier {
 
       // 儲存使用者資料和密碼
       await _saveUser(user, password);
-      
+
       // 設為當前使用者
       _currentUser = user;
       await _saveCurrentUser();
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -98,7 +98,7 @@ class AuthService extends ChangeNotifier {
       String? userId;
       for (final entry in users.entries) {
         final userData = entry.value as Map<String, dynamic>;
-        if (userData['username'] == usernameOrEmail || 
+        if (userData['username'] == usernameOrEmail ||
             userData['email'] == usernameOrEmail) {
           // 驗證密碼
           if (userData['password'] == _hashPassword(password)) {
@@ -117,20 +117,21 @@ class AuthService extends ChangeNotifier {
       // 載入使用者資料
       final userData = users[userId] as Map<String, dynamic>;
       userData.remove('password'); // 移除密碼欄位
-      
+
       _currentUser = User.fromJson(userData);
       _currentUser = _currentUser!.copyWith(lastLoginAt: DateTime.now());
-      
+
       await _saveCurrentUser();
-      
+
       // 更新使用者的最後登入時間
       users[userId] = _currentUser!.toJson();
-      users[userId]['password'] = userData['password'] ?? _hashPassword(password);
+      users[userId]['password'] =
+          userData['password'] ?? _hashPassword(password);
       await prefs.setString('users', jsonEncode(users));
-      
+
       // 登入成功後,從帳號數據載入到本地 SharedPreferences
       await _syncUserDataToLocal(_currentUser!);
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -143,20 +144,22 @@ class AuthService extends ChangeNotifier {
   Future<void> _syncUserDataToLocal(User user) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // ✅ 同步打卡記錄 (包含空列表,確保新用戶也有初始化)
-      final checkInDatesStr = user.checkInDates.map((date) =>
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'
-      ).toList();
+      final checkInDatesStr = user.checkInDates
+          .map((date) =>
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}')
+          .toList();
       await prefs.setStringList('checked_dates', checkInDatesStr);
-      
+
       // 計算連續打卡天數
       int consecutiveDays = 0;
       if (checkInDatesStr.isNotEmpty) {
         final today = DateTime.now();
         for (int i = 0; i < 365; i++) {
           final date = today.subtract(Duration(days: i));
-          final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+          final dateStr =
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
           if (checkInDatesStr.contains(dateStr)) {
             consecutiveDays++;
           } else {
@@ -166,26 +169,33 @@ class AuthService extends ChangeNotifier {
       }
       await prefs.setInt('consecutive_days', consecutiveDays);
       debugPrint('已同步打卡記錄: ${checkInDatesStr.length} 天');
-      
+
       // ✅ 同步練習時間 (包含空 Map,確保新用戶也有初始化)
       // 雲端與本地統一格式: 秒數 (完全精確)
       final practiceDataJson = jsonEncode(user.practiceTime);
       await prefs.setString('practice_data', practiceDataJson);
       debugPrint('已同步練習時間: ${user.practiceTime.length} 筆記錄');
-      
+
       // 同步個人化設定
       if (user.settings.isNotEmpty) {
         final settings = user.settings;
-        await prefs.setDouble('master_volume', (settings['masterVolume'] as num?)?.toDouble() ?? 0.8);
-        await prefs.setDouble('midi_volume', (settings['midiVolume'] as num?)?.toDouble() ?? 0.7);
-        await prefs.setDouble('recording_volume', (settings['recordingVolume'] as num?)?.toDouble() ?? 0.9);
-        await prefs.setDouble('metronome_volume', (settings['metronomeVolume'] as num?)?.toDouble() ?? 0.6);
-        await prefs.setBool('sound_enabled', settings['soundEnabled'] as bool? ?? true);
-        await prefs.setBool('vibration_enabled', settings['vibrationEnabled'] as bool? ?? true);
-        await prefs.setString('selected_language', settings['selectedLanguage'] as String? ?? 'zh_TW');
+        await prefs.setDouble('master_volume',
+            (settings['masterVolume'] as num?)?.toDouble() ?? 0.8);
+        await prefs.setDouble(
+            'midi_volume', (settings['midiVolume'] as num?)?.toDouble() ?? 0.7);
+        await prefs.setDouble('recording_volume',
+            (settings['recordingVolume'] as num?)?.toDouble() ?? 0.9);
+        await prefs.setDouble('metronome_volume',
+            (settings['metronomeVolume'] as num?)?.toDouble() ?? 0.6);
+        await prefs.setBool(
+            'sound_enabled', settings['soundEnabled'] as bool? ?? true);
+        await prefs.setBool(
+            'vibration_enabled', settings['vibrationEnabled'] as bool? ?? true);
+        await prefs.setString('selected_language',
+            settings['selectedLanguage'] as String? ?? 'zh_TW');
         debugPrint('已同步個人化設定');
       }
-      
+
       debugPrint('帳號數據已完整同步到本地');
     } catch (e) {
       debugPrint('同步帳號數據到本地失敗: $e');
@@ -213,22 +223,22 @@ class AuthService extends ChangeNotifier {
     );
 
     await _saveCurrentUser();
-    
+
     // 同時更新 users 中的資料
     final prefs = await SharedPreferences.getInstance();
     final usersJson = prefs.getString('users') ?? '{}';
     final users = jsonDecode(usersJson) as Map<String, dynamic>;
-    
+
     if (users.containsKey(_currentUser!.id)) {
       final userData = users[_currentUser!.id] as Map<String, dynamic>;
       final password = userData['password'];
-      
+
       users[_currentUser!.id] = _currentUser!.toJson();
       users[_currentUser!.id]['password'] = password;
-      
+
       await prefs.setString('users', jsonEncode(users));
     }
-    
+
     notifyListeners();
   }
 
@@ -248,7 +258,7 @@ class AuthService extends ChangeNotifier {
     }
 
     final userData = users[_currentUser!.id] as Map<String, dynamic>;
-    
+
     // 驗證舊密碼
     if (userData['password'] != _hashPassword(oldPassword)) {
       throw Exception('舊密碼錯誤');
@@ -273,7 +283,7 @@ class AuthService extends ChangeNotifier {
     }
 
     final userData = users[_currentUser!.id] as Map<String, dynamic>;
-    
+
     // 驗證密碼
     if (userData['password'] != _hashPassword(password)) {
       throw Exception('密碼錯誤');
@@ -282,7 +292,7 @@ class AuthService extends ChangeNotifier {
     // 刪除使用者資料
     users.remove(_currentUser!.id);
     await prefs.setString('users', jsonEncode(users));
-    
+
     // 登出
     await logout();
   }
@@ -305,7 +315,7 @@ class AuthService extends ChangeNotifier {
 
     final userData = user.toJson();
     userData['password'] = _hashPassword(password);
-    
+
     users[user.id] = userData;
     await prefs.setString('users', jsonEncode(users));
   }
@@ -316,9 +326,8 @@ class AuthService extends ChangeNotifier {
     final usersJson = prefs.getString('users') ?? '{}';
     final users = jsonDecode(usersJson) as Map<String, dynamic>;
 
-    return users.values.any((userData) => 
-      (userData as Map<String, dynamic>)['username'] == username
-    );
+    return users.values.any((userData) =>
+        (userData as Map<String, dynamic>)['username'] == username);
   }
 
   /// 檢查 Email 是否已存在
@@ -327,9 +336,8 @@ class AuthService extends ChangeNotifier {
     final usersJson = prefs.getString('users') ?? '{}';
     final users = jsonDecode(usersJson) as Map<String, dynamic>;
 
-    return users.values.any((userData) => 
-      (userData as Map<String, dynamic>)['email'] == email
-    );
+    return users.values.any(
+        (userData) => (userData as Map<String, dynamic>)['email'] == email);
   }
 
   /// 簡單的密碼雜湊（實際應用應使用更安全的方法）

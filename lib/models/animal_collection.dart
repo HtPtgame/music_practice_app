@@ -199,7 +199,7 @@ class AnimalCollectionService extends ChangeNotifier {
 
   List<AnimalCollection> get allAnimals => _allAnimals;
   List<AnimalCollection> get unlockedAnimals => _unlockedAnimals;
-  
+
   int get totalAnimals => _allAnimals.length;
   int get collectedCount => _unlockedAnimals.length;
   double get collectionProgress => collectedCount / totalAnimals;
@@ -207,19 +207,22 @@ class AnimalCollectionService extends ChangeNotifier {
   /// 根據打卡天數檢查並解鎖動物
   void checkAndUnlockAnimals(int totalCheckInDays) {
     bool hasNewUnlock = false;
-    
+
     for (var animal in _allAnimals) {
       // 如果已解鎖,跳過
       if (_unlockedAnimals.any((a) => a.id == animal.id)) continue;
-      
+
       // 檢查是否達到解鎖條件
       if (totalCheckInDays >= animal.requiredCheckInDays) {
-        final unlockedAnimal = animal.copyWith(unlockedAt: DateTime.now());
+        // ✅ 使用當天午夜（只保留日期部分）
+        final now = DateTime.now();
+        final dateOnly = DateTime(now.year, now.month, now.day);
+        final unlockedAnimal = animal.copyWith(unlockedAt: dateOnly);
         _unlockedAnimals.add(unlockedAnimal);
         hasNewUnlock = true;
       }
     }
-    
+
     if (hasNewUnlock) {
       notifyListeners();
     }
@@ -234,14 +237,50 @@ class AnimalCollectionService extends ChangeNotifier {
     return unlocked;
   }
 
-  /// 載入已解鎖的動物資料
-  void loadUnlockedAnimals(List<Map<String, dynamic>> data) {
-    _unlockedAnimals = data.map((json) => AnimalCollection.fromJson(json)).toList();
+  /// 載入已解鎖的動物資料（從持久化數據）
+  void loadUnlockedAnimals(Map<String, String> unlockedData) {
+    debugPrint('🦁 AnimalCollectionService.loadUnlockedAnimals 被調用');
+    debugPrint('🦁 輸入數據: $unlockedData');
+    
+    _unlockedAnimals.clear();
+
+    for (var entry in unlockedData.entries) {
+      final animalId = entry.key;
+      final unlockedAtStr = entry.value;
+      debugPrint('🦁 處理動物: $animalId, 時間: $unlockedAtStr');
+
+      final animal = _allAnimals.firstWhere(
+        (a) => a.id == animalId,
+        orElse: () => throw Exception('找不到動物: $animalId'),
+      );
+
+      final parsedDate = DateTime.parse(unlockedAtStr);
+      debugPrint('🦁 解析後時間: $parsedDate');
+      
+      _unlockedAnimals.add(animal.copyWith(
+        unlockedAt: parsedDate,
+      ));
+    }
+
+    debugPrint('🦁 已載入 ${_unlockedAnimals.length} 隻動物');
+    for (var animal in _unlockedAnimals) {
+      debugPrint('🦁 - ${animal.name}: ${animal.unlockedAt}');
+    }
+
     notifyListeners();
   }
 
-  /// 匯出已解鎖的動物資料
-  List<Map<String, dynamic>> exportUnlockedAnimals() {
-    return _unlockedAnimals.map((a) => a.toJson()).toList();
+  /// 匯出已解鎖的動物資料（用於持久化）
+  Map<String, String> exportUnlockedAnimals() {
+    final Map<String, String> result = {};
+    for (var animal in _unlockedAnimals) {
+      if (animal.unlockedAt != null) {
+        // ✅ 確保時間格式統一（只保留日期部分）
+        final time = animal.unlockedAt!;
+        final dateOnly = DateTime(time.year, time.month, time.day);
+        result[animal.id] = dateOnly.toIso8601String();
+      }
+    }
+    return result;
   }
 }

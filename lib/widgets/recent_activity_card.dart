@@ -30,12 +30,17 @@ class RecentActivityCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.dynamicTextDark)),
-            subtitle: Text(subtitle, style: TextStyle(color: AppColors.dynamicTextLight)),
+            title: Text(title,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.dynamicTextDark)),
+            subtitle: Text(subtitle,
+                style: TextStyle(color: AppColors.dynamicTextLight)),
             trailing: ElevatedButton(
               onPressed: onPressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                backgroundColor:
+                    AppColors.dynamicPrimary.withValues(alpha: 0.1),
                 foregroundColor: AppColors.dynamicPrimary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(

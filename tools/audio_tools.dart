@@ -1,17 +1,17 @@
 /// 音訊處理工具集
 /// 整合音訊格式轉換、修復、批次處理等功能
-/// 
+///
 /// 使用方式:
 /// ```bash
 /// # 單檔轉換為單聲道
 /// dart tools/audio_tools.dart convert <輸入檔案> <輸出檔案>
-/// 
+///
 /// # 批次轉換目錄中的所有 WAV 檔案
 /// dart tools/audio_tools.dart batch <目錄路徑>
-/// 
+///
 /// # 修復音訊格式（轉為 16-bit PCM, 44100Hz, 單聲道）
 /// dart tools/audio_tools.dart fix <檔案路徑>
-/// 
+///
 /// # 分析音訊檔案資訊
 /// dart tools/audio_tools.dart analyze <檔案路徑>
 /// ```
@@ -112,7 +112,7 @@ void convertToMono(String inputPath, String outputPath) {
   }
 
   final bytes = inputFile.readAsBytesSync();
-  
+
   // 解析 WAV 標頭
   if (bytes.length < 44) {
     throw Exception('檔案太小，不是有效的 WAV 檔案');
@@ -132,9 +132,10 @@ void convertToMono(String inputPath, String outputPath) {
 
   // 讀取格式資訊
   final numChannels = bytes[22] | (bytes[23] << 8);
-  final sampleRate = bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
+  final sampleRate =
+      bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
   final bitsPerSample = bytes[34] | (bytes[35] << 8);
-  
+
   print('   聲道數: $numChannels');
   print('   採樣率: $sampleRate Hz');
   print('   位深度: $bitsPerSample bit');
@@ -153,12 +154,13 @@ void convertToMono(String inputPath, String outputPath) {
   // 找到 data chunk
   int dataOffset = 12;
   while (dataOffset < bytes.length - 8) {
-    final chunkId = String.fromCharCodes(bytes.sublist(dataOffset, dataOffset + 4));
-    final chunkSize = bytes[dataOffset + 4] | 
-                     (bytes[dataOffset + 5] << 8) | 
-                     (bytes[dataOffset + 6] << 16) | 
-                     (bytes[dataOffset + 7] << 24);
-    
+    final chunkId =
+        String.fromCharCodes(bytes.sublist(dataOffset, dataOffset + 4));
+    final chunkSize = bytes[dataOffset + 4] |
+        (bytes[dataOffset + 5] << 8) |
+        (bytes[dataOffset + 6] << 16) |
+        (bytes[dataOffset + 7] << 24);
+
     if (chunkId == 'data') {
       dataOffset += 8;
       break;
@@ -175,19 +177,21 @@ void convertToMono(String inputPath, String outputPath) {
   final bytesPerSample = bitsPerSample ~/ 8;
   final frameSize = bytesPerSample * numChannels;
   final numFrames = audioData.length ~/ frameSize;
-  
+
   final monoData = Uint8List(numFrames * bytesPerSample);
-  
+
   for (int i = 0; i < numFrames; i++) {
     final leftOffset = i * frameSize;
     final rightOffset = leftOffset + bytesPerSample;
-    
+
     if (bitsPerSample == 16) {
       // 16-bit signed PCM
-      final left = (audioData[leftOffset] | (audioData[leftOffset + 1] << 8)).toSigned(16);
-      final right = (audioData[rightOffset] | (audioData[rightOffset + 1] << 8)).toSigned(16);
+      final left = (audioData[leftOffset] | (audioData[leftOffset + 1] << 8))
+          .toSigned(16);
+      final right = (audioData[rightOffset] | (audioData[rightOffset + 1] << 8))
+          .toSigned(16);
       final mono = ((left + right) / 2).round();
-      
+
       monoData[i * 2] = mono & 0xFF;
       monoData[i * 2 + 1] = (mono >> 8) & 0xFF;
     } else if (bitsPerSample == 8) {
@@ -218,7 +222,7 @@ void convertToMono(String inputPath, String outputPath) {
 
 void batchConvertToMono(String directoryPath) {
   print('🔍 掃描目錄: $directoryPath');
-  
+
   final directory = Directory(directoryPath);
   if (!directory.existsSync()) {
     throw Exception('目錄不存在: $directoryPath');
@@ -277,71 +281,73 @@ void batchConvertToMono(String directoryPath) {
 
 void fixAudioFormat(String filePath) {
   print('🔧 修復音訊格式: $filePath');
-  
+
   final file = File(filePath);
   if (!file.existsSync()) {
     throw Exception('檔案不存在: $filePath');
   }
 
   final bytes = file.readAsBytesSync();
-  
+
   // 解析當前格式
   final numChannels = bytes[22] | (bytes[23] << 8);
-  final sampleRate = bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
+  final sampleRate =
+      bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
   final bitsPerSample = bytes[34] | (bytes[35] << 8);
-  
+
   print('   當前格式:');
   print('     聲道數: $numChannels');
   print('     採樣率: $sampleRate Hz');
   print('     位深度: $bitsPerSample bit');
-  
+
   bool needsFix = false;
   final issues = <String>[];
-  
+
   if (numChannels != 1) {
     issues.add('聲道數不正確（應為 1，實際 $numChannels）');
     needsFix = true;
   }
-  
+
   if (sampleRate != 44100) {
     issues.add('採樣率不正確（應為 44100Hz，實際 ${sampleRate}Hz）');
     needsFix = true;
   }
-  
+
   if (bitsPerSample != 16) {
     issues.add('位深度不正確（應為 16-bit，實際 ${bitsPerSample}-bit）');
     needsFix = true;
   }
-  
+
   if (!needsFix) {
     print('✅ 檔案格式正確，無需修復');
     return;
   }
-  
+
   print('\n⚠️  發現問題:');
   for (final issue in issues) {
     print('     - $issue');
   }
-  
+
   print('\n🔄 開始修復...');
-  
+
   // 備份原檔案
   final backupPath = '${filePath}.backup';
   file.copySync(backupPath);
   print('   ✓ 已建立備份: $backupPath');
-  
+
   // 先轉換為單聲道（如果需要）
   if (numChannels != 1) {
     convertToMono(filePath, filePath);
     print('   ✓ 已轉換為單聲道');
   }
-  
+
   // TODO: 採樣率和位深度轉換需要更複雜的 DSP 處理
   // 這裡只示範基本框架，實際專案可使用 FFmpeg
-  
+
   if (sampleRate != 44100 || bitsPerSample != 16) {
     print('   ⚠️  採樣率或位深度轉換需要 FFmpeg，請手動處理');
-    print('   建議指令: ffmpeg -i "$filePath" -ar 44100 -sample_fmt s16 -ac 1 output.wav');
+    print(
+        '   建議指令: ffmpeg -i "$filePath" -ar 44100 -sample_fmt s16 -ac 1 output.wav');
   } else {
     print('✅ 修復完成！');
   }
@@ -353,7 +359,7 @@ void fixAudioFormat(String filePath) {
 
 void analyzeAudio(String filePath) {
   print('🔍 分析音訊檔案: $filePath\n');
-  
+
   final file = File(filePath);
   if (!file.existsSync()) {
     throw Exception('檔案不存在: $filePath');
@@ -361,12 +367,12 @@ void analyzeAudio(String filePath) {
 
   final bytes = file.readAsBytesSync();
   final fileSize = bytes.length;
-  
+
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   print('📁 檔案資訊');
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   print('檔案大小: ${(fileSize / 1024).toStringAsFixed(2)} KB');
-  
+
   if (bytes.length < 44) {
     print('❌ 檔案太小，不是有效的 WAV 檔案');
     return;
@@ -375,60 +381,64 @@ void analyzeAudio(String filePath) {
   // 解析標頭
   final riff = String.fromCharCodes(bytes.sublist(0, 4));
   final wave = String.fromCharCodes(bytes.sublist(8, 12));
-  
+
   if (riff != 'RIFF' || wave != 'WAVE') {
     print('❌ 不是有效的 WAV 檔案');
     return;
   }
 
   final numChannels = bytes[22] | (bytes[23] << 8);
-  final sampleRate = bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
-  final byteRate = bytes[28] | (bytes[29] << 8) | (bytes[30] << 16) | (bytes[31] << 24);
+  final sampleRate =
+      bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
+  final byteRate =
+      bytes[28] | (bytes[29] << 8) | (bytes[30] << 16) | (bytes[31] << 24);
   final bitsPerSample = bytes[34] | (bytes[35] << 8);
-  
+
   print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   print('🎵 格式資訊');
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  print('聲道數: $numChannels ${numChannels == 1 ? '(單聲道)' : numChannels == 2 ? '(立體聲)' : ''}');
+  print(
+      '聲道數: $numChannels ${numChannels == 1 ? '(單聲道)' : numChannels == 2 ? '(立體聲)' : ''}');
   print('採樣率: $sampleRate Hz');
   print('位深度: $bitsPerSample bit');
   print('位元率: ${(byteRate * 8 / 1000).toStringAsFixed(0)} kbps');
-  
+
   // 計算時長
   final dataSize = fileSize - 44;
   final bytesPerSample = bitsPerSample ~/ 8;
   final numSamples = dataSize ~/ (numChannels * bytesPerSample);
   final duration = numSamples / sampleRate;
-  
+
   print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   print('⏱️  時長資訊');
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  print('總樣本數: ${numSamples.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}');
+  print(
+      '總樣本數: ${numSamples.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}');
   print('時長: ${duration.toStringAsFixed(2)} 秒');
-  
+
   // 格式檢查
   print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   print('✅ 格式檢查');
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
+
   final checks = [
     ('單聲道', numChannels == 1),
     ('44100Hz 採樣率', sampleRate == 44100),
     ('16-bit 位深度', bitsPerSample == 16),
   ];
-  
+
   for (final check in checks) {
     final status = check.$2 ? '✅' : '❌';
     print('$status ${check.$1}');
   }
-  
+
   final allPassed = checks.every((c) => c.$2);
   if (allPassed) {
     print('\n🎉 檔案格式完全符合要求！');
   } else {
     print('\n⚠️  建議使用 fix 指令修復格式問題');
   }
-  
+
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
@@ -448,26 +458,26 @@ Uint8List _createWavHeader({
   final blockAlign = numChannels * (bitsPerSample ~/ 8);
 
   final header = Uint8List(44);
-  
+
   // RIFF header
   header.setAll(0, 'RIFF'.codeUnits);
   _writeInt32(header, 4, fileSize);
   header.setAll(8, 'WAVE'.codeUnits);
-  
+
   // fmt chunk
   header.setAll(12, 'fmt '.codeUnits);
   _writeInt32(header, 16, 16); // fmt chunk size
-  _writeInt16(header, 20, 1);  // PCM format
+  _writeInt16(header, 20, 1); // PCM format
   _writeInt16(header, 22, numChannels);
   _writeInt32(header, 24, sampleRate);
   _writeInt32(header, 28, byteRate);
   _writeInt16(header, 32, blockAlign);
   _writeInt16(header, 34, bitsPerSample);
-  
+
   // data chunk
   header.setAll(36, 'data'.codeUnits);
   _writeInt32(header, 40, dataSize);
-  
+
   return Uint8List.fromList([...header, ...audioData]);
 }
 

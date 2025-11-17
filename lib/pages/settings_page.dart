@@ -19,9 +19,9 @@ class _SettingsPageState extends State<SettingsPage> {
   final SettingsService _settingsService = SettingsService();
   final HapticService _hapticService = HapticService();
   final UserDataSyncService _syncService = UserDataSyncService();
-  
+
   String _selectedLanguage = 'zh_TW'; // 預設選擇繁體中文
-  
+
   // 音效設定相關變數
   double _masterVolume = 0.8; // 主音量 (0.0 - 1.0)
   double _midiVolume = 0.7; // MIDI 播放音量
@@ -29,10 +29,10 @@ class _SettingsPageState extends State<SettingsPage> {
   double _metronomeVolume = 0.6; // 節拍器音量
   bool _soundEnabled = true; // 是否啟用音效
   bool _vibrationEnabled = true; // 是否啟用震動
-  
+
   // 防止重複顯示 SnackBar
   bool _isShowingSnackBar = false;
-  
+
   // 載入狀態
   bool _isLoading = true;
 
@@ -70,7 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadSettings();
-    
+
     // 監聽認證狀態變化,登入後刷新數據
     authService.addListener(_onAuthStateChanged);
   }
@@ -99,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       // ✅ 優先從本地 SharedPreferences 載入最新數據
       final settings = await _settingsService.getAllSettings();
-      
+
       if (mounted) {
         setState(() {
           _masterVolume = settings['masterVolume'] as double;
@@ -112,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _isLoading = false;
         });
       }
-      
+
       debugPrint('SettingsPage: ✅ Settings loaded from local (最新數據)');
     } catch (e) {
       debugPrint('SettingsPage: ⚠️ Failed to load settings: $e');
@@ -148,7 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
           'vibrationEnabled': _vibrationEnabled,
           'selectedLanguage': _selectedLanguage,
         };
-        
+
         await _syncService.syncSettings(settings);
         debugPrint('設定已同步到雲端');
       } catch (e) {
@@ -157,8 +157,6 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +182,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       body: SingleChildScrollView(
@@ -197,19 +195,19 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 16),
             _buildAccountCard(),
             const SizedBox(height: 32),
-            
+
             // 語言設定區塊
             _buildSectionTitle('語言設定'),
             const SizedBox(height: 16),
             _buildLanguageCard(),
             const SizedBox(height: 32),
-            
+
             // 音效設定區塊
             _buildSectionTitle('音效設定'),
             const SizedBox(height: 16),
             _buildSoundSettingsCard(),
             const SizedBox(height: 32),
-            
+
             // 其他設定區塊
             _buildSectionTitle('其他設定'),
             const SizedBox(height: 16),
@@ -241,7 +239,8 @@ class _SettingsPageState extends State<SettingsPage> {
           color: AppColors.dynamicCard,
           elevation: 1.5,
           shadowColor: const Color(0x196A5AE0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: InkWell(
             onTap: () {
               if (user != null) {
@@ -282,7 +281,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          user != null 
+                          user != null
                               ? user.displayName ?? user.username
                               : '登入以同步您的練習記錄',
                           style: TextStyle(
@@ -396,13 +395,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   label: const Text('重置'),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.dynamicPrimary,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // 主音量
             _buildVolumeSlider(
               icon: Icons.volume_up,
@@ -415,7 +415,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             const SizedBox(height: 20),
-            
+
             // MIDI 音量
             _buildVolumeSlider(
               icon: Icons.piano,
@@ -428,7 +428,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             const SizedBox(height: 20),
-            
+
             // 節拍器音量
             _buildVolumeSlider(
               icon: Icons.av_timer,
@@ -441,7 +441,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             const SizedBox(height: 20),
-            
+
             // 錄音音量
             _buildVolumeSlider(
               icon: Icons.mic,
@@ -456,7 +456,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 12),
-            
+
             // 音效開關
             _buildSwitchTile(
               icon: Icons.music_note,
@@ -470,7 +470,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             const SizedBox(height: 12),
-            
+
             // 震動開關
             _buildSwitchTile(
               icon: Icons.vibration,
@@ -494,7 +494,7 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       // 震動回饋
       await _hapticService.mediumImpact();
-      
+
       // 重置到預設值
       setState(() {
         _masterVolume = 0.8;
@@ -502,10 +502,10 @@ class _SettingsPageState extends State<SettingsPage> {
         _recordingVolume = 0.9;
         _metronomeVolume = 0.6;
       });
-      
+
       // 儲存設定
       await _saveSettings();
-      
+
       if (mounted) {
         _showSuccessMessage('已重置所有音量至標準值');
       }
@@ -561,10 +561,13 @@ class _SettingsPageState extends State<SettingsPage> {
               SliderTheme(
                 data: SliderThemeData(
                   trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 16),
                   activeTrackColor: AppColors.dynamicPrimary,
-                  inactiveTrackColor: AppColors.dynamicPrimary.withValues(alpha: 0.2),
+                  inactiveTrackColor:
+                      AppColors.dynamicPrimary.withValues(alpha: 0.2),
                   thumbColor: AppColors.dynamicPrimary,
                   overlayColor: AppColors.dynamicPrimary.withValues(alpha: 0.2),
                 ),
@@ -770,22 +773,30 @@ class _SettingsPageState extends State<SettingsPage> {
                       final languageCode = _languages.keys.elementAt(index);
                       final languageName = _languages[languageCode]!;
                       final isSelected = _selectedLanguage == languageCode;
-                      
+
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
                         title: Text(
                           languageName,
                           style: TextStyle(
                             fontSize: 16,
-                            color: isSelected ? AppColors.dynamicPrimary : AppColors.dynamicTextDark,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            color: isSelected
+                                ? AppColors.dynamicPrimary
+                                : AppColors.dynamicTextDark,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                         subtitle: Text(
                           _languageDescriptions[languageCode] ?? '',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isSelected ? AppColors.dynamicPrimary.withValues(alpha: 0.7) : AppColors.dynamicTextLight,
+                            color: isSelected
+                                ? AppColors.dynamicPrimary
+                                    .withValues(alpha: 0.7)
+                                : AppColors.dynamicTextLight,
                           ),
                         ),
                         trailing: isSelected
@@ -799,26 +810,28 @@ class _SettingsPageState extends State<SettingsPage> {
                           try {
                             // 震動回饋
                             await _hapticService.selectionClick();
-                            
+
                             // 先關閉對話框
                             if (Navigator.canPop(context)) {
                               Navigator.of(context).pop();
                             }
-                            
+
                             // 等待對話框關閉完成
-                            await Future.delayed(const Duration(milliseconds: 100));
-                            
+                            await Future.delayed(
+                                const Duration(milliseconds: 100));
+
                             if (mounted) {
                               setState(() {
                                 _selectedLanguage = languageCode;
                               });
-                              
+
                               // 儲存設定
                               await _saveSettings();
-                              
+
                               // 等待 setState 完成
-                              await Future.delayed(const Duration(milliseconds: 50));
-                              
+                              await Future.delayed(
+                                  const Duration(milliseconds: 50));
+
                               if (mounted) {
                                 _showSuccessMessage('已切換至 $languageName');
                               }
@@ -857,8 +870,6 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
   }
-
-
 
   void _showThemeDialog() {
     showDialog(
@@ -909,20 +920,22 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       title: Text(name),
-      trailing: isSelected ? Icon(Icons.check, color: AppColors.dynamicPrimary) : null,
+      trailing: isSelected
+          ? Icon(Icons.check, color: AppColors.dynamicPrimary)
+          : null,
       onTap: () async {
         try {
           // 先關閉對話框，避免 context 問題
           if (Navigator.canPop(context)) {
             Navigator.of(context).pop();
           }
-          
+
           // 等待一小段時間確保對話框完全關閉
           await Future.delayed(const Duration(milliseconds: 100));
-          
+
           // 然後切換主題
           await ThemeManager.instance.setTheme(themeKey);
-          
+
           // 最後刷新頁面並顯示成功訊息
           if (mounted) {
             setState(() {});
@@ -942,7 +955,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showFeatureNotAvailable(String featureName) {
     if (_isShowingSnackBar) return; // 防止重複顯示
-    
+
     _isShowingSnackBar = true;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -951,7 +964,7 @@ class _SettingsPageState extends State<SettingsPage> {
         duration: const Duration(seconds: 2),
       ),
     );
-    
+
     // 使用 Timer 來重置狀態，而不是依賴 .closed
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
@@ -962,7 +975,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showSuccessMessage(String message) {
     if (_isShowingSnackBar) return; // 防止重複顯示
-    
+
     _isShowingSnackBar = true;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -971,7 +984,7 @@ class _SettingsPageState extends State<SettingsPage> {
         duration: const Duration(seconds: 2),
       ),
     );
-    
+
     // 使用 Timer 來重置狀態，而不是依賴 .closed
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {

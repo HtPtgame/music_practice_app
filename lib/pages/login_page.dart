@@ -51,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -93,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -132,21 +132,21 @@ class _LoginPageState extends State<LoginPage> {
                     color: Theme.of(context).primaryColor,
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // 標題
                   Text(
                     '歡迎回來',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Music Practice App',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
+                          color: Colors.grey,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -164,7 +164,8 @@ class _LoginPageState extends State<LoginPage> {
                       if (value == null || value.trim().isEmpty) {
                         return '請輸入 Email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
                         return '請輸入有效的 Email';
                       }
                       return null;
@@ -182,7 +183,9 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -213,12 +216,14 @@ class _LoginPageState extends State<LoginPage> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text(
                             '登入',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
                   const SizedBox(height: 24),
@@ -231,9 +236,10 @@ class _LoginPageState extends State<LoginPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
                           '或',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey,
+                                  ),
                         ),
                       ),
                       const Expanded(child: Divider()),
@@ -277,9 +283,8 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       const Text('還沒有帳號？'),
                       TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => context.push('/register'),
+                        onPressed:
+                            _isLoading ? null : () => context.push('/register'),
                         child: const Text('立即註冊'),
                       ),
                     ],

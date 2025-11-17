@@ -52,7 +52,7 @@ class UploadPage extends StatelessWidget {
       ),
     );
   }
-  
+
   void _showFeatureNotAvailable(BuildContext context) {
     showDialog(
       context: context,
@@ -151,4 +151,3 @@ class UploadPage extends StatelessWidget {
     );
   }
 }
-    

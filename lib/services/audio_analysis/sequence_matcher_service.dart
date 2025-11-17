@@ -1,5 +1,5 @@
 /// 序列匹配服務
-/// 
+///
 /// 使用動態時間規整 (Dynamic Time Warping, DTW) 或序列對齊算法
 /// 確保演奏的音符序列與標準答案匹配,而不僅僅是音高匹配
 library;
@@ -12,13 +12,13 @@ import 'models/spectrogram.dart';
 class SequenceMatchResult {
   /// 匹配的音符對 (MIDI事件索引 -> 檢測到的時間)
   final Map<int, double?> matches;
-  
+
   /// 整體匹配分數 (0-1, 越高越好)
   final double overallScore;
-  
+
   /// 序列相似度 (考慮順序)
   final double sequenceSimilarity;
-  
+
   /// 時間對齊偏移 (秒)
   final double timeOffset;
 
@@ -45,7 +45,7 @@ class DetectedNote {
 
 abstract class ISequenceMatcher {
   /// 執行序列匹配
-  /// 
+  ///
   /// [expectedTimeline] 期望的 MIDI 時間軸
   /// [spectrogram] 頻譜圖
   /// [detectedNotes] 檢測到的音符列表
@@ -57,12 +57,12 @@ abstract class ISequenceMatcher {
 }
 
 /// 序列匹配服務實現
-/// 
+///
 /// 使用改進的動態規劃算法進行序列對齊
 class SequenceMatcherService implements ISequenceMatcher {
   // 匹配參數
   static const double maxTimeDifference = 2.0; // 最大時間差 (秒)
-  static const double pitchMatchWeight = 0.4;  // 音高匹配權重
+  static const double pitchMatchWeight = 0.4; // 音高匹配權重
   static const double timingMatchWeight = 0.3; // 時間匹配權重
   static const double sequenceOrderWeight = 0.3; // 序列順序權重
 
@@ -73,7 +73,7 @@ class SequenceMatcherService implements ISequenceMatcher {
     List<DetectedNote> detectedNotes,
   ) async {
     final expectedNotes = expectedTimeline.events;
-    
+
     if (expectedNotes.isEmpty) {
       return SequenceMatchResult(
         matches: {},
@@ -85,7 +85,7 @@ class SequenceMatcherService implements ISequenceMatcher {
 
     // 1. 計算時間偏移 (全局對齊)
     final timeOffset = _estimateTimeOffset(expectedNotes, detectedNotes);
-    
+
     // 2. 使用動態規劃進行序列對齊
     final alignmentResult = _alignSequences(
       expectedNotes,
@@ -115,7 +115,7 @@ class SequenceMatcherService implements ISequenceMatcher {
   }
 
   /// 估算時間偏移
-  /// 
+  ///
   /// 找出最佳的全局時間偏移,使得期望音符和檢測音符最匹配
   double _estimateTimeOffset(
     List<NoteEvent> expectedNotes,
@@ -132,11 +132,11 @@ class SequenceMatcherService implements ISequenceMatcher {
 
     for (int i = 0; i < sampleSize; i++) {
       final expected = expectedNotes[i];
-      
+
       // 找出與期望音高最接近的檢測音符
       DetectedNote? bestMatch;
       double bestDistance = double.infinity;
-      
+
       for (final detected in detectedNotes) {
         if (detected.midiNote == expected.midiNote) {
           final timeDiff = (detected.time - expected.startTime).abs();
@@ -157,7 +157,7 @@ class SequenceMatcherService implements ISequenceMatcher {
   }
 
   /// 序列對齊 (動態規劃)
-  /// 
+  ///
   /// 返回每個期望音符的最佳匹配 (索引 -> 檢測時間)
   Map<int, double?> _alignSequences(
     List<NoteEvent> expectedNotes,
@@ -165,7 +165,7 @@ class SequenceMatcherService implements ISequenceMatcher {
     double timeOffset,
   ) {
     final matches = <int, double?>{};
-    final usedDetections = <int>{};  // 記錄已使用的檢測音符
+    final usedDetections = <int>{}; // 記錄已使用的檢測音符
 
     // 貪心匹配: 按順序為每個期望音符找最佳匹配
     for (int i = 0; i < expectedNotes.length; i++) {
@@ -204,7 +204,7 @@ class SequenceMatcherService implements ISequenceMatcher {
         matches[i] = bestMatch.time;
         usedDetections.add(bestMatchIndex!);
       } else {
-        matches[i] = null;  // 未找到匹配
+        matches[i] = null; // 未找到匹配
       }
     }
 
@@ -241,9 +241,8 @@ class SequenceMatcherService implements ISequenceMatcher {
     // 3. 序列順序匹配 (30%)
     // 期望索引應該與檢測索引大致對應
     final expectedPosition = expectedIndex / totalExpected;
-    final detectedPosition = totalDetected > 0
-        ? detectedIndex / totalDetected
-        : 0.0;
+    final detectedPosition =
+        totalDetected > 0 ? detectedIndex / totalDetected : 0.0;
     final positionDiff = (expectedPosition - detectedPosition).abs();
     final orderScore = 1.0 - positionDiff;
     score += sequenceOrderWeight * orderScore;
@@ -252,7 +251,7 @@ class SequenceMatcherService implements ISequenceMatcher {
   }
 
   /// 計算序列相似度
-  /// 
+  ///
   /// 檢查整體序列結構是否相似
   double _calculateSequenceSimilarity(
     List<NoteEvent> expectedNotes,
@@ -264,7 +263,7 @@ class SequenceMatcherService implements ISequenceMatcher {
     // 統計連續匹配的音符對
     int consecutiveMatches = 0;
     int maxConsecutive = 0;
-    
+
     for (int i = 0; i < expectedNotes.length; i++) {
       if (alignmentResult[i] != null) {
         consecutiveMatches++;
@@ -275,8 +274,8 @@ class SequenceMatcherService implements ISequenceMatcher {
     }
 
     // 計算匹配率
-    final matchRate = alignmentResult.values.where((v) => v != null).length / 
-                      expectedNotes.length;
+    final matchRate = alignmentResult.values.where((v) => v != null).length /
+        expectedNotes.length;
 
     // 計算連續性分數
     final consecutivenessScore = maxConsecutive / expectedNotes.length;
@@ -293,8 +292,8 @@ class SequenceMatcherService implements ISequenceMatcher {
     if (alignmentResult.isEmpty) return 0.0;
 
     // 匹配率
-    final matchRate = alignmentResult.values.where((v) => v != null).length / 
-                      alignmentResult.length;
+    final matchRate = alignmentResult.values.where((v) => v != null).length /
+        alignmentResult.length;
 
     // 綜合評分: 70% 匹配率 + 30% 序列相似度
     return (matchRate * 0.7 + sequenceSimilarity * 0.3).clamp(0.0, 1.0);

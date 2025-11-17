@@ -106,7 +106,7 @@ class AnnotatedSheet {
   }
 
   String toJsonString() => jsonEncode(toJson());
-  
+
   factory AnnotatedSheet.fromJsonString(String str) =>
       AnnotatedSheet.fromJson(jsonDecode(str) as Map<String, dynamic>);
 }

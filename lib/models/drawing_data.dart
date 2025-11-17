@@ -2,7 +2,7 @@ import 'dart:ui';
 
 /// 筆觸類型枚舉
 enum BrushType {
-  texture,   // 智能肌理筆 - 自動產生美麗肌理
+  texture, // 智能肌理筆 - 自動產生美麗肌理
 }
 
 /// 繪圖筆劃數據模型
@@ -35,7 +35,7 @@ class DrawingStroke {
           .toList(),
       color: Color(json['color'] as int),
       strokeWidth: json['strokeWidth'] as double,
-      brushType: json['brushType'] != null 
+      brushType: json['brushType'] != null
           ? BrushType.values[json['brushType'] as int]
           : BrushType.texture,
     );

@@ -1,5 +1,5 @@
 // Firebase 配置檔案範本
-// 
+//
 // 此檔案會在執行 'flutterfire configure' 後自動生成
 // 請勿手動編輯此檔案
 //
@@ -10,12 +10,13 @@
 // 配置完成後，此範本檔案會被實際的 firebase_options.dart 取代
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
 /// 範例：此檔案將包含你的 Firebase 專案配置
-/// 
+///
 /// 執行 'flutterfire configure' 後，此檔案會自動生成正確的配置
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -88,5 +89,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'sound-spirit-detective.firebasestorage.app',
     measurementId: 'G-23J6PGMNQE',
   );
-
 }

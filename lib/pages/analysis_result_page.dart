@@ -4,13 +4,13 @@ import 'package:music_practice_app/services/audio_analysis/models/performance_er
 import 'package:music_practice_app/utils/app_colors.dart';
 
 /// Week 4 Phase 1: 演奏分析結果頁面
-/// 
+///
 /// 顯示完整的分析報告,包括:
 /// - 總分和評級 (S/A/B/C/D)
 /// - 統計數據 (正確/錯音/漏音/節奏問題)
 /// - 錯誤詳情列表
 /// - 練習建議
-/// 
+///
 /// 使用 Week 3 的頻譜分析結果
 class AnalysisResultPage extends StatelessWidget {
   final AnalysisReport report;
@@ -41,24 +41,24 @@ class AnalysisResultPage extends StatelessWidget {
               // 1. 總分卡片
               _buildScoreCard(),
               const SizedBox(height: 16),
-              
+
               // 2. 統計數據
               _buildStatisticsCard(),
               const SizedBox(height: 16),
-              
+
               // 3. 錯誤詳情
               if (report.errors.isNotEmpty) ...[
                 _buildErrorsCard(),
                 const SizedBox(height: 16),
               ],
-              
+
               // 4. 練習建議
               _buildSuggestionCard(),
               const SizedBox(height: 16),
-              
+
               // 5. 操作按鈕
               _buildActionButtons(context),
-              
+
               // 6. 底部安全區域 padding (避免被系統導航欄遮擋)
               SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
@@ -79,7 +79,7 @@ class AnalysisResultPage extends StatelessWidget {
             // 評級徽章
             _buildGradeBadge(),
             const SizedBox(height: 16),
-            
+
             // 總分
             Text(
               report.overallScore.toStringAsFixed(1),
@@ -89,7 +89,7 @@ class AnalysisResultPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            
+
             // 準確率和節奏分
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -358,15 +358,15 @@ class AnalysisResultPage extends StatelessWidget {
             const Divider(height: 20, thickness: 1),
             const SizedBox(height: 4),
             ...report.generateSuggestions().map((suggestion) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                suggestion,
-                style: const TextStyle(
-                  fontSize: 15,
-                  height: 1.5,
-                ),
-              ),
-            )),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    suggestion,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+                )),
           ],
         ),
       ),

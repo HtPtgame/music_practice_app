@@ -81,7 +81,8 @@ final GoRouter appRouter = GoRouter(
                   child: MusicSheetDetailPage(
                     sheetName: extra['sheetName'] as String,
                     initialNotes: extra['initialNotes'] as List<String>,
-                    onNotesChanged: extra['onNotesChanged'] as Function(List<String>),
+                    onNotesChanged:
+                        extra['onNotesChanged'] as Function(List<String>),
                   ),
                 );
               },
@@ -93,7 +94,8 @@ final GoRouter appRouter = GoRouter(
                 child: const SheetAnnotationPage(),
                 transitionDuration: Duration.zero,
                 reverseTransitionDuration: Duration.zero,
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
                   return child;
                 },
               ),

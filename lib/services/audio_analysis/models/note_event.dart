@@ -1,18 +1,18 @@
 import 'dart:math';
 
 /// MIDI 音符事件
-/// 
+///
 /// 代表一個音符的開始時間、結束時間和音高
 class NoteEvent {
   /// MIDI 音符號 (0-127, 標準鋼琴 21-108)
   final int midiNote;
-  
+
   /// 開始時間 (秒)
   final double startTime;
-  
+
   /// 結束時間 (秒)
   final double endTime;
-  
+
   /// 力度 (0-127)
   final int velocity;
 
@@ -28,7 +28,20 @@ class NoteEvent {
 
   /// 音符名稱 (例如: C4, D#5)
   String get noteName {
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const noteNames = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B'
+    ];
     final octave = (midiNote ~/ 12) - 1;
     final name = noteNames[midiNote % 12];
     return '$name$octave';
@@ -63,15 +76,15 @@ class NoteEvent {
 }
 
 /// MIDI 時間軸
-/// 
+///
 /// 包含所有音符事件和預計算的諧波頻率
 class MidiTimeline {
   /// 所有音符事件
   final List<NoteEvent> events;
-  
+
   /// 曲目總時長 (秒)
   final double duration;
-  
+
   /// 每個音符的諧波頻率緩存 [midiNote -> [f0, 2f0, 3f0]]
   final Map<int, List<double>> _harmonicsCache = {};
 
@@ -87,9 +100,9 @@ class MidiTimeline {
     for (final event in events) {
       if (!_harmonicsCache.containsKey(event.midiNote)) {
         _harmonicsCache[event.midiNote] = [
-          event.frequency,         // f0
-          event.getHarmonic(2),    // 2f0
-          event.getHarmonic(3),    // 3f0
+          event.frequency, // f0
+          event.getHarmonic(2), // 2f0
+          event.getHarmonic(3), // 3f0
         ];
       }
     }

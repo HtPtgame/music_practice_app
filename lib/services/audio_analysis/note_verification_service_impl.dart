@@ -4,14 +4,18 @@ import 'models/spectrogram.dart';
 import 'models/note_event.dart';
 
 /// 音符驗證服務實現 (固定參數版 - 2025/10/27)
-/// 
+///
 /// 使用頻譜模板匹配 + 諧波驗證來判斷音符是否存在
 /// 已停用動態參數功能，使用固定閾值
 class NoteVerificationServiceImpl implements INoteVerifier {
   // 驗證參數 (固定)
-  static const List<double> harmonicWeights = [1.0, 0.5, 0.25];  // 諧波權重 [基頻, 2倍頻, 3倍頻]
-  static const int numHarmonics = 3;  // 檢查的諧波數量
-  
+  static const List<double> harmonicWeights = [
+    1.0,
+    0.5,
+    0.25
+  ]; // 諧波權重 [基頻, 2倍頻, 3倍頻]
+  static const int numHarmonics = 3; // 檢查的諧波數量
+
   /// 固定能量閾值 (已停用動態調整功能)
   static const double energyThreshold = 0.38;
 
@@ -24,7 +28,7 @@ class NoteVerificationServiceImpl implements INoteVerifier {
     try {
       // 計算目標頻率
       final frequencies = _calculateHarmonics(midiNote);
-      
+
       // 定位時間幀
       final frameIndex = spectrogram.timeToFrame(time);
       if (frameIndex < 0 || frameIndex >= spectrogram.timeFrames) {
@@ -58,7 +62,7 @@ class NoteVerificationServiceImpl implements INoteVerifier {
       // 計算音符持續時間內的平均置信度
       final startFrame = spectrogram.timeToFrame(noteEvent.startTime);
       final endFrame = spectrogram.timeToFrame(noteEvent.endTime);
-      
+
       if (startFrame < 0 || endFrame >= spectrogram.timeFrames) {
         return 0.0;
       }
@@ -69,10 +73,11 @@ class NoteVerificationServiceImpl implements INoteVerifier {
 
       // 在音符持續時間內採樣多個時間點
       final sampleInterval = max(1, (endFrame - startFrame) ~/ 5); // 最多採樣5個點
-      
+
       for (int frame = startFrame; frame <= endFrame; frame += sampleInterval) {
         final spectrum = spectrogram.data[frame];
-        final score = _calculateHarmonicScore(spectrum, frequencies, spectrogram);
+        final score =
+            _calculateHarmonicScore(spectrum, frequencies, spectrogram);
         totalScore += score;
         count++;
       }
@@ -89,14 +94,15 @@ class NoteVerificationServiceImpl implements INoteVerifier {
   Future<Map<NoteEvent, bool>> verifyAll(
     MidiTimeline timeline,
     Spectrogram spectrogram, {
-    double? energyThreshold,     // 動態能量閾值（2025/10/27）
-    double? timingTolerance,     // 動態時間容錯（2025/10/27）
+    double? energyThreshold, // 動態能量閾值（2025/10/27）
+    double? timingTolerance, // 動態時間容錯（2025/10/27）
   }) async {
     // 使用動態參數，如果沒有則使用固定預設值
-    final threshold = energyThreshold ?? NoteVerificationServiceImpl.energyThreshold;
-    
+    final threshold =
+        energyThreshold ?? NoteVerificationServiceImpl.energyThreshold;
+
     final results = <NoteEvent, bool>{};
-    
+
     print('🔍 開始驗證 ${timeline.events.length} 個音符...');
     print('   能量閾值: ${threshold.toStringAsFixed(2)}');
     if (timingTolerance != null) {
@@ -108,21 +114,21 @@ class NoteVerificationServiceImpl implements INoteVerifier {
       // 使用音符中點時間進行驗證
       final midTime = (event.startTime + event.endTime) / 2;
       final isPresent = await _verifyNoteWithThreshold(
-        event.midiNote, 
-        midTime, 
-        spectrogram, 
-        threshold,  // 使用動態閾值
+        event.midiNote,
+        midTime,
+        spectrogram,
+        threshold, // 使用動態閾值
       );
       results[event] = isPresent;
-      
+
       if (isPresent) verified++;
     }
 
     print('✅ 驗證完成: $verified/${timeline.events.length} 個音符被檢測到');
-    
+
     return results;
   }
-  
+
   /// 使用指定閾值驗證音符（新增方法）
   Future<bool> _verifyNoteWithThreshold(
     int midiNote,
@@ -133,7 +139,7 @@ class NoteVerificationServiceImpl implements INoteVerifier {
     try {
       // 計算目標頻率
       final frequencies = _calculateHarmonics(midiNote);
-      
+
       // 定位時間幀
       final frameIndex = spectrogram.timeToFrame(time);
       if (frameIndex < 0 || frameIndex >= spectrogram.timeFrames) {
@@ -168,7 +174,7 @@ class NoteVerificationServiceImpl implements INoteVerifier {
   */
 
   /// 計算諧波分數
-  /// 
+  ///
   /// 檢查基頻及其諧波的能量,加權求和
   double _calculateHarmonicScore(
     List<double> spectrum,
@@ -180,11 +186,11 @@ class NoteVerificationServiceImpl implements INoteVerifier {
     for (int i = 0; i < numHarmonics && i < frequencies.length; i++) {
       final freq = frequencies[i];
       final freqBin = spectrogram.freqToBin(freq);
-      
+
       if (freqBin >= 0 && freqBin < spectrum.length) {
         // 獲取該頻率的能量
         final energy = spectrum[freqBin];
-        
+
         // 應用諧波權重
         final weight = i < harmonicWeights.length ? harmonicWeights[i] : 0.1;
         score += energy * weight;
@@ -195,15 +201,15 @@ class NoteVerificationServiceImpl implements INoteVerifier {
   }
 
   /// 計算音符的諧波頻率
-  /// 
+  ///
   /// 返回 [基頻, 2倍頻, 3倍頻, ...]
   List<double> _calculateHarmonics(int midiNote) {
     // A4 (MIDI 69) = 440 Hz
     final f0 = 440.0 * pow(2, (midiNote - 69) / 12.0);
-    
+
     return List<double>.generate(
       numHarmonics,
-      (i) => f0 * (i + 1),  // f0, 2*f0, 3*f0, ...
+      (i) => f0 * (i + 1), // f0, 2*f0, 3*f0, ...
     );
   }
 

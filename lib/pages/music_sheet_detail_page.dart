@@ -32,7 +32,7 @@ class PracticeNote {
       return PracticeNote(
         measure: data['measure'] as int,
         content: data['content'] as String,
-        drawing: data.containsKey('drawing') 
+        drawing: data.containsKey('drawing')
             ? DrawingData.fromJson(data['drawing'] as Map<String, dynamic>)
             : null,
       );
@@ -95,7 +95,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
   void _showAddNoteDialog() {
     _measureController.clear();
     _contentController.clear();
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -161,7 +161,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
               onPressed: () {
                 final measureText = _measureController.text.trim();
                 final contentText = _contentController.text.trim();
-                
+
                 if (measureText.isNotEmpty && contentText.isNotEmpty) {
                   final measure = int.tryParse(measureText);
                   if (measure != null && measure > 0) {
@@ -173,7 +173,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                       // 按小節數排序
                       _notes.sort((a, b) => a.measure.compareTo(b.measure));
                     });
-                    widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
+                    widget.onNotesChanged(
+                        _notes.map((note) => note.toString()).toList());
                     Navigator.of(context).pop();
                   }
                 }
@@ -295,10 +296,12 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                           _notes[index] = PracticeNote(
                             measure: note.measure,
                             content: note.content,
-                            drawing: drawingData.isNotEmpty ? drawingData : null,
+                            drawing:
+                                drawingData.isNotEmpty ? drawingData : null,
                           );
                         });
-                        widget.onNotesChanged(_notes.map((n) => n.toString()).toList());
+                        widget.onNotesChanged(
+                            _notes.map((n) => n.toString()).toList());
                         Navigator.of(context).pop();
                       },
                       style: ElevatedButton.styleFrom(
@@ -323,7 +326,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
     final note = _notes[index];
     _measureController.text = note.measure.toString();
     _contentController.text = note.content;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -346,7 +349,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                   labelText: '小節數',
                   labelStyle: TextStyle(color: AppColors.dynamicTextDark),
                   hintText: '例如：16',
-                  hintStyle: TextStyle(color: AppColors.dynamicTextLight), 
+                  hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -388,7 +391,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
               onPressed: () {
                 final measureText = _measureController.text.trim();
                 final contentText = _contentController.text.trim();
-                
+
                 if (measureText.isNotEmpty && contentText.isNotEmpty) {
                   final measure = int.tryParse(measureText);
                   if (measure != null && measure > 0) {
@@ -400,7 +403,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                       // 重新排序
                       _notes.sort((a, b) => a.measure.compareTo(b.measure));
                     });
-                    widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
+                    widget.onNotesChanged(
+                        _notes.map((note) => note.toString()).toList());
                     Navigator.of(context).pop();
                   }
                 }
@@ -458,7 +462,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // 新增筆記區域
               Card(
                 color: AppColors.dynamicCard,
@@ -508,7 +512,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               // 筆記列表
               Expanded(
                 child: _notes.isEmpty
@@ -519,14 +523,16 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                             Icon(
                               Icons.music_note_outlined,
                               size: 80,
-                              color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
+                              color: AppColors.dynamicTextLight
+                                  .withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 16),
                             Text(
                               '還沒有任何練習要點',
                               style: TextStyle(
                                 fontSize: 18,
-                                color: AppColors.dynamicTextLight.withValues(alpha: 0.7),
+                                color: AppColors.dynamicTextLight
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -534,7 +540,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                               '開始記錄這首曲子的練習重點吧！',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
+                                color: AppColors.dynamicTextLight
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           ],
@@ -549,7 +556,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                                backgroundColor: AppColors.dynamicPrimary
+                                    .withValues(alpha: 0.1),
                                 child: Text(
                                   '${_notes[index].measure}',
                                   style: TextStyle(
@@ -566,10 +574,13 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                                   fontSize: 16,
                                 ),
                               ),
-                              subtitle: _notes[index].drawing?.isNotEmpty == true
+                              subtitle: _notes[index].drawing?.isNotEmpty ==
+                                      true
                                   ? Row(
                                       children: [
-                                        Icon(Icons.brush, size: 14, color: AppColors.dynamicPrimary),
+                                        Icon(Icons.brush,
+                                            size: 14,
+                                            color: AppColors.dynamicPrimary),
                                         const SizedBox(width: 4),
                                         Text(
                                           '包含音樂畫面',
@@ -587,19 +598,23 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                                   IconButton(
                                     icon: Icon(
                                       Icons.brush_outlined,
-                                      color: _notes[index].drawing?.isNotEmpty == true
-                                          ? AppColors.dynamicPrimary
-                                          : Colors.grey,
+                                      color:
+                                          _notes[index].drawing?.isNotEmpty ==
+                                                  true
+                                              ? AppColors.dynamicPrimary
+                                              : Colors.grey,
                                     ),
                                     onPressed: () => _showDrawingDialog(index),
                                     tooltip: '編輯音樂畫面',
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.edit_outlined, color: AppColors.dynamicPrimary),
+                                    icon: Icon(Icons.edit_outlined,
+                                        color: AppColors.dynamicPrimary),
                                     onPressed: () => _editNote(index),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.red),
                                     onPressed: () => _deleteNote(index),
                                   ),
                                 ],

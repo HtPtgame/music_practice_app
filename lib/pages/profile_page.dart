@@ -24,7 +24,8 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               const Icon(Icons.person_outline, size: 100, color: Colors.grey),
               const SizedBox(height: 24),
-              const Text('請先登入', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('請先登入',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => context.push('/login'),
@@ -65,10 +66,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 16),
                 Text(
                   user.displayName ?? user.username,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                Text('@${user.username}', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                Text('@${user.username}',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600])),
               ],
             ),
           ),
@@ -80,7 +83,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ListTile(
             leading: const Icon(Icons.calendar_today),
             title: const Text('註冊日期'),
-            subtitle: Text('${user.createdAt.year}/${user.createdAt.month}/${user.createdAt.day}'),
+            subtitle: Text(
+                '${user.createdAt.year}/${user.createdAt.month}/${user.createdAt.day}'),
           ),
           const Divider(),
           ListTile(
@@ -125,7 +129,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           TextButton(
             onPressed: () async {
-              await authService.updateProfile(displayName: controller.text.trim());
+              await authService.updateProfile(
+                  displayName: controller.text.trim());
               if (mounted) {
                 Navigator.pop(context);
                 setState(() {});
@@ -188,7 +193,8 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           TextButton(
             onPressed: () async {
-              if (newPasswordController.text != confirmPasswordController.text) {
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('新密碼不一致')),
                 );
@@ -293,13 +299,12 @@ class _ProfilePageState extends State<ProfilePage> {
               try {
                 // Google 用戶不需要密碼,Email 用戶需要密碼
                 await authService.deleteAccount(
-                  isGoogleUser ? null : passwordController.text
-                );
-                
+                    isGoogleUser ? null : passwordController.text);
+
                 if (mounted) {
                   // 先關閉對話框
                   Navigator.pop(context);
-                  
+
                   // 等待下一幀再執行導航,避免 Navigator 鎖定衝突
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) {
@@ -318,7 +323,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('刪除失敗: ${e.toString().replaceFirst("Exception: ", "")}'),
+                      content: Text(
+                          '刪除失敗: ${e.toString().replaceFirst("Exception: ", "")}'),
                       backgroundColor: Colors.red,
                       duration: const Duration(seconds: 4),
                     ),

@@ -70,7 +70,8 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
 
     try {
       // 刪除選中的檔案
-      final indicesToDelete = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
+      final indicesToDelete = _selectedIndices.toList()
+        ..sort((a, b) => b.compareTo(a));
       for (final index in indicesToDelete) {
         final sheet = _sheets[index];
         final file = File(sheet.filePath);
@@ -79,9 +80,9 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
         }
         _sheets.removeAt(index);
       }
-      
+
       await _saveSheets();
-      
+
       setState(() {
         _selectedIndices.clear();
         _isEditMode = false;
@@ -103,10 +104,10 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
 
   Future<void> _loadSheets() async {
     setState(() => _isLoading = true);
-    
+
     final prefs = await SharedPreferences.getInstance();
     final sheetsJson = prefs.getStringList('annotated_sheets') ?? [];
-    
+
     setState(() {
       _sheets = sheetsJson
           .map((json) => AnnotatedSheet.fromJsonString(json))
@@ -124,7 +125,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays == 0) {
       return '今天 ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
@@ -160,7 +161,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
       final extension = file.extension ?? 'pdf';
       final newFileName = 'sheet_$timestamp.$extension';
       final newPath = '${sheetsDir.path}/$newFileName';
-      
+
       await File(file.path!).copy(newPath);
 
       // 創建新的標註譜面
@@ -173,7 +174,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
       setState(() {
         _sheets.insert(0, sheet);
       });
-      
+
       await _saveSheets();
 
       if (mounted) {
@@ -222,7 +223,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
       setState(() {
         _sheets.removeWhere((s) => s.sheetId == sheet.sheetId);
       });
-      
+
       await _saveSheets();
 
       if (mounted) {
@@ -343,7 +344,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                   itemBuilder: (context, index) {
                     final sheet = _sheets[index];
                     final isPdf = sheet.filePath.endsWith('.pdf');
-                    
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
@@ -376,7 +377,8 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                 if (_isEditMode) ...[
                                   Checkbox(
                                     value: _selectedIndices.contains(index),
-                                    onChanged: (value) => _toggleSelection(index),
+                                    onChanged: (value) =>
+                                        _toggleSelection(index),
                                     activeColor: AppColors.dynamicPrimary,
                                   ),
                                   const SizedBox(width: 8),
@@ -390,23 +392,28 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                       colors: [
-                                        AppColors.dynamicPrimary.withOpacity(0.9),
-                                        AppColors.dynamicAccent.withOpacity(0.7),
+                                        AppColors.dynamicPrimary
+                                            .withOpacity(0.9),
+                                        AppColors.dynamicAccent
+                                            .withOpacity(0.7),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: AppColors.dynamicPrimary.withOpacity(0.3),
+                                      color: AppColors.dynamicPrimary
+                                          .withOpacity(0.3),
                                       width: 2,
                                     ),
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(10),
-                                    child: !isPdf && File(sheet.filePath).existsSync()
+                                    child: !isPdf &&
+                                            File(sheet.filePath).existsSync()
                                         ? Image.file(
                                             File(sheet.filePath),
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
                                               return Icon(
                                                 Icons.image,
                                                 color: Colors.white,
@@ -415,7 +422,9 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                             },
                                           )
                                         : Icon(
-                                            isPdf ? Icons.picture_as_pdf : Icons.image,
+                                            isPdf
+                                                ? Icons.picture_as_pdf
+                                                : Icons.image,
                                             color: Colors.white,
                                             size: 36,
                                           ),
@@ -425,7 +434,8 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                 // 檔案資訊
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         sheet.fileName,
@@ -446,8 +456,10 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: AppColors.dynamicPrimary.withOpacity(0.15),
-                                              borderRadius: BorderRadius.circular(6),
+                                              color: AppColors.dynamicPrimary
+                                                  .withOpacity(0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
@@ -455,14 +467,16 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                                 Icon(
                                                   Icons.bookmark,
                                                   size: 14,
-                                                  color: AppColors.dynamicPrimary,
+                                                  color:
+                                                      AppColors.dynamicPrimary,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   '${sheet.markers.length} 個標記',
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: AppColors.dynamicPrimary,
+                                                    color: AppColors
+                                                        .dynamicPrimary,
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
@@ -471,7 +485,9 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                           ),
                                           const SizedBox(width: 8),
                                           Icon(
-                                            isPdf ? Icons.picture_as_pdf : Icons.image,
+                                            isPdf
+                                                ? Icons.picture_as_pdf
+                                                : Icons.image,
                                             size: 14,
                                             color: Colors.grey[500],
                                           ),
@@ -514,11 +530,13 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                     );
                   },
                 ),
-      floatingActionButton: _isEditMode ? null : FloatingActionButton(
-        onPressed: _pickAndAddSheet,
-        backgroundColor: AppColors.dynamicPrimary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: _isEditMode
+          ? null
+          : FloatingActionButton(
+              onPressed: _pickAndAddSheet,
+              backgroundColor: AppColors.dynamicPrimary,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
     );
   }
 }

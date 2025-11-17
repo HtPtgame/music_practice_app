@@ -59,18 +59,20 @@ class FirebaseAuthService extends ChangeNotifier {
   }
 
   /// 使用 Email 和密碼註冊
+  /// [importLocalData] 是否導入訪客模式的本地數據（打卡記錄、練習時間）
   Future<bool> register({
     required String email,
     required String username,
     required String password,
     String? displayName,
+    bool importLocalData = false,
   }) async {
     try {
       // 檢查 Email 是否已被使用 (包含 Google 登入的帳號)
       if (await _emailExists(email)) {
         throw Exception('此 Email 已被使用,可能已用 Google 帳號註冊');
       }
-      
+
       // 檢查使用者名稱是否已存在
       if (await _usernameExists(username)) {
         throw Exception('使用者名稱已被使用');
@@ -92,6 +94,9 @@ class FirebaseAuthService extends ChangeNotifier {
         await firebaseUser.updateDisplayName(displayName);
       }
 
+      // 讀取本地數據（如果需要導入）
+      final localData = importLocalData ? await _loadLocalGuestData() : null;
+
       // 建立 Firestore 使用者文件
       final user = app_user.User(
         id: firebaseUser.uid,
@@ -100,16 +105,23 @@ class FirebaseAuthService extends ChangeNotifier {
         displayName: displayName,
         createdAt: DateTime.now(),
         lastLoginAt: DateTime.now(),
-        // 初始化預設數據
-        checkInDates: [], // 打卡 0 天
-        practiceTime: {}, // 練習時間 0 秒
+        // 根據 importLocalData 決定初始數據
+        checkInDates: importLocalData && localData != null
+            ? (localData['checkInDates'] as List<DateTime>)
+            : [], // 打卡 0 天
+        practiceTime: importLocalData && localData != null
+            ? (localData['practiceTime'] as Map<String, int>)
+            : {}, // 練習時間 0 秒
+        unlockedAnimals: importLocalData && localData != null
+            ? (localData['unlockedAnimals'] as Map<String, String>)
+            : {}, // 動物解鎖 0 隻
         settings: {
           // 音量設定預設值
-          'masterVolume': 0.8,      // 主音量 80%
-          'midiVolume': 0.7,        // MIDI 音量 70%
-          'recordingVolume': 0.9,   // 錄音音量 90%
-          'metronomeVolume': 0.6,   // 節拍器音量 60%
-          'soundEnabled': true,     // 音效開啟
+          'masterVolume': 0.8, // 主音量 80%
+          'midiVolume': 0.7, // MIDI 音量 70%
+          'recordingVolume': 0.9, // 錄音音量 90%
+          'metronomeVolume': 0.6, // 節拍器音量 60%
+          'soundEnabled': true, // 音效開啟
           'vibrationEnabled': true, // 震動開啟
           'selectedLanguage': 'zh_TW', // 預設繁體中文
         },
@@ -118,7 +130,7 @@ class FirebaseAuthService extends ChangeNotifier {
 
       await _saveUserToFirestore(user);
       _currentUser = user;
-      
+
       // ✅ 同步預設數據到本地 SharedPreferences
       await _syncCloudDataToLocal(user);
       _hasLoadedData = true;
@@ -155,7 +167,7 @@ class FirebaseAuthService extends ChangeNotifier {
       // 載入使用者資料並更新最後登入時間
       // 登入時同步雲端數據到本地
       await _loadUserData(firebaseUser.uid, syncToLocal: true);
-      
+
       if (_currentUser != null) {
         _currentUser = _currentUser!.copyWith(lastLoginAt: DateTime.now());
         await _saveUserToFirestore(_currentUser!);
@@ -172,11 +184,13 @@ class FirebaseAuthService extends ChangeNotifier {
   }
 
   /// Google 登入
-  Future<bool> signInWithGoogle() async {
+  /// 使用 Google 帳號登入
+  /// [importLocalData] 僅在新用戶註冊時有效，是否導入訪客模式的本地數據
+  Future<bool> signInWithGoogle({bool importLocalData = false}) async {
     try {
       // 先登出 Google,確保每次都顯示帳號選擇器
       await _googleSignIn.signOut();
-      
+
       // 觸發 Google 登入流程
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -186,7 +200,8 @@ class FirebaseAuthService extends ChangeNotifier {
       }
 
       // 取得認證詳情
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       // 建立 Firebase 憑證
       final credential = firebase_auth.GoogleAuthProvider.credential(
@@ -204,6 +219,9 @@ class FirebaseAuthService extends ChangeNotifier {
 
       // 檢查是否為新使用者
       if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+        // 讀取本地數據（如果需要導入）
+        final localData = importLocalData ? await _loadLocalGuestData() : null;
+
         // 新使用者，建立 Firestore 文件
         final username = _generateUsernameFromEmail(firebaseUser.email ?? '');
         final user = app_user.User(
@@ -214,16 +232,23 @@ class FirebaseAuthService extends ChangeNotifier {
           avatarUrl: firebaseUser.photoURL,
           createdAt: DateTime.now(),
           lastLoginAt: DateTime.now(),
-          // 初始化預設數據
-          checkInDates: [], // 打卡 0 天
-          practiceTime: {}, // 練習時間 0 秒
+          // 根據 importLocalData 決定初始數據
+          checkInDates: importLocalData && localData != null
+              ? (localData['checkInDates'] as List<DateTime>)
+              : [], // 打卡 0 天
+          practiceTime: importLocalData && localData != null
+              ? (localData['practiceTime'] as Map<String, int>)
+              : {}, // 練習時間 0 秒
+          unlockedAnimals: importLocalData && localData != null
+              ? (localData['unlockedAnimals'] as Map<String, String>)
+              : {}, // 動物解鎖 0 隻
           settings: {
             // 音量設定預設值
-            'masterVolume': 0.8,      // 主音量 80%
-            'midiVolume': 0.7,        // MIDI 音量 70%
-            'recordingVolume': 0.9,   // 錄音音量 90%
-            'metronomeVolume': 0.6,   // 節拍器音量 60%
-            'soundEnabled': true,     // 音效開啟
+            'masterVolume': 0.8, // 主音量 80%
+            'midiVolume': 0.7, // MIDI 音量 70%
+            'recordingVolume': 0.9, // 錄音音量 90%
+            'metronomeVolume': 0.6, // 節拍器音量 60%
+            'soundEnabled': true, // 音效開啟
             'vibrationEnabled': true, // 震動開啟
             'selectedLanguage': 'zh_TW', // 預設繁體中文
           },
@@ -231,14 +256,14 @@ class FirebaseAuthService extends ChangeNotifier {
         );
         await _saveUserToFirestore(user);
         _currentUser = user;
-        
+
         // ✅ 同步預設數據到本地 SharedPreferences
         await _syncCloudDataToLocal(user);
         _hasLoadedData = true;
       } else {
         // 現有使用者，載入資料並同步到本地
         await _loadUserData(firebaseUser.uid, syncToLocal: true);
-        
+
         if (_currentUser != null) {
           _currentUser = _currentUser!.copyWith(lastLoginAt: DateTime.now());
           await _saveUserToFirestore(_currentUser!);
@@ -253,7 +278,7 @@ class FirebaseAuthService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Google 登入失敗: $e');
       // 如果不是用戶取消,則拋出錯誤
-      if (e.toString().contains('sign_in_canceled') || 
+      if (e.toString().contains('sign_in_canceled') ||
           e.toString().contains('popup_closed_by_user')) {
         return false;
       }
@@ -267,6 +292,35 @@ class FirebaseAuthService extends ChangeNotifier {
     await _googleSignIn.signOut();
     _currentUser = null;
     _hasLoadedData = false; // 重置標記
+
+    // 清除本地 SharedPreferences 中的所有用戶數據（恢復到初始狀態）
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // 清除打卡記錄
+      await prefs.remove('checked_dates');
+      await prefs.remove('consecutive_days');
+
+      // 清除練習數據
+      await prefs.remove('practice_data');
+      await prefs.remove('last_practice_clean_date');
+
+      // 清除動物解鎖數據
+      await prefs.remove('unlocked_animals');
+
+      // 清除個人化設定（恢復到預設值）
+      await prefs.remove('master_volume');
+      await prefs.remove('midi_volume');
+      await prefs.remove('recording_volume');
+      await prefs.remove('metronome_volume');
+      await prefs.remove('sound_enabled');
+      await prefs.remove('vibration_enabled');
+      await prefs.remove('selected_language');
+
+      debugPrint('已清除所有本地用戶數據，恢復到初始狀態');
+    } catch (e) {
+      debugPrint('清除本地數據失敗: $e');
+    }
+
     notifyListeners();
   }
 
@@ -336,8 +390,9 @@ class FirebaseAuthService extends ChangeNotifier {
     try {
       // 檢查用戶的登入方式
       final providerData = firebaseUser.providerData;
-      bool isGoogleUser = providerData.any((info) => info.providerId == 'google.com');
-      
+      bool isGoogleUser =
+          providerData.any((info) => info.providerId == 'google.com');
+
       if (isGoogleUser) {
         // Google 登入用戶:需要重新進行 Google 認證
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -345,7 +400,8 @@ class FirebaseAuthService extends ChangeNotifier {
           throw Exception('需要重新登入 Google 帳號才能刪除');
         }
 
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
         final credential = firebase_auth.GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
@@ -357,7 +413,7 @@ class FirebaseAuthService extends ChangeNotifier {
         if (password == null || password.isEmpty) {
           throw Exception('請輸入密碼');
         }
-        
+
         if (firebaseUser.email == null) {
           throw Exception('無法取得帳號郵件');
         }
@@ -391,8 +447,9 @@ class FirebaseAuthService extends ChangeNotifier {
   bool isGoogleSignIn() {
     final firebaseUser = _auth.currentUser;
     if (firebaseUser == null) return false;
-    
-    return firebaseUser.providerData.any((info) => info.providerId == 'google.com');
+
+    return firebaseUser.providerData
+        .any((info) => info.providerId == 'google.com');
   }
 
   /// 發送密碼重置郵件
@@ -437,9 +494,19 @@ class FirebaseAuthService extends ChangeNotifier {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         final data = doc.data()!;
-        _currentUser = app_user.User.fromJson(data);
         
-        // 只在登入時同步雲端數據到本地 SharedPreferences
+        // ✅ 檢查並補全缺失的資料欄位
+        final isUpdated = await _ensureDataIntegrity(uid, data);
+        
+        // 如果有更新，重新讀取最新數據
+        if (isUpdated) {
+          final updatedDoc = await _firestore.collection('users').doc(uid).get();
+          _currentUser = app_user.User.fromJson(updatedDoc.data()!);
+        } else {
+          _currentUser = app_user.User.fromJson(data);
+        }
+
+        // 只在登入時同步雲端數據到本地 SharedPreferences（直接覆蓋）
         if (syncToLocal) {
           await _syncCloudDataToLocal(_currentUser!);
           _hasLoadedData = true; // 標記已同步
@@ -451,24 +518,117 @@ class FirebaseAuthService extends ChangeNotifier {
     }
   }
 
-  /// 將雲端數據同步到本地 SharedPreferences
+  /// 檢查並補全雲端資料的完整性
+  /// 返回 true 表示有更新資料
+  Future<bool> _ensureDataIntegrity(String uid, Map<String, dynamic> data) async {
+    final Map<String, dynamic> updates = {};
+    bool needsUpdate = false;
+
+    // 檢查 checkInDates（打卡記錄）
+    if (!data.containsKey('checkInDates')) {
+      updates['checkInDates'] = [];
+      needsUpdate = true;
+      debugPrint('⚠️ 補全缺失欄位: checkInDates');
+    }
+
+    // 檢查 practiceTime（練習時間）
+    if (!data.containsKey('practiceTime')) {
+      updates['practiceTime'] = {};
+      needsUpdate = true;
+      debugPrint('⚠️ 補全缺失欄位: practiceTime');
+    }
+
+    // 檢查 unlockedAnimals（動物解鎖記錄）
+    if (!data.containsKey('unlockedAnimals')) {
+      updates['unlockedAnimals'] = {};
+      needsUpdate = true;
+      debugPrint('⚠️ 補全缺失欄位: unlockedAnimals');
+    }
+
+    // 檢查 settings（個人化設定）
+    if (!data.containsKey('settings')) {
+      updates['settings'] = {
+        'masterVolume': 0.8,
+        'midiVolume': 0.7,
+        'recordingVolume': 0.9,
+        'metronomeVolume': 0.6,
+        'soundEnabled': true,
+        'vibrationEnabled': true,
+        'selectedLanguage': 'zh_TW',
+      };
+      needsUpdate = true;
+      debugPrint('⚠️ 補全缺失欄位: settings (使用預設值)');
+    } else {
+      // 檢查 settings 內部的子欄位
+      final settings = data['settings'] as Map<String, dynamic>;
+      final settingsUpdates = <String, dynamic>{};
+      
+      if (!settings.containsKey('masterVolume')) settingsUpdates['masterVolume'] = 0.8;
+      if (!settings.containsKey('midiVolume')) settingsUpdates['midiVolume'] = 0.7;
+      if (!settings.containsKey('recordingVolume')) settingsUpdates['recordingVolume'] = 0.9;
+      if (!settings.containsKey('metronomeVolume')) settingsUpdates['metronomeVolume'] = 0.6;
+      if (!settings.containsKey('soundEnabled')) settingsUpdates['soundEnabled'] = true;
+      if (!settings.containsKey('vibrationEnabled')) settingsUpdates['vibrationEnabled'] = true;
+      if (!settings.containsKey('selectedLanguage')) settingsUpdates['selectedLanguage'] = 'zh_TW';
+      
+      if (settingsUpdates.isNotEmpty) {
+        final updatedSettings = Map<String, dynamic>.from(settings)..addAll(settingsUpdates);
+        updates['settings'] = updatedSettings;
+        needsUpdate = true;
+        debugPrint('⚠️ 補全 settings 缺失的子欄位: ${settingsUpdates.keys.join(", ")}');
+      }
+    }
+
+    // 檢查 musicNotes（文字筆記）
+    if (!data.containsKey('musicNotes')) {
+      updates['musicNotes'] = [];
+      needsUpdate = true;
+      debugPrint('⚠️ 補全缺失欄位: musicNotes');
+    }
+
+    // 如果有缺失欄位，更新到 Firestore
+    if (needsUpdate) {
+      try {
+        await _firestore.collection('users').doc(uid).update(updates);
+        debugPrint('✅ 已補全雲端資料的缺失欄位: ${updates.keys.join(", ")}');
+        return true;
+      } catch (e) {
+        debugPrint('❌ 補全資料欄位失敗: $e');
+        return false;
+      }
+    }
+
+    debugPrint('✅ 雲端資料完整，無需補全');
+    return false;
+  }
+
+  /// 將雲端數據同步到本地 SharedPreferences（直接覆蓋，訪客模式數據會遺失）
   Future<void> _syncCloudDataToLocal(app_user.User user) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
-      // ✅ 同步打卡記錄 (包含空列表,確保新用戶也有初始化)
-      final checkInDatesStr = user.checkInDates.map((date) =>
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'
-      ).toList();
+
+      // ✅ 同步打卡記錄（直接覆蓋本地數據）
+      final checkInDatesStr = user.checkInDates
+          .map((date) =>
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}')
+          .toList();
       await prefs.setStringList('checked_dates', checkInDatesStr);
-      
+
       // 計算連續打卡天數
       int consecutiveDays = 0;
       if (checkInDatesStr.isNotEmpty) {
         final today = DateTime.now();
-        for (int i = 0; i < 365; i++) {
+        final todayStr =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+        final hasCheckedToday = checkInDatesStr.contains(todayStr);
+
+        // 根據今天是否打卡決定起始日
+        final startDay = hasCheckedToday ? 0 : 1;
+
+        for (int i = startDay; i < 365; i++) {
           final date = today.subtract(Duration(days: i));
-          final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+          final dateStr =
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
           if (checkInDatesStr.contains(dateStr)) {
             consecutiveDays++;
           } else {
@@ -478,26 +638,39 @@ class FirebaseAuthService extends ChangeNotifier {
       }
       await prefs.setInt('consecutive_days', consecutiveDays);
       debugPrint('已同步打卡記錄到本地: ${checkInDatesStr.length} 天');
-      
-      // ✅ 同步練習時間 (包含空 Map,確保新用戶也有初始化)
-      // 雲端與本地統一格式: 秒數 (完全精確)
+
+      // ✅ 同步練習時間（直接覆蓋本地數據）
       final practiceDataJson = jsonEncode(user.practiceTime);
       await prefs.setString('practice_data', practiceDataJson);
       debugPrint('已同步練習時間到本地: ${user.practiceTime.length} 筆記錄');
-      
+
+      // ✅ 同步動物解鎖數據（直接覆蓋本地數據）
+      if (user.unlockedAnimals.isNotEmpty) {
+        final unlockedJson = jsonEncode(user.unlockedAnimals);
+        await prefs.setString('unlocked_animals', unlockedJson);
+        debugPrint('已同步動物解鎖數據到本地: ${user.unlockedAnimals.length} 隻');
+      }
+
       // 同步個人化設定
       if (user.settings.isNotEmpty) {
         final settings = user.settings;
-        await prefs.setDouble('master_volume', (settings['masterVolume'] as num?)?.toDouble() ?? 0.8);
-        await prefs.setDouble('midi_volume', (settings['midiVolume'] as num?)?.toDouble() ?? 0.7);
-        await prefs.setDouble('recording_volume', (settings['recordingVolume'] as num?)?.toDouble() ?? 0.9);
-        await prefs.setDouble('metronome_volume', (settings['metronomeVolume'] as num?)?.toDouble() ?? 0.6);
-        await prefs.setBool('sound_enabled', settings['soundEnabled'] as bool? ?? true);
-        await prefs.setBool('vibration_enabled', settings['vibrationEnabled'] as bool? ?? true);
-        await prefs.setString('selected_language', settings['selectedLanguage'] as String? ?? 'zh_TW');
+        await prefs.setDouble('master_volume',
+            (settings['masterVolume'] as num?)?.toDouble() ?? 0.8);
+        await prefs.setDouble(
+            'midi_volume', (settings['midiVolume'] as num?)?.toDouble() ?? 0.7);
+        await prefs.setDouble('recording_volume',
+            (settings['recordingVolume'] as num?)?.toDouble() ?? 0.9);
+        await prefs.setDouble('metronome_volume',
+            (settings['metronomeVolume'] as num?)?.toDouble() ?? 0.6);
+        await prefs.setBool(
+            'sound_enabled', settings['soundEnabled'] as bool? ?? true);
+        await prefs.setBool(
+            'vibration_enabled', settings['vibrationEnabled'] as bool? ?? true);
+        await prefs.setString('selected_language',
+            settings['selectedLanguage'] as String? ?? 'zh_TW');
         debugPrint('已同步個人化設定到本地');
       }
-      
+
       debugPrint('雲端數據已完整同步到本地');
     } catch (e) {
       debugPrint('同步雲端數據到本地失敗: $e');
@@ -505,6 +678,64 @@ class FirebaseAuthService extends ChangeNotifier {
   }
 
   /// 儲存使用者資料到 Firestore
+  /// 讀取本地訪客模式的數據（用於註冊時導入）
+  Future<Map<String, dynamic>> _loadLocalGuestData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // 讀取打卡記錄
+      final localCheckInDates = prefs.getStringList('checked_dates') ?? [];
+      final checkInDates = localCheckInDates.map((dateStr) {
+        final parts = dateStr.split('-');
+        return DateTime(
+            int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      }).toList();
+
+      // 讀取練習時間
+      final localPracticeDataJson = prefs.getString('practice_data');
+      Map<String, int> practiceTime = {};
+      if (localPracticeDataJson != null && localPracticeDataJson.isNotEmpty) {
+        try {
+          practiceTime =
+              Map<String, int>.from(jsonDecode(localPracticeDataJson));
+        } catch (e) {
+          debugPrint('解析本地練習數據失敗: $e');
+        }
+      }
+
+      // 讀取動物解鎖數據
+      final localUnlockedJson = prefs.getString('unlocked_animals');
+      Map<String, String> unlockedAnimals = {};
+      if (localUnlockedJson != null && localUnlockedJson.isNotEmpty) {
+        try {
+          final decoded =
+              Map<String, dynamic>.from(jsonDecode(localUnlockedJson));
+          unlockedAnimals =
+              decoded.map((key, value) => MapEntry(key, value as String));
+        } catch (e) {
+          debugPrint('解析本地動物解鎖數據失敗: $e');
+        }
+      }
+
+      return {
+        'checkInDates': checkInDates,
+        'practiceTime': practiceTime,
+        'unlockedAnimals': unlockedAnimals,
+        'hasData': checkInDates.isNotEmpty ||
+            practiceTime.isNotEmpty ||
+            unlockedAnimals.isNotEmpty,
+      };
+    } catch (e) {
+      debugPrint('讀取本地數據失敗: $e');
+      return {
+        'checkInDates': <DateTime>[],
+        'practiceTime': <String, int>{},
+        'unlockedAnimals': <String, String>{},
+        'hasData': false,
+      };
+    }
+  }
+
   Future<void> _saveUserToFirestore(app_user.User user) async {
     await _firestore.collection('users').doc(user.id).set(
           user.toJson(),
@@ -541,7 +772,8 @@ class FirebaseAuthService extends ChangeNotifier {
   }
 
   /// 處理 Firebase Auth 異常
-  Exception _handleFirebaseAuthException(firebase_auth.FirebaseAuthException e) {
+  Exception _handleFirebaseAuthException(
+      firebase_auth.FirebaseAuthException e) {
     String message;
     switch (e.code) {
       case 'email-already-in-use':
@@ -585,7 +817,8 @@ class FirebaseAuthService extends ChangeNotifier {
         break;
       default:
         // 移除技術性的前綴，只保留錯誤訊息
-        message = e.message?.replaceAll(RegExp(r'^\[.*?\]\s*'), '') ?? '登入時發生錯誤，請稍後再試';
+        message = e.message?.replaceAll(RegExp(r'^\[.*?\]\s*'), '') ??
+            '登入時發生錯誤，請稍後再試';
         break;
     }
     return Exception(message);

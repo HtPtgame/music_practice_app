@@ -121,7 +121,8 @@ class UserDataSyncService extends ChangeNotifier {
     final user = _authService.currentUser;
     if (user == null) return;
 
-    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dateKey =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final practiceTime = Map<String, int>.from(user.practiceTime);
     practiceTime[dateKey] = (practiceTime[dateKey] ?? 0) + minutes;
 
@@ -165,6 +166,34 @@ class UserDataSyncService extends ChangeNotifier {
     musicNotes.removeWhere((n) => n.id == noteId);
 
     await syncMusicNotes(musicNotes);
+  }
+
+  /// 同步已解鎖動物到雲端
+  Future<void> syncUnlockedAnimals(Map<String, String> unlockedAnimals) async {
+    final user = _authService.currentUser;
+    if (user == null) {
+      debugPrint('用戶未登入，跳過動物解鎖同步');
+      return;
+    }
+
+    if (_isSyncing) {
+      debugPrint('正在同步中，跳過本次動物解鎖同步請求');
+      return;
+    }
+
+    _isSyncing = true;
+
+    try {
+      await _firestore.collection('users').doc(user.id).update({
+        'unlockedAnimals': unlockedAnimals,
+      });
+      debugPrint('✅ 成功同步動物解鎖到雲端: ${unlockedAnimals.length} 隻');
+    } catch (e) {
+      debugPrint('同步動物解鎖到雲端失敗: $e');
+      rethrow;
+    } finally {
+      _isSyncing = false;
+    }
   }
 
   /// 從 Firestore 載入使用者數據

@@ -65,7 +65,7 @@ class _NotePageState extends State<NotePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? musicSheetsJson = prefs.getString('music_sheets');
-      
+
       if (musicSheetsJson != null && musicSheetsJson.isNotEmpty) {
         final List<dynamic> jsonList = jsonDecode(musicSheetsJson);
         setState(() {
@@ -108,7 +108,7 @@ class _NotePageState extends State<NotePage> {
 
   void _showAddMusicSheetDialog() {
     final TextEditingController nameController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -199,7 +199,8 @@ class _NotePageState extends State<NotePage> {
             TextButton(
               onPressed: () async {
                 // 從大到小排序索引,避免刪除時索引錯亂
-                final sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
+                final sortedIndices = _selectedIndices.toList()
+                  ..sort((a, b) => b.compareTo(a));
                 setState(() {
                   for (final index in sortedIndices) {
                     _musicSheets.removeAt(index);
@@ -288,11 +289,13 @@ class _NotePageState extends State<NotePage> {
         ],
       ),
       body: _buildMusicSheetsTab(),
-      floatingActionButton: _isEditMode ? null : FloatingActionButton(
-        onPressed: _showAddMusicSheetDialog,
-        backgroundColor: AppColors.dynamicPrimary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: _isEditMode
+          ? null
+          : FloatingActionButton(
+              onPressed: _showAddMusicSheetDialog,
+              backgroundColor: AppColors.dynamicPrimary,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
     );
   }
 
@@ -318,7 +321,7 @@ class _NotePageState extends State<NotePage> {
         ),
       );
     }
-    
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: _musicSheets.isEmpty
@@ -355,7 +358,8 @@ class _NotePageState extends State<NotePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.dynamicPrimary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                     ),
                   ),
                 ],
@@ -372,7 +376,7 @@ class _NotePageState extends State<NotePage> {
               itemBuilder: (context, index) {
                 final sheet = _musicSheets[index];
                 final isSelected = _selectedIndices.contains(index);
-                
+
                 return Card(
                   color: AppColors.dynamicCard,
                   elevation: 2,
@@ -430,7 +434,8 @@ class _NotePageState extends State<NotePage> {
                                   '${sheet.notes.length} 條筆記',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.dynamicTextLight.withValues(alpha: 0.8),
+                                    color: AppColors.dynamicTextLight
+                                        .withValues(alpha: 0.8),
                                   ),
                                 ),
                               ),
@@ -446,13 +451,13 @@ class _NotePageState extends State<NotePage> {
                               width: 28,
                               height: 28,
                               decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? AppColors.dynamicPrimary 
+                                color: isSelected
+                                    ? AppColors.dynamicPrimary
                                     : Colors.white,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isSelected 
-                                      ? AppColors.dynamicPrimary 
+                                  color: isSelected
+                                      ? AppColors.dynamicPrimary
                                       : AppColors.dynamicTextLight,
                                   width: 2,
                                 ),

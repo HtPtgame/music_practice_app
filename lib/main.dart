@@ -9,26 +9,26 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 初始化 Firebase
   if (USE_FIREBASE_AUTH) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
   }
-  
+
   // 初始化設定服務
   await SettingsService().initialize();
-  
+
   // 初始化認證服務
   await authService.initialize();
-  
+
   // 鎖定螢幕方向為直立模式，防止旋轉破圖
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(const MyApp());
 }
 
@@ -87,7 +87,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     final themeColors = ThemeManager.instance.currentColors;
-    
+
     return MaterialApp.router(
       title: 'Music Practice App',
       theme: ThemeData(

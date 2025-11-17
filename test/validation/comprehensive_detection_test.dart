@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
 
 /// 🎯 完整音檔檢測測試系統 (2025/10/25)
-/// 
+///
 /// 測試範圍：
 /// - 正確演奏檢測（應該高召回率）
 /// - 錯誤音檔排除（應該低召回率）
@@ -11,7 +11,7 @@ import 'package:music_practice_app/services/audio_analysis/performance_analyzer.
 void main(List<String> args) async {
   final bool verbose = args.contains('--verbose') || args.contains('-v');
   final bool silentMode = !verbose;
-  
+
   print('╔══════════════════════════════════════════════════════════════╗');
   print('║     🎵 音樂練習檢測系統 - 完整檢測測試 (4輪×8音檔)         ║');
   print('╚══════════════════════════════════════════════════════════════╝');
@@ -27,18 +27,58 @@ void main(List<String> args) async {
       'midi': 'assets/test_voice/生日快樂.mid',
       'tests': [
         // 正確演奏（期望高召回率 ≥85%）
-        {'wav': 'assets/test_voice/生日快樂(midi轉檔).wav', 'name': 'MIDI轉檔', 'type': 'correct', 'target': 95.0},
-        {'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav', 'name': '手機錄製', 'type': 'correct', 'target': 85.0},
-        {'wav': 'assets/test_voice/生日快樂(電腦環境錄製).wav', 'name': '電腦錄製', 'type': 'correct', 'target': 85.0},
-        
+        {
+          'wav': 'assets/test_voice/生日快樂(midi轉檔).wav',
+          'name': 'MIDI轉檔',
+          'type': 'correct',
+          'target': 95.0
+        },
+        {
+          'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav',
+          'name': '手機錄製',
+          'type': 'correct',
+          'target': 85.0
+        },
+        {
+          'wav': 'assets/test_voice/生日快樂(電腦環境錄製).wav',
+          'name': '電腦錄製',
+          'type': 'correct',
+          'target': 85.0
+        },
+
         // 錯誤音檔（期望低召回率 ≤30%）
-        {'wav': 'assets/test_voice/小星星(手機環境錄製).wav', 'name': '錯誤:小星星', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav', 'name': '錯誤:柯南', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav', 'name': '錯誤:測試音檔', 'type': 'wrong', 'target': 30.0},
-        
+        {
+          'wav': 'assets/test_voice/小星星(手機環境錄製).wav',
+          'name': '錯誤:小星星',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav',
+          'name': '錯誤:柯南',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav',
+          'name': '錯誤:測試音檔',
+          'type': 'wrong',
+          'target': 30.0
+        },
+
         // 環境噪音（期望極低召回率 ≤5%）
-        {'wav': 'assets/test_voice/環境背景.wav', 'name': '噪音:背景1', 'type': 'noise', 'target': 5.0},
-        {'wav': 'assets/test_voice/環境背景2.wav', 'name': '噪音:背景2', 'type': 'noise', 'target': 5.0},
+        {
+          'wav': 'assets/test_voice/環境背景.wav',
+          'name': '噪音:背景1',
+          'type': 'noise',
+          'target': 5.0
+        },
+        {
+          'wav': 'assets/test_voice/環境背景2.wav',
+          'name': '噪音:背景2',
+          'type': 'noise',
+          'target': 5.0
+        },
       ],
     },
     {
@@ -47,18 +87,58 @@ void main(List<String> args) async {
       'midi': 'assets/test_voice/測試音檔.mid',
       'tests': [
         // 正確演奏
-        {'wav': 'assets/test_voice/測試音檔(midi轉檔).wav', 'name': 'MIDI轉檔', 'type': 'correct', 'target': 95.0},
-        {'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav', 'name': '手機錄製', 'type': 'correct', 'target': 85.0},
-        {'wav': 'assets/test_voice/測試音檔(電腦環境錄製).wav', 'name': '電腦錄製', 'type': 'correct', 'target': 85.0},
-        
+        {
+          'wav': 'assets/test_voice/測試音檔(midi轉檔).wav',
+          'name': 'MIDI轉檔',
+          'type': 'correct',
+          'target': 95.0
+        },
+        {
+          'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav',
+          'name': '手機錄製',
+          'type': 'correct',
+          'target': 85.0
+        },
+        {
+          'wav': 'assets/test_voice/測試音檔(電腦環境錄製).wav',
+          'name': '電腦錄製',
+          'type': 'correct',
+          'target': 85.0
+        },
+
         // 錯誤音檔
-        {'wav': 'assets/test_voice/小星星(手機環境錄製).wav', 'name': '錯誤:小星星', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav', 'name': '錯誤:柯南', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav', 'name': '錯誤:生日快樂', 'type': 'wrong', 'target': 30.0},
-        
+        {
+          'wav': 'assets/test_voice/小星星(手機環境錄製).wav',
+          'name': '錯誤:小星星',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav',
+          'name': '錯誤:柯南',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav',
+          'name': '錯誤:生日快樂',
+          'type': 'wrong',
+          'target': 30.0
+        },
+
         // 環境噪音
-        {'wav': 'assets/test_voice/環境背景.wav', 'name': '噪音:背景1', 'type': 'noise', 'target': 5.0},
-        {'wav': 'assets/test_voice/環境背景2.wav', 'name': '噪音:背景2', 'type': 'noise', 'target': 5.0},
+        {
+          'wav': 'assets/test_voice/環境背景.wav',
+          'name': '噪音:背景1',
+          'type': 'noise',
+          'target': 5.0
+        },
+        {
+          'wav': 'assets/test_voice/環境背景2.wav',
+          'name': '噪音:背景2',
+          'type': 'noise',
+          'target': 5.0
+        },
       ],
     },
     {
@@ -67,18 +147,58 @@ void main(List<String> args) async {
       'midi': 'assets/test_voice/小星星.mid',
       'tests': [
         // 正確演奏
-        {'wav': 'assets/test_voice/小星星(midi轉檔).wav', 'name': 'MIDI轉檔', 'type': 'correct', 'target': 90.0},
-        {'wav': 'assets/test_voice/小星星(手機環境錄製).wav', 'name': '手機錄製', 'type': 'correct', 'target': 80.0},
-        {'wav': 'assets/test_voice/小星星(電腦環境錄製).wav', 'name': '電腦錄製', 'type': 'correct', 'target': 80.0},
-        
+        {
+          'wav': 'assets/test_voice/小星星(midi轉檔).wav',
+          'name': 'MIDI轉檔',
+          'type': 'correct',
+          'target': 90.0
+        },
+        {
+          'wav': 'assets/test_voice/小星星(手機環境錄製).wav',
+          'name': '手機錄製',
+          'type': 'correct',
+          'target': 80.0
+        },
+        {
+          'wav': 'assets/test_voice/小星星(電腦環境錄製).wav',
+          'name': '電腦錄製',
+          'type': 'correct',
+          'target': 80.0
+        },
+
         // 錯誤音檔
-        {'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav', 'name': '錯誤:測試音檔', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav', 'name': '錯誤:柯南', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav', 'name': '錯誤:生日快樂', 'type': 'wrong', 'target': 30.0},
-        
+        {
+          'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav',
+          'name': '錯誤:測試音檔',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav',
+          'name': '錯誤:柯南',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav',
+          'name': '錯誤:生日快樂',
+          'type': 'wrong',
+          'target': 30.0
+        },
+
         // 環境噪音
-        {'wav': 'assets/test_voice/環境背景.wav', 'name': '噪音:背景1', 'type': 'noise', 'target': 5.0},
-        {'wav': 'assets/test_voice/環境背景2.wav', 'name': '噪音:背景2', 'type': 'noise', 'target': 5.0},
+        {
+          'wav': 'assets/test_voice/環境背景.wav',
+          'name': '噪音:背景1',
+          'type': 'noise',
+          'target': 5.0
+        },
+        {
+          'wav': 'assets/test_voice/環境背景2.wav',
+          'name': '噪音:背景2',
+          'type': 'noise',
+          'target': 5.0
+        },
       ],
     },
     {
@@ -87,18 +207,58 @@ void main(List<String> args) async {
       'midi': 'assets/test_voice/名偵探柯南.mid',
       'tests': [
         // 正確演奏
-        {'wav': 'assets/test_voice/名偵探柯南(midi轉檔).wav', 'name': 'MIDI轉檔', 'type': 'correct', 'target': 85.0},
-        {'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav', 'name': '手機錄製', 'type': 'correct', 'target': 75.0},
-        {'wav': 'assets/test_voice/名偵探柯南(電腦環境錄製).wav', 'name': '電腦錄製', 'type': 'correct', 'target': 75.0},
-        
+        {
+          'wav': 'assets/test_voice/名偵探柯南(midi轉檔).wav',
+          'name': 'MIDI轉檔',
+          'type': 'correct',
+          'target': 85.0
+        },
+        {
+          'wav': 'assets/test_voice/名偵探柯南(手機環境錄製).wav',
+          'name': '手機錄製',
+          'type': 'correct',
+          'target': 75.0
+        },
+        {
+          'wav': 'assets/test_voice/名偵探柯南(電腦環境錄製).wav',
+          'name': '電腦錄製',
+          'type': 'correct',
+          'target': 75.0
+        },
+
         // 錯誤音檔
-        {'wav': 'assets/test_voice/小星星(手機環境錄製).wav', 'name': '錯誤:小星星', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav', 'name': '錯誤:測試音檔', 'type': 'wrong', 'target': 30.0},
-        {'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav', 'name': '錯誤:生日快樂', 'type': 'wrong', 'target': 30.0},
-        
+        {
+          'wav': 'assets/test_voice/小星星(手機環境錄製).wav',
+          'name': '錯誤:小星星',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/測試音檔(手機環境錄製).wav',
+          'name': '錯誤:測試音檔',
+          'type': 'wrong',
+          'target': 30.0
+        },
+        {
+          'wav': 'assets/test_voice/生日快樂(手機環境錄製).wav',
+          'name': '錯誤:生日快樂',
+          'type': 'wrong',
+          'target': 30.0
+        },
+
         // 環境噪音
-        {'wav': 'assets/test_voice/環境背景.wav', 'name': '噪音:背景1', 'type': 'noise', 'target': 5.0},
-        {'wav': 'assets/test_voice/環境背景2.wav', 'name': '噪音:背景2', 'type': 'noise', 'target': 5.0},
+        {
+          'wav': 'assets/test_voice/環境背景.wav',
+          'name': '噪音:背景1',
+          'type': 'noise',
+          'target': 5.0
+        },
+        {
+          'wav': 'assets/test_voice/環境背景2.wav',
+          'name': '噪音:背景2',
+          'type': 'noise',
+          'target': 5.0
+        },
       ],
     },
   ];
@@ -190,7 +350,7 @@ Future<Map<String, dynamic>?> _runTest(
     print('    ⏭️  $testName - MIDI檔案不存在');
     return null;
   }
-  
+
   if (!File(wavPath).existsSync()) {
     print('    ⏭️  $testName - 音檔不存在');
     return null;
@@ -257,7 +417,7 @@ void _printResult(Map<String, dynamic> result) {
   final statusIcon = passed ? '✅' : '❌';
   final recallStr = (recall * 100).toStringAsFixed(1).padLeft(5);
   final targetStr = target.toStringAsFixed(0).padLeft(2);
-  
+
   String expectation = '';
   if (type == 'correct') {
     expectation = '≥$targetStr%';
@@ -265,31 +425,40 @@ void _printResult(Map<String, dynamic> result) {
     expectation = '≤$targetStr%';
   }
 
-  print('    $statusIcon ${name.padRight(16)} │ 召回率:$recallStr% (目標$expectation) │ $correct/$total');
+  print(
+      '    $statusIcon ${name.padRight(16)} │ 召回率:$recallStr% (目標$expectation) │ $correct/$total');
 }
 
 /// 打印總結報告
-void _printSummaryReport(List<Map<String, dynamic>> allResults, int passed, int total) {
+void _printSummaryReport(
+    List<Map<String, dynamic>> allResults, int passed, int total) {
   print('\n╔══════════════════════════════════════════════════════════════╗');
   print('║                    📊 完整測試總結報告                       ║');
   print('╚══════════════════════════════════════════════════════════════╝\n');
 
   // 按類型分組統計
-  final correctResults = allResults.where((r) => r['type'] == 'correct').toList();
+  final correctResults =
+      allResults.where((r) => r['type'] == 'correct').toList();
   final wrongResults = allResults.where((r) => r['type'] == 'wrong').toList();
   final noiseResults = allResults.where((r) => r['type'] == 'noise').toList();
 
-  print('📊 總體通過率: $passed/$total (${(passed / total * 100).toStringAsFixed(1)}%)\n');
+  print(
+      '📊 總體通過率: $passed/$total (${(passed / total * 100).toStringAsFixed(1)}%)\n');
 
   // 正確演奏統計
   if (correctResults.isNotEmpty) {
-    final correctPassed = correctResults.where((r) => r['passed'] as bool).length;
-    final avgRecall = correctResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) / correctResults.length;
-    
+    final correctPassed =
+        correctResults.where((r) => r['passed'] as bool).length;
+    final avgRecall = correctResults
+            .map((r) => r['recall'] as double)
+            .reduce((a, b) => a + b) /
+        correctResults.length;
+
     print('📗 正確演奏檢測 (${correctResults.length}個測試):');
-    print('   通過率: $correctPassed/${correctResults.length} (${(correctPassed / correctResults.length * 100).toStringAsFixed(1)}%)');
+    print(
+        '   通過率: $correctPassed/${correctResults.length} (${(correctPassed / correctResults.length * 100).toStringAsFixed(1)}%)');
     print('   平均召回率: ${(avgRecall * 100).toStringAsFixed(1)}% (目標 ≥85%)');
-    
+
     final failed = correctResults.where((r) => !(r['passed'] as bool)).toList();
     if (failed.isNotEmpty) {
       print('   ❌ 失敗案例:');
@@ -305,12 +474,15 @@ void _printSummaryReport(List<Map<String, dynamic>> allResults, int passed, int 
   // 錯誤音檔統計
   if (wrongResults.isNotEmpty) {
     final wrongPassed = wrongResults.where((r) => r['passed'] as bool).length;
-    final avgRecall = wrongResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) / wrongResults.length;
-    
+    final avgRecall =
+        wrongResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) /
+            wrongResults.length;
+
     print('📙 錯誤音檔排除 (${wrongResults.length}個測試):');
-    print('   通過率: $wrongPassed/${wrongResults.length} (${(wrongPassed / wrongResults.length * 100).toStringAsFixed(1)}%)');
+    print(
+        '   通過率: $wrongPassed/${wrongResults.length} (${(wrongPassed / wrongResults.length * 100).toStringAsFixed(1)}%)');
     print('   平均召回率: ${(avgRecall * 100).toStringAsFixed(1)}% (目標 ≤30%)');
-    
+
     final failed = wrongResults.where((r) => !(r['passed'] as bool)).toList();
     if (failed.isNotEmpty) {
       print('   ❌ 失敗案例 (誤判為正確):');
@@ -326,12 +498,15 @@ void _printSummaryReport(List<Map<String, dynamic>> allResults, int passed, int 
   // 環境噪音統計
   if (noiseResults.isNotEmpty) {
     final noisePassed = noiseResults.where((r) => r['passed'] as bool).length;
-    final avgRecall = noiseResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) / noiseResults.length;
-    
+    final avgRecall =
+        noiseResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) /
+            noiseResults.length;
+
     print('📕 環境噪音排除 (${noiseResults.length}個測試):');
-    print('   通過率: $noisePassed/${noiseResults.length} (${(noisePassed / noiseResults.length * 100).toStringAsFixed(1)}%)');
+    print(
+        '   通過率: $noisePassed/${noiseResults.length} (${(noisePassed / noiseResults.length * 100).toStringAsFixed(1)}%)');
     print('   平均召回率: ${(avgRecall * 100).toStringAsFixed(1)}% (目標 ≤5%)');
-    
+
     final failed = noiseResults.where((r) => !(r['passed'] as bool)).toList();
     if (failed.isNotEmpty) {
       print('   ❌ 失敗案例 (誤判為音樂):');
@@ -347,29 +522,42 @@ void _printSummaryReport(List<Map<String, dynamic>> allResults, int passed, int 
   // 關鍵發現
   print('🔍 關鍵發現:');
   if (correctResults.isNotEmpty) {
-    final avgCorrectRecall = correctResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) / correctResults.length;
+    final avgCorrectRecall = correctResults
+            .map((r) => r['recall'] as double)
+            .reduce((a, b) => a + b) /
+        correctResults.length;
     if (avgCorrectRecall >= 0.85) {
-      print('   ✅ 正確演奏檢測能力良好 (平均召回率 ${(avgCorrectRecall * 100).toStringAsFixed(1)}%)');
+      print(
+          '   ✅ 正確演奏檢測能力良好 (平均召回率 ${(avgCorrectRecall * 100).toStringAsFixed(1)}%)');
     } else {
-      print('   ⚠️  正確演奏檢測需要改進 (平均召回率 ${(avgCorrectRecall * 100).toStringAsFixed(1)}%)');
+      print(
+          '   ⚠️  正確演奏檢測需要改進 (平均召回率 ${(avgCorrectRecall * 100).toStringAsFixed(1)}%)');
     }
   }
-  
+
   if (wrongResults.isNotEmpty) {
-    final avgWrongRecall = wrongResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) / wrongResults.length;
+    final avgWrongRecall =
+        wrongResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) /
+            wrongResults.length;
     if (avgWrongRecall <= 0.30) {
-      print('   ✅ 錯誤音檔排除能力良好 (平均召回率 ${(avgWrongRecall * 100).toStringAsFixed(1)}%)');
+      print(
+          '   ✅ 錯誤音檔排除能力良好 (平均召回率 ${(avgWrongRecall * 100).toStringAsFixed(1)}%)');
     } else {
-      print('   ⚠️  錯誤音檔排除需要改進 (平均召回率 ${(avgWrongRecall * 100).toStringAsFixed(1)}%)');
+      print(
+          '   ⚠️  錯誤音檔排除需要改進 (平均召回率 ${(avgWrongRecall * 100).toStringAsFixed(1)}%)');
     }
   }
-  
+
   if (noiseResults.isNotEmpty) {
-    final avgNoiseRecall = noiseResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) / noiseResults.length;
+    final avgNoiseRecall =
+        noiseResults.map((r) => r['recall'] as double).reduce((a, b) => a + b) /
+            noiseResults.length;
     if (avgNoiseRecall <= 0.05) {
-      print('   ✅ 環境噪音排除能力優秀 (平均召回率 ${(avgNoiseRecall * 100).toStringAsFixed(1)}%)');
+      print(
+          '   ✅ 環境噪音排除能力優秀 (平均召回率 ${(avgNoiseRecall * 100).toStringAsFixed(1)}%)');
     } else {
-      print('   ⚠️  環境噪音排除需要改進 (平均召回率 ${(avgNoiseRecall * 100).toStringAsFixed(1)}%)');
+      print(
+          '   ⚠️  環境噪音排除需要改進 (平均召回率 ${(avgNoiseRecall * 100).toStringAsFixed(1)}%)');
     }
   }
 

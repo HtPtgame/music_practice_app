@@ -75,7 +75,7 @@ final List<TestConfig> testRounds = [
     duration: 17.0,
     description: '簡單旋律測試',
   ),
-  
+
   // 第二輪：測試音檔
   TestConfig(
     name: '測試音檔',
@@ -84,7 +84,7 @@ final List<TestConfig> testRounds = [
     duration: 34.0,
     description: '單音無伴奏測試',
   ),
-  
+
   // 第三輪：小星星
   TestConfig(
     name: '小星星',
@@ -93,7 +93,7 @@ final List<TestConfig> testRounds = [
     duration: 27.0,
     description: '伴奏測試',
   ),
-  
+
   // 第四輪：名偵探柯南
   TestConfig(
     name: '名偵探柯南',
@@ -108,10 +108,10 @@ final List<TestConfig> testRounds = [
 List<TestSample> getTestSamples(int roundIndex) {
   final currentSong = testRounds[roundIndex].name;
   final allSongs = ['生日快樂', '測試音檔', '小星星', '名偵探柯南'];
-  
+
   // 找出其他3首歌曲（錯誤音檔）
   final otherSongs = allSongs.where((s) => s != currentSong).toList();
-  
+
   return [
     // 1. MIDI轉檔
     TestSample(
@@ -139,10 +139,10 @@ List<TestSample> getTestSamples(int roundIndex) {
     ),
     // 5-7. 錯誤音檔（其他3首歌）
     ...otherSongs.map((song) => TestSample(
-      name: '$song(手機環境錄製)',
-      audioPath: 'assets/test_voice/$song(手機環境錄製).wav',
-      type: TestType.wrongSong,
-    )),
+          name: '$song(手機環境錄製)',
+          audioPath: 'assets/test_voice/$song(手機環境錄製).wav',
+          type: TestType.wrongSong,
+        )),
     // 8-9. 環境噪音
     TestSample(
       name: '環境背景',
@@ -186,12 +186,13 @@ void main() {
   // 檢查環境變數，決定測試模式
   final modeEnv = Platform.environment['TEST_MODE'];
   TestMode mode = TestMode.all;
-  
+
   // 解析測試模式參數
   if (modeEnv != null && modeEnv.isNotEmpty) {
     final modeValue = int.tryParse(modeEnv);
     if (modeValue != null && modeValue >= 0 && modeValue <= 4) {
-      mode = TestMode.values.firstWhere((m) => m.value == modeValue, orElse: () => TestMode.all);
+      mode = TestMode.values
+          .firstWhere((m) => m.value == modeValue, orElse: () => TestMode.all);
     }
   }
 
@@ -211,9 +212,8 @@ void main() {
     });
 
     // 根據模式決定執行哪些輪次
-    final roundsToRun = mode == TestMode.all 
-        ? List.generate(4, (i) => i)
-        : [mode.value - 1];
+    final roundsToRun =
+        mode == TestMode.all ? List.generate(4, (i) => i) : [mode.value - 1];
 
     // 用於儲存每輪的準確率結果
     final Map<int, List<TestResult>> allResults = {};
@@ -222,14 +222,14 @@ void main() {
       final config = testRounds[roundIndex];
       final roundNum = roundIndex + 1;
       final samples = getTestSamples(roundIndex);
-      
+
       group('第 $roundNum 輪：${config.name}', () {
         final List<TestResult> roundResults = [];
-        
+
         print('\n${'=' * 80}');
         print('📍 第 $roundNum 輪測試開始：${config.name}');
         print('=' * 80);
-        
+
         var sampleNum = 1;
         for (final sample in samples) {
           test('樣本$sampleNum: ${sample.name}', () async {
@@ -251,8 +251,8 @@ void main() {
               () => analyzer.analyze(
                 sample.audioPath,
                 config.midiPath,
-                energyThreshold: params['energyThreshold'],  // 傳入動態閾值！
-                timingTolerance: params['timingTolerance'],  // 傳入動態容錯！
+                energyThreshold: params['energyThreshold'], // 傳入動態閾值！
+                timingTolerance: params['timingTolerance'], // 傳入動態容錯！
                 onProgress: (progress) {}, // 不顯示進度
               ),
               zoneSpecification: ZoneSpecification(
@@ -271,7 +271,7 @@ void main() {
 
             // 驗證結果
             _validateResult(result, sample.type, config);
-            
+
             sampleNum++;
           });
         }
@@ -297,7 +297,7 @@ void main() {
 void _printTestHeader(TestConfig config, TestSample sample) {
   // 計算動態參數（預覽）
   final String dynamicParams = _calculateDynamicParams(config);
-  
+
   // 簡潔的測試開始資訊（靜默模式下也不重複顯示）
   final buffer = StringBuffer();
   buffer.writeln('');
@@ -308,7 +308,7 @@ void _printTestHeader(TestConfig config, TestSample sample) {
   buffer.writeln('   4. 樂曲時長: ${config.duration.toStringAsFixed(1)}秒');
   buffer.writeln('   5. 音符密度: ${config.noteDensity.toStringAsFixed(2)} 音符/秒');
   buffer.writeln('   6. 動態參數: $dynamicParams');
-  
+
   // 一次性輸出，避免重複
   stdout.write(buffer.toString());
 }
@@ -319,7 +319,7 @@ String _calculateDynamicParams(TestConfig config) {
   final params = _calculateDynamicParamsObject(config);
   final energyThreshold = params['energyThreshold']!;
   final timingTolerance = params['timingTolerance']!;
-  
+
   return '能量閾值=${energyThreshold.toStringAsFixed(2)}, 誤差允許=±${(timingTolerance * 1000).toStringAsFixed(0)}ms';
 }
 
@@ -328,10 +328,10 @@ Map<String, double> _calculateDynamicParamsObject(TestConfig config) {
   final noteDensity = config.noteDensity;
   final noteCount = config.noteCount;
   final duration = config.duration;
-  
+
   // 計算能量閾值 - 調整版本 v1.4（進一步降低低密度閾值）
   double energyThreshold = 0.32; // 降低基礎值（v1.3是0.35）
-  
+
   // 根據音符密度調整 - 大幅降低低密度閾值，解決生日快樂問題
   if (noteDensity < 1.0) {
     energyThreshold = 0.32; // 大幅降低（v1.3是0.38）
@@ -344,17 +344,17 @@ Map<String, double> _calculateDynamicParamsObject(TestConfig config) {
   } else {
     energyThreshold = 0.30; // 持平（v1.3是0.30）
   }
-  
+
   // 根據總音符數微調
   if (noteCount < 50) {
     energyThreshold += 0.01; // 減少調整幅度（v1.3是+0.02）
   } else if (noteCount > 500) {
     energyThreshold -= 0.01; // 減少調整幅度（v1.3是-0.02）
   }
-  
+
   // 計算誤差允許時間 - 維持適中的容錯
   double timingTolerance = 0.08;
-  
+
   // 根據音符密度調整 - 保持合理的容錯窗口
   if (noteDensity < 1.0) {
     timingTolerance = 0.12;
@@ -367,18 +367,18 @@ Map<String, double> _calculateDynamicParamsObject(TestConfig config) {
   } else {
     timingTolerance = 0.05;
   }
-  
+
   // 根據時長微調
   if (duration < 20.0) {
     timingTolerance -= 0.01;
   } else if (duration > 120.0) {
     timingTolerance += 0.01;
   }
-  
+
   // 限制範圍 - v1.4 進一步放寬下限
   energyThreshold = energyThreshold.clamp(0.20, 0.40); // 大幅降低下限（v1.3是0.25-0.45）
   timingTolerance = timingTolerance.clamp(0.04, 0.15);
-  
+
   return {
     'energyThreshold': energyThreshold,
     'timingTolerance': timingTolerance,
@@ -386,7 +386,8 @@ Map<String, double> _calculateDynamicParamsObject(TestConfig config) {
 }
 
 /// 計算各項評分
-TestResult _calculateScores(dynamic result, TestConfig config, String sampleName) {
+TestResult _calculateScores(
+    dynamic result, TestConfig config, String sampleName) {
   final correctNotes = result.correctNotes;
   final missedNotes = result.missedNotes;
   final wrongNotes = result.wrongNotes;
@@ -399,7 +400,7 @@ TestResult _calculateScores(dynamic result, TestConfig config, String sampleName
 
   // 2. 節奏分數 = 1 - (節奏錯誤音符數 / 正確音符數)
   final rhythmErrors = earlyNotes + lateNotes;
-  final rhythmScore = correctNotes > 0 
+  final rhythmScore = correctNotes > 0
       ? (1.0 - (rhythmErrors / correctNotes)).clamp(0.0, 1.0)
       : 0.0;
 
@@ -430,51 +431,58 @@ void _printTestResult(TestResult result) {
   buffer.writeln('   4. 搶拍數: ${result.earlyNotes}');
   buffer.writeln('   5. 拖拍數: ${result.lateNotes}');
   buffer.writeln('   6. 準確率: ${(result.accuracy * 100).toStringAsFixed(1)}%');
-  buffer.writeln('   7. 節奏分數: ${(result.rhythmScore * 100).toStringAsFixed(1)}%');
+  buffer
+      .writeln('   7. 節奏分數: ${(result.rhythmScore * 100).toStringAsFixed(1)}%');
   buffer.writeln('   8. 總評分: ${(result.totalScore * 100).toStringAsFixed(1)}%');
-  
+
   stdout.write(buffer.toString());
 }
 
 /// 列印每輪準確率總表
-void _printRoundSummary(int roundNum, String songName, List<TestResult> results) {
+void _printRoundSummary(
+    int roundNum, String songName, List<TestResult> results) {
   final buffer = StringBuffer();
   buffer.writeln('');
   buffer.writeln('=' * 80);
   buffer.writeln('📈 第 $roundNum 輪（$songName）準確率總表');
   buffer.writeln('=' * 80);
   buffer.writeln('');
-  buffer.writeln('${'樣本名稱'.padRight(30)} | ${'準確率'.padRight(8)} | ${'節奏分數'.padRight(8)} | 總評分');
+  buffer.writeln(
+      '${'樣本名稱'.padRight(30)} | ${'準確率'.padRight(8)} | ${'節奏分數'.padRight(8)} | 總評分');
   buffer.writeln('${'─' * 30}-+-${'─' * 10}+-${'─' * 10}+-${'─' * 8}');
-  
+
   for (var i = 0; i < results.length; i++) {
     final result = results[i];
-    final name = result.sampleName.length > 28 
+    final name = result.sampleName.length > 28
         ? '${result.sampleName.substring(0, 25)}...'
         : result.sampleName;
     buffer.writeln('${(i + 1).toString().padLeft(2)}. ${name.padRight(26)} | '
-          '${(result.accuracy * 100).toStringAsFixed(1).padLeft(6)}% | '
-          '${(result.rhythmScore * 100).toStringAsFixed(1).padLeft(6)}% | '
-          '${(result.totalScore * 100).toStringAsFixed(1).padLeft(6)}%');
+        '${(result.accuracy * 100).toStringAsFixed(1).padLeft(6)}% | '
+        '${(result.rhythmScore * 100).toStringAsFixed(1).padLeft(6)}% | '
+        '${(result.totalScore * 100).toStringAsFixed(1).padLeft(6)}%');
   }
-  
+
   // 計算平均值
   if (results.isNotEmpty) {
-    final avgAccuracy = results.map((r) => r.accuracy).reduce((a, b) => a + b) / results.length;
-    final avgRhythm = results.map((r) => r.rhythmScore).reduce((a, b) => a + b) / results.length;
-    final avgTotal = results.map((r) => r.totalScore).reduce((a, b) => a + b) / results.length;
-    
+    final avgAccuracy =
+        results.map((r) => r.accuracy).reduce((a, b) => a + b) / results.length;
+    final avgRhythm =
+        results.map((r) => r.rhythmScore).reduce((a, b) => a + b) /
+            results.length;
+    final avgTotal = results.map((r) => r.totalScore).reduce((a, b) => a + b) /
+        results.length;
+
     buffer.writeln('${'─' * 30}-+-${'─' * 10}+-${'─' * 10}+-${'─' * 8}');
     buffer.writeln('${'平均'.padRight(30)} | '
-          '${(avgAccuracy * 100).toStringAsFixed(1).padLeft(6)}% | '
-          '${(avgRhythm * 100).toStringAsFixed(1).padLeft(6)}% | '
-          '${(avgTotal * 100).toStringAsFixed(1).padLeft(6)}%');
+        '${(avgAccuracy * 100).toStringAsFixed(1).padLeft(6)}% | '
+        '${(avgRhythm * 100).toStringAsFixed(1).padLeft(6)}% | '
+        '${(avgTotal * 100).toStringAsFixed(1).padLeft(6)}%');
   }
-  
+
   buffer.writeln('');
   buffer.writeln('✅ 第 $roundNum 輪測試完成');
   buffer.writeln('=' * 80);
-  
+
   stdout.write(buffer.toString());
 }
 
@@ -484,25 +492,31 @@ void _printFinalSummary(Map<int, List<TestResult>> allResults) {
   print('🏆 總測試結果統計');
   print('=' * 80);
   print('');
-  
+
   for (var roundNum = 1; roundNum <= 4; roundNum++) {
     if (allResults.containsKey(roundNum)) {
       final results = allResults[roundNum]!;
       final songName = testRounds[roundNum - 1].name;
-      
+
       if (results.isNotEmpty) {
-        final avgAccuracy = results.map((r) => r.accuracy).reduce((a, b) => a + b) / results.length;
-        final avgRhythm = results.map((r) => r.rhythmScore).reduce((a, b) => a + b) / results.length;
-        final avgTotal = results.map((r) => r.totalScore).reduce((a, b) => a + b) / results.length;
-        
+        final avgAccuracy =
+            results.map((r) => r.accuracy).reduce((a, b) => a + b) /
+                results.length;
+        final avgRhythm =
+            results.map((r) => r.rhythmScore).reduce((a, b) => a + b) /
+                results.length;
+        final avgTotal =
+            results.map((r) => r.totalScore).reduce((a, b) => a + b) /
+                results.length;
+
         print('第 $roundNum 輪（$songName）:');
         print('   準確率: ${(avgAccuracy * 100).toStringAsFixed(1)}% | '
-              '節奏: ${(avgRhythm * 100).toStringAsFixed(1)}% | '
-              '總評: ${(avgTotal * 100).toStringAsFixed(1)}%');
+            '節奏: ${(avgRhythm * 100).toStringAsFixed(1)}% | '
+            '總評: ${(avgTotal * 100).toStringAsFixed(1)}%');
       }
     }
   }
-  
+
   print('');
   print('=' * 80);
   print('✅ 所有測試完成！');
@@ -512,10 +526,10 @@ void _printFinalSummary(Map<int, List<TestResult>> allResults) {
 /// 驗證測試結果
 void _validateResult(dynamic result, TestType type, TestConfig config) {
   final accuracy = result.correctNotes / result.totalNotes;
-  
+
   // 根據測試類型設定期望值
   bool passed = false;
-  
+
   switch (type) {
     case TestType.midiConverted:
     case TestType.phoneRecording:
@@ -526,7 +540,7 @@ void _validateResult(dynamic result, TestType type, TestConfig config) {
         print('⚠️  準確率未達標: ${(accuracy * 100).toStringAsFixed(1)}% < 90%');
       }
       break;
-      
+
     case TestType.wrongSong:
       // 錯誤音檔應該有低準確率 (< 50%)
       passed = accuracy < 0.5;
@@ -535,7 +549,7 @@ void _validateResult(dynamic result, TestType type, TestConfig config) {
         print('⚠️  錯誤音檔誤判為正確: ${(accuracy * 100).toStringAsFixed(1)}% ≥ 50%');
       }
       break;
-      
+
     case TestType.environmentNoise:
       // 環境噪音應該有極低準確率 (< 20%)
       passed = accuracy < 0.2;
@@ -545,7 +559,7 @@ void _validateResult(dynamic result, TestType type, TestConfig config) {
       }
       break;
   }
-  
+
   // 不使用 expect，避免測試失敗打斷流程
   // expect(passed, isTrue, reason: reason);
 }

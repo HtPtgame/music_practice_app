@@ -36,7 +36,7 @@ final List<TestConfig> round10Tests = [
     duration: 17.0,
     description: '基準測試 - 簡單旋律',
   ),
-  
+
   // 第二輪：測試音檔（單音無伴奏）
   TestConfig(
     name: '測試音檔',
@@ -46,7 +46,7 @@ final List<TestConfig> round10Tests = [
     duration: 34.0,
     description: '單音無伴奏測試',
   ),
-  
+
   // 第三輪：小星星（有伴奏）
   TestConfig(
     name: '小星星',
@@ -56,7 +56,7 @@ final List<TestConfig> round10Tests = [
     duration: 27.0,
     description: '伴奏測試 - 中等複雜度',
   ),
-  
+
   // 第四輪：名偵探柯南（複雜長曲）
   TestConfig(
     name: '名偵探柯南',
@@ -96,7 +96,7 @@ void main() {
   // 檢查命令列參數，支援單輪執行
   final args = Platform.executableArguments;
   int? targetRound;
-  
+
   if (args.isNotEmpty && args.last.length == 1) {
     targetRound = int.tryParse(args.last);
     if (targetRound != null && (targetRound < 1 || targetRound > 4)) {
@@ -121,9 +121,8 @@ void main() {
     });
 
     // 根據參數決定執行哪些輪次
-    final roundsToRun = targetRound != null 
-        ? [targetRound - 1]
-        : List.generate(4, (i) => i);
+    final roundsToRun =
+        targetRound != null ? [targetRound - 1] : List.generate(4, (i) => i);
 
     for (final roundIndex in roundsToRun) {
       final config = round10Tests[roundIndex];
@@ -134,7 +133,8 @@ void main() {
         print('🎯 Round $roundNum: ${config.name}');
         print('   描述: ${config.description}');
         print('   音符數: ${config.noteCount}, 時長: ${config.duration}秒');
-        print('   參數: energyThreshold=${DifficultyLevel.beginner.energyThreshold}, tolerance=±${DifficultyLevel.beginner.timingTolerance}ms');
+        print(
+            '   參數: energyThreshold=${DifficultyLevel.beginner.energyThreshold}, tolerance=±${DifficultyLevel.beginner.timingTolerance}ms');
         print('=' * 60);
 
         // 測試音檔列表 (根據用戶需求)
@@ -149,7 +149,8 @@ void main() {
             final allSongs = ['小星星', '名偵探柯南', '測試音檔', '生日快樂'];
             for (final song in allSongs) {
               if (song != config.name) {
-                wrongPitchFiles.add(('$song(手機環境錄製).wav', TestType.wrongPitch, song));
+                wrongPitchFiles
+                    .add(('$song(手機環境錄製).wav', TestType.wrongPitch, song));
               }
             }
             return wrongPitchFiles;
@@ -174,7 +175,7 @@ void main() {
             );
           });
         }
-        
+
         print('\n✅ Round $roundNum 完成\n');
       });
     }
@@ -230,9 +231,10 @@ void _printTestResult(
   // 判定是否通過
   final passed = _isTestPassed(result, testType);
   final passLabel = passed ? '✅' : '❌';
-  
+
   // 簡化輸出: 只顯示關鍵資訊
-  print('$passLabel R$roundNumber-T$testNumber | Recall: ${(recall * 100).toStringAsFixed(1)}% ($matchedNotes/$totalNotes) | ${testType.label}');
+  print(
+      '$passLabel R$roundNumber-T$testNumber | Recall: ${(recall * 100).toStringAsFixed(1)}% ($matchedNotes/$totalNotes) | ${testType.label}');
 }
 
 /// 判斷測試是否通過
@@ -257,9 +259,9 @@ bool _isTestPassed(result, TestType testType) {
 /// 驗證測試結果
 void _validateResult(result, TestType testType) {
   final passed = _isTestPassed(result, testType);
-  
+
   expect(passed, isTrue,
       reason: '測試未通過: ${testType.label}, '
-              'recall=${result.recall.toStringAsFixed(3)}, '
-              'precision=${result.precision.toStringAsFixed(3)}');
+          'recall=${result.recall.toStringAsFixed(3)}, '
+          'precision=${result.precision.toStringAsFixed(3)}');
 }

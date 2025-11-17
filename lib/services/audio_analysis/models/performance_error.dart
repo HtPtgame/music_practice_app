@@ -2,16 +2,16 @@
 enum ErrorType {
   /// ✅ 正確
   correct,
-  
+
   /// ❌ 錯音 - 彈了不該彈的音符
   wrongNote,
-  
+
   /// ⚠️ 漏音 - 該彈的音符沒彈
   missedNote,
-  
+
   /// ⏩ 搶拍 - 提前彈奏 (>100ms)
   earlyTiming,
-  
+
   /// ⏸️ 拖拍 - 延遲彈奏 (>100ms)
   lateTiming,
 }
@@ -20,25 +20,25 @@ enum ErrorType {
 class PerformanceError {
   /// 錯誤類型
   final ErrorType type;
-  
+
   /// 預期的 MIDI 音符 (如果有)
   final int? expectedNote;
-  
+
   /// 實際彈奏的 MIDI 音符 (如果有)
   final int? actualNote;
-  
+
   /// 預期時間 (秒)
   final double expectedTime;
-  
+
   /// 實際時間 (秒,如果有)
   final double? actualTime;
-  
+
   /// 時間偏移 (秒, 正數=遲到, 負數=提前)
   final double? timingOffset;
-  
+
   /// 錯誤描述信息
   final String message;
-  
+
   /// 置信度 (0-1)
   final double confidence;
 
@@ -54,10 +54,12 @@ class PerformanceError {
   });
 
   /// 是否為節奏問題
-  bool get isTimingError => type == ErrorType.earlyTiming || type == ErrorType.lateTiming;
+  bool get isTimingError =>
+      type == ErrorType.earlyTiming || type == ErrorType.lateTiming;
 
   /// 是否為音高問題
-  bool get isPitchError => type == ErrorType.wrongNote || type == ErrorType.missedNote;
+  bool get isPitchError =>
+      type == ErrorType.wrongNote || type == ErrorType.missedNote;
 
   /// 計算錯誤嚴重程度 (0-1)
   double get severity {
@@ -101,10 +103,10 @@ class PerformanceError {
 class AlignmentResult {
   /// 時間偏移量 (秒)
   final double timeOffset;
-  
+
   /// 對齊誤差 (秒)
   final double alignmentError;
-  
+
   /// 對齊置信度 (0-1)
   final double confidence;
 
@@ -117,6 +119,6 @@ class AlignmentResult {
   @override
   String toString() {
     return 'AlignmentResult(offset: ${(timeOffset * 1000).toStringAsFixed(0)}ms, '
-           'error: ${(alignmentError * 1000).toStringAsFixed(0)}ms)';
+        'error: ${(alignmentError * 1000).toStringAsFixed(0)}ms)';
   }
 }

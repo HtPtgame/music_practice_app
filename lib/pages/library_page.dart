@@ -8,9 +8,9 @@ import 'package:file_picker/file_picker.dart'; // 確保這個導入也存在
 // 這些類別必須放在這裡 (文件頂層)，才能被其他文件導入和使用
 class MidiFileManager {
   static final List<MidiFileInfo> _midiFiles = [];
-  
+
   static List<MidiFileInfo> get midiFiles => List.unmodifiable(_midiFiles);
-  
+
   static void addMidiFile(PlatformFile file) {
     final midiInfo = MidiFileInfo(
       name: file.name,
@@ -20,7 +20,7 @@ class MidiFileManager {
     );
     _midiFiles.add(midiInfo);
   }
-  
+
   static void removeMidiFile(int index) {
     if (index >= 0 && index < _midiFiles.length) {
       _midiFiles.removeAt(index);
@@ -44,8 +44,8 @@ class MidiFileInfo {
   });
 }
 
-
-class LibraryPage extends StatefulWidget { // 將 StatelessWidget 改回 StatefulWidget
+class LibraryPage extends StatefulWidget {
+  // 將 StatelessWidget 改回 StatefulWidget
   const LibraryPage({super.key});
 
   @override
@@ -53,7 +53,6 @@ class LibraryPage extends StatefulWidget { // 將 StatelessWidget 改回 Statefu
 }
 
 class _LibraryPageState extends State<LibraryPage> {
-
   // 注意：如果您希望在添加或刪除檔案後立即更新列表，
   // 您需要在 _deleteMidiFile 或其他地方呼叫 setState()。
   // 並且，MidiFileManager 的更改需要通知到所有監聽者。
@@ -83,7 +82,7 @@ class _LibraryPageState extends State<LibraryPage> {
           children: [
             // ...existing code...
             const SizedBox(height: 16),
-            
+
             if (MidiFileManager.midiFiles.isEmpty)
               Expanded(
                 child: Center(
@@ -142,7 +141,8 @@ class _LibraryPageState extends State<LibraryPage> {
     );
   }
 
-  Widget _buildMidiFileCard(BuildContext context, MidiFileInfo midiFile, int index) {
+  Widget _buildMidiFileCard(
+      BuildContext context, MidiFileInfo midiFile, int index) {
     return Card(
       color: AppColors.dynamicCard,
       elevation: 1.5,
@@ -215,7 +215,6 @@ class _LibraryPageState extends State<LibraryPage> {
                     onPressed: () => _deleteMidiFile(context, index),
                     tooltip: '刪除',
                   ),
-                  
                 ],
               )
             ],
@@ -261,7 +260,8 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
             TextButton(
               onPressed: () {
-                setState(() { // 呼叫 setState 觸發 UI 更新
+                setState(() {
+                  // 呼叫 setState 觸發 UI 更新
                   MidiFileManager.removeMidiFile(index);
                 });
                 Navigator.of(context).pop();

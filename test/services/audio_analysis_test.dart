@@ -133,10 +133,10 @@ void main() {
   group('NoteVerificationService 測試', () {
     test('諧波計算', () {
       final verifier = NoteVerificationServiceImpl();
-      
+
       // 測試內部方法需要使用反射或將方法公開
       // 這裡我們通過創建模擬頻譜來測試完整流程
-      
+
       // 創建模擬頻譜: 在 440Hz (A4, MIDI 69) 處有強能量
       final testData = List.generate(100, (t) {
         return List.generate(1025, (f) {
@@ -162,7 +162,7 @@ void main() {
 
       // 驗證 A4 (MIDI 69) 在時間 0.5秒
       final result = verifier.verifyNote(69, 0.5, spec);
-      
+
       // 由於是異步方法,在單元測試中需要等待
       expect(result, completion(isTrue));
     });

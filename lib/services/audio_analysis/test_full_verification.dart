@@ -4,7 +4,7 @@ import 'package:music_practice_app/services/audio_analysis/midi_parser_service.d
 import 'package:music_practice_app/services/audio_analysis/note_verification_service_impl.dart';
 
 /// 完整音符驗證測試 (MIDI + WAV)
-/// 
+///
 /// 使用方法:
 /// 1. 準備 MIDI 標準答案文件
 /// 2. 錄製對應的演奏音訊 (WAV)
@@ -13,73 +13,74 @@ import 'package:music_practice_app/services/audio_analysis/note_verification_ser
 void main() async {
   print('🎯 完整音符驗證測試');
   print('═══════════════════════════════════════════════════════════');
-  
+
   // ⚠️ 修改為您的文件路徑
-  const midiPath = 'assets/測試.mid';        // MIDI 標準答案
-  const wavPath = 'performance.wav';      // 演奏錄音
-  
+  const midiPath = 'assets/測試.mid'; // MIDI 標準答案
+  const wavPath = 'performance.wav'; // 演奏錄音
+
   // 檢查文件
   final midiFile = File(midiPath);
   final wavFile = File(wavPath);
-  
+
   if (!await midiFile.exists()) {
     print('❌ 找不到 MIDI 文件: $midiPath');
     return;
   }
-  
+
   if (!await wavFile.exists()) {
     print('❌ 找不到 WAV 文件: $wavPath');
     return;
   }
-  
+
   print('📂 MIDI 標準答案: $midiPath');
   print('📂 演奏錄音: $wavPath');
   print('');
-  
+
   try {
     // 步驟 1: 解析 MIDI
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('步驟 1/3: 解析 MIDI 標準答案');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
+
     final midiParser = MidiParserService();
     final timeline = await midiParser.parseFile(midiPath);
-    
+
     print('✅ MIDI 解析完成');
     print('   音符數: ${timeline.events.length}');
     print('   時長: ${timeline.duration.toStringAsFixed(2)}秒');
     print('');
-    
+
     // 步驟 2: 分析音訊
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('步驟 2/3: 分析錄音頻譜');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
+
     final analyzer = AudioAnalyzerServiceImpl();
     final stopwatch = Stopwatch()..start();
-    
+
     final spectrogram = await analyzer.analyze(wavPath);
-    
+
     stopwatch.stop();
-    
+
     print('✅ 頻譜分析完成 (${stopwatch.elapsedMilliseconds}ms)');
     print('   時間幀數: ${spectrogram.timeFrames}');
     print('   頻率bins: ${spectrogram.freqBins}');
-    print('   錄音時長: ${(spectrogram.timeFrames * spectrogram.timeResolution).toStringAsFixed(2)}秒');
+    print(
+        '   錄音時長: ${(spectrogram.timeFrames * spectrogram.timeResolution).toStringAsFixed(2)}秒');
     print('');
-    
+
     // 步驟 3: 驗證音符
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('步驟 3/3: 驗證音符');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
+
     final verifier = NoteVerificationServiceImpl();
     final results = await verifier.verifyAll(timeline, spectrogram);
-    
+
     // 統計結果
     int detected = 0;
     int missed = 0;
-    
+
     for (final verified in results.values) {
       if (verified) {
         detected++;
@@ -87,9 +88,9 @@ void main() async {
         missed++;
       }
     }
-    
+
     final accuracy = detected / timeline.events.length;
-    
+
     print('');
     print('═══════════════════════════════════════════════════════════');
     print('📊 驗證結果統計');
@@ -100,11 +101,11 @@ void main() async {
     print('   ❌ 漏音: $missed');
     print('   📈 準確率: ${(accuracy * 100).toStringAsFixed(1)}%');
     print('');
-    
+
     // 評級
     String grade;
     String comment;
-    
+
     if (accuracy >= 0.9) {
       grade = 'A (優秀)';
       comment = '演奏非常準確!';
@@ -121,57 +122,59 @@ void main() async {
       grade = 'F (不及格)';
       comment = '需要重新練習,注意每個音符的清晰度。';
     }
-    
+
     print('   🏆 評級: $grade');
     print('   💬 評語: $comment');
     print('');
-    
+
     // 詳細結果 (前20個音符)
     print('───────────────────────────────────────────────────────────');
     print('🎵 詳細結果 (前20個音符)');
     print('───────────────────────────────────────────────────────────');
     print('');
-    
+
     int count = 0;
     for (final entry in results.entries) {
       if (count >= 20) break;
-      
+
       final note = entry.key;
       final verified = entry.value;
       final icon = verified ? '✅' : '❌';
       final status = verified ? '檢測到' : '漏音';
-      
-      print('   ${(count + 1).toString().padLeft(2)}. $icon ${note.noteName.padRight(4)} '
-            '│ ${note.startTime.toStringAsFixed(2)}s '
-            '│ $status');
-      
+
+      print(
+          '   ${(count + 1).toString().padLeft(2)}. $icon ${note.noteName.padRight(4)} '
+          '│ ${note.startTime.toStringAsFixed(2)}s '
+          '│ $status');
+
       count++;
     }
-    
+
     if (timeline.events.length > 20) {
       print('   ... 還有 ${timeline.events.length - 20} 個音符');
     }
-    
+
     print('');
-    
+
     // 漏音詳情
     if (missed > 0) {
       print('───────────────────────────────────────────────────────────');
       print('⚠️  漏音詳情 (前10個)');
       print('───────────────────────────────────────────────────────────');
       print('');
-      
+
       int missedCount = 0;
       for (final entry in results.entries) {
         if (!entry.value && missedCount < 10) {
           final note = entry.key;
-          print('   ${(missedCount + 1).toString().padLeft(2)}. ${note.noteName.padRight(4)} '
-                '在 ${note.startTime.toStringAsFixed(2)}秒 '
-                '(${note.frequency.toStringAsFixed(1)} Hz)');
+          print(
+              '   ${(missedCount + 1).toString().padLeft(2)}. ${note.noteName.padRight(4)} '
+              '在 ${note.startTime.toStringAsFixed(2)}秒 '
+              '(${note.frequency.toStringAsFixed(1)} Hz)');
           missedCount++;
         }
       }
-      
+
       print('');
       print('💡 漏音可能原因:');
       print('   1. 該音符彈奏時音量太小');
@@ -180,7 +183,7 @@ void main() async {
       print('   4. 可以嘗試調低檢測閾值 (當前: 0.3)');
       print('');
     }
-    
+
     // 參數調整建議
     if (accuracy < 0.8) {
       print('───────────────────────────────────────────────────────────');
@@ -202,11 +205,10 @@ void main() async {
       print('   - 音量: 建議適中,不要太小');
       print('');
     }
-    
+
     print('═══════════════════════════════════════════════════════════');
     print('✅ 測試完成!');
     print('═══════════════════════════════════════════════════════════');
-    
   } catch (e, stackTrace) {
     print('');
     print('❌ 測試失敗: $e');

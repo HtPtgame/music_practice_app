@@ -46,12 +46,14 @@ class User {
   final String? avatarUrl;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
-  
+
   // 使用者數據（雲端同步）
   final List<DateTime> checkInDates; // 打卡日期列表
   final Map<String, int> practiceTime; // 練習時間記錄 (日期 -> 秒數)
   final Map<String, dynamic> settings; // 個人化設定
   final List<MusicNote> musicNotes; // 文字筆記
+  final Map<String, String>
+      unlockedAnimals; // 已解鎖動物 (animalId -> unlockedAtISO8601)
 
   User({
     required this.id,
@@ -65,10 +67,12 @@ class User {
     Map<String, int>? practiceTime,
     Map<String, dynamic>? settings,
     List<MusicNote>? musicNotes,
+    Map<String, String>? unlockedAnimals,
   })  : checkInDates = checkInDates ?? [],
         practiceTime = practiceTime ?? {},
         settings = settings ?? {},
-        musicNotes = musicNotes ?? [];
+        musicNotes = musicNotes ?? [],
+        unlockedAnimals = unlockedAnimals ?? {};
 
   /// 從 JSON 建立 User 物件
   factory User.fromJson(Map<String, dynamic> json) {
@@ -79,7 +83,7 @@ class User {
       displayName: json['displayName'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      lastLoginAt: json['lastLoginAt'] != null 
+      lastLoginAt: json['lastLoginAt'] != null
           ? DateTime.parse(json['lastLoginAt'] as String)
           : null,
       checkInDates: (json['checkInDates'] as List<dynamic>?)
@@ -91,6 +95,8 @@ class User {
       musicNotes: (json['musicNotes'] as List<dynamic>?)
           ?.map((e) => MusicNote.fromJson(e as Map<String, dynamic>))
           .toList(),
+      unlockedAnimals: (json['unlockedAnimals'] as Map<String, dynamic>?)
+          ?.map((key, value) => MapEntry(key, value as String)),
     );
   }
 
@@ -108,6 +114,7 @@ class User {
       'practiceTime': practiceTime,
       'settings': settings,
       'musicNotes': musicNotes.map((e) => e.toJson()).toList(),
+      'unlockedAnimals': unlockedAnimals,
     };
   }
 
@@ -124,6 +131,7 @@ class User {
     Map<String, int>? practiceTime,
     Map<String, dynamic>? settings,
     List<MusicNote>? musicNotes,
+    Map<String, String>? unlockedAnimals,
   }) {
     return User(
       id: id ?? this.id,
@@ -137,6 +145,7 @@ class User {
       practiceTime: practiceTime ?? this.practiceTime,
       settings: settings ?? this.settings,
       musicNotes: musicNotes ?? this.musicNotes,
+      unlockedAnimals: unlockedAnimals ?? this.unlockedAnimals,
     );
   }
 

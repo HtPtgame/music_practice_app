@@ -62,7 +62,8 @@ class MidiParser {
 
     // 如果沒有 tempo 事件，加入預設 120 BPM
     if (tempoEvents.isEmpty) {
-      tempoEvents.add(TempoChange(tick: 0, microsecondsPerQuarter: 500000)); // 120 BPM
+      tempoEvents
+          .add(TempoChange(tick: 0, microsecondsPerQuarter: 500000)); // 120 BPM
     }
 
     return events;
@@ -107,8 +108,8 @@ class MidiParser {
           final microPerQuarter = (data.getUint8(p) << 16) |
               (data.getUint8(p + 1) << 8) |
               data.getUint8(p + 2);
-          tempoEvents.add(TempoChange(
-              tick: tick, microsecondsPerQuarter: microPerQuarter));
+          tempoEvents.add(
+              TempoChange(tick: tick, microsecondsPerQuarter: microPerQuarter));
         }
         p += len;
       } else if (statusCode >= 0xC0 && statusCode <= 0xEF) {

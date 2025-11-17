@@ -15,17 +15,18 @@ class PracticeTimerCard extends StatefulWidget {
   State<PracticeTimerCard> createState() => _PracticeTimerCardState();
 }
 
-class _PracticeTimerCardState extends State<PracticeTimerCard> {
+class _PracticeTimerCardState extends State<PracticeTimerCard>
+    with WidgetsBindingObserver {
   final UserDataSyncService _syncService = UserDataSyncService();
   final PracticeTimerService _timerService = PracticeTimerService();
-  
+
   // 計時器狀態
   bool _isRunning = false;
   int _elapsedSeconds = 0; // 當日累計練習時長（秒）
   int _sessionStartSeconds = 0; // 本次計時開始時的秒數
   Timer? _timer;
   String _lastDate = ''; // 記錄上次使用的日期，用於檢測日期變化
-  
+
   // 本週練習數據 (格式: {日期: 秒數})
   Map<String, int> _weeklyPracticeData = {};
   bool _isLoading = true;
@@ -33,21 +34,42 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // 添加生命週期觀察者
     _loadPracticeData();
-    
+
     // 監聽認證狀態變化,登入後刷新數據
     authService.addListener(_onAuthStateChanged);
+
+    // 監聽計時器服務的暫停請求
+    _timerService.addListener(_onTimerServiceChanged);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // 移除生命週期觀察者
     _timer?.cancel();
     // 如果計時器正在運行，離開頁面時重置全局狀態
     if (_isRunning) {
       _timerService.setTimerRunning(false);
     }
     authService.removeListener(_onAuthStateChanged);
+    _timerService.removeListener(_onTimerServiceChanged);
     super.dispose();
+  }
+
+  /// 監聽 App 生命週期變化
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // 當 App 切換到後台時，自動暫停並保存計時
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (_isRunning) {
+        debugPrint('App 切換到後台，自動暫停計時並保存數據');
+        _pauseTimer();
+      }
+    }
   }
 
   /// 認證狀態變化時的回調
@@ -56,6 +78,16 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     // (登入後會從雲端同步到本地,然後這裡載入最新數據)
     if (mounted) {
       _loadPracticeData();
+    }
+  }
+
+  /// 計時器服務狀態變化時的回調
+  void _onTimerServiceChanged() {
+    // 檢查是否需要暫停並保存
+    if (_timerService.shouldPauseAndSave && _isRunning) {
+      debugPrint('收到暫停並保存請求，執行暫停操作');
+      _pauseTimer();
+      _timerService.confirmPauseAndSaveHandled();
     }
   }
 
@@ -69,17 +101,18 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
       // ✅ 優先從本地 SharedPreferences 載入最新數據
       final prefs = await SharedPreferences.getInstance();
       final dataJson = prefs.getString('practice_data');
-      
+
       if (dataJson != null && dataJson.isNotEmpty) {
         final Map<String, dynamic> data = jsonDecode(dataJson);
         setState(() {
-          _weeklyPracticeData = data.map((key, value) => MapEntry(key, value as int));
-          
+          _weeklyPracticeData =
+              data.map((key, value) => MapEntry(key, value as int));
+
           // 初始化當日累計時長
           final today = _getTodayString();
           _elapsedSeconds = _weeklyPracticeData[today] ?? 0;
           _lastDate = today;
-          
+
           _isLoading = false;
         });
       } else {
@@ -89,7 +122,10 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
           _isLoading = false;
         });
       }
-      
+
+      // 執行每日清理檢查（不阻塞載入）
+      _cleanOldPracticeDataIfNeeded();
+
       debugPrint('PracticeTimerCard: ✅ 練習數據已從本地載入 (最新數據)');
       debugPrint('今日累計練習時長: $_elapsedSeconds 秒');
     } catch (e) {
@@ -102,9 +138,6 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
 
   // 保存練習數據
   Future<void> _savePracticeData() async {
-    // 清理 90 天前的舊數據
-    _cleanOldPracticeData();
-    
     // 保存到本地 SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final dataJson = jsonEncode(_weeklyPracticeData);
@@ -124,11 +157,21 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     }
   }
 
-  // 清理 90 天前的舊數據
-  void _cleanOldPracticeData() {
+  // 清理 90 天前的舊數據（每日檢查一次）
+  Future<void> _cleanOldPracticeDataIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastCleanDate = prefs.getString('last_practice_clean_date');
+    final today = _getTodayString();
+
+    // 如果今天已經清理過，跳過
+    if (lastCleanDate == today) {
+      return;
+    }
+
     final now = DateTime.now();
     final cutoffDate = now.subtract(const Duration(days: 90));
-    
+
+    bool hasRemoved = false;
     _weeklyPracticeData.removeWhere((key, value) {
       try {
         final parts = key.split('-');
@@ -137,11 +180,23 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
           int.parse(parts[1]),
           int.parse(parts[2]),
         );
-        return date.isBefore(cutoffDate);
+        if (date.isBefore(cutoffDate)) {
+          hasRemoved = true;
+          return true;
+        }
+        return false;
       } catch (e) {
         return false; // 保留無法解析的數據
       }
     });
+
+    // 記錄清理日期
+    await prefs.setString('last_practice_clean_date', today);
+
+    if (hasRemoved) {
+      debugPrint('已清理 90 天前的練習數據');
+      await _savePracticeData();
+    }
   }
 
   // 獲取今天的日期字符串
@@ -162,17 +217,17 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
       });
       debugPrint('日期變化：已重置為今日累計時長 $_elapsedSeconds 秒');
     }
-    
+
     // 記錄本次計時開始時的秒數
     _sessionStartSeconds = _elapsedSeconds;
-    
+
     setState(() {
       _isRunning = true;
     });
-    
+
     // 更新全局計時器狀態
     _timerService.setTimerRunning(true);
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _elapsedSeconds++;
@@ -183,36 +238,37 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   // 暫停計時並自動保存
   Future<void> _pauseTimer() async {
     _timer?.cancel();
-    
+
     final sessionSeconds = _elapsedSeconds - _sessionStartSeconds;
-    
+
     setState(() {
       _isRunning = false;
     });
-    
+
     // 更新全局計時器狀態
     _timerService.setTimerRunning(false);
-    
+
     // 如果本次練習有時長，則保存數據
     if (sessionSeconds > 0) {
       final today = _getTodayString();
-      
+
       setState(() {
         _weeklyPracticeData[today] = _elapsedSeconds; // 保存當日累計時長
       });
-      
+
       await _savePracticeData();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
+            content: Text(
+                '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
             backgroundColor: AppColors.dynamicPrimary,
             duration: const Duration(seconds: 2),
           ),
         );
       }
-      
+
       debugPrint('本次練習: $sessionSeconds 秒, 今日累計: $_elapsedSeconds 秒');
     }
   }
@@ -222,7 +278,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
-    
+
     if (hours > 0) {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     } else {
@@ -235,13 +291,14 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final now = DateTime.now();
     final weekday = now.weekday; // 1 = Monday, 7 = Sunday
     final monday = now.subtract(Duration(days: weekday - 1));
-    
+
     return List.generate(7, (index) => monday.add(Duration(days: index)));
   }
 
   // 獲取日期的練習時長（分鐘）
   int _getPracticeMinutes(DateTime date) {
-    final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dateString =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final seconds = _weeklyPracticeData[dateString] ?? 0;
     return seconds ~/ 60;
   }
@@ -250,14 +307,14 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   int _getMaxMinutes() {
     final weekDates = _getWeekDates();
     int maxMinutes = 0;
-    
+
     for (final date in weekDates) {
       final minutes = _getPracticeMinutes(date);
       if (minutes > maxMinutes) {
         maxMinutes = minutes;
       }
     }
-    
+
     return maxMinutes > 0 ? maxMinutes : 60; // 最小刻度 60 分鐘
   }
 
@@ -304,9 +361,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // 計時器顯示和按鈕合併在一行
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -321,23 +378,27 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                      
+
                       // 控制按鈕 - 合併為單一按鈕
                       // 控制按鈕 - 單一開始/暫停按鈕
                       IconButton(
                         onPressed: _isRunning ? _pauseTimer : _startTimer,
                         icon: Icon(
-                          _isRunning ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                          _isRunning
+                              ? Icons.pause_circle_filled
+                              : Icons.play_circle_filled,
                           size: 56,
                         ),
-                        color: _isRunning ? Colors.orange : AppColors.dynamicPrimary,
+                        color: _isRunning
+                            ? Colors.orange
+                            : AppColors.dynamicPrimary,
                         tooltip: _isRunning ? '暫停並保存' : '開始計時',
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // 分隔線
                   Container(
                     height: 1,
@@ -351,9 +412,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // 本週統計標題和數據
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -376,21 +437,26 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // 統計摘要行
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildStatItem('本週平均', _getWeekAverage(), Icons.trending_up),
-                      Container(width: 1, height: 16, color: AppColors.dynamicTextLight.withOpacity(0.3)),
-                      _buildStatItem('本月累計', _getMonthTotal(), Icons.calendar_month),
+                      _buildStatItem(
+                          '本週平均', _getWeekAverage(), Icons.trending_up),
+                      Container(
+                          width: 1,
+                          height: 16,
+                          color: AppColors.dynamicTextLight.withOpacity(0.3)),
+                      _buildStatItem(
+                          '本月累計', _getMonthTotal(), Icons.calendar_month),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // 長條圖
                   _buildWeeklyChart(),
                 ],
@@ -440,17 +506,18 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   String _formatWeekTotal() {
     final weekDates = _getWeekDates();
     int totalSeconds = 0;
-    
+
     // 累加本週所有天數的秒數
     for (final date in weekDates) {
-      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final dateString =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       totalSeconds += _weeklyPracticeData[dateString] ?? 0;
     }
-    
+
     // 轉換為小時和分鐘
     final hours = totalSeconds ~/ 3600;
     final minutes = (totalSeconds % 3600) ~/ 60;
-    
+
     if (hours > 0) {
       return '共 ${hours}h ${minutes}min';
     } else {
@@ -461,31 +528,34 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
   // 計算本週平均每日練習時長
   String _getWeekAverage() {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day); // 只保留日期部分
     final weekDates = _getWeekDates();
     int totalSeconds = 0;
     int daysInWeekSoFar = 0; // 本週已經過去的天數（包含今天）
-    
+
     // 累加本週所有天數的秒數，只計算已經過去的天數
     for (final date in weekDates) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
       // 如果日期在今天之後，跳過（未來的日期）
-      if (date.isAfter(DateTime(now.year, now.month, now.day))) {
+      if (dateOnly.isAfter(today)) {
         continue;
       }
-      
+
       daysInWeekSoFar++;
-      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final dateString =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       totalSeconds += _weeklyPracticeData[dateString] ?? 0;
     }
-    
+
     // 如果本週還沒有任何天數（理論上不可能），返回0
     if (daysInWeekSoFar == 0) return '0min/天';
-    
+
     // 計算平均秒數（除以本週已過天數）
     final avgSeconds = totalSeconds / daysInWeekSoFar;
-    
+
     // 轉換為分鐘（保留1位小數）
     final avgMinutes = avgSeconds / 60;
-    
+
     if (avgMinutes >= 60) {
       // 超過60分鐘，顯示小時
       final hours = avgMinutes / 60;
@@ -500,21 +570,22 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-    
+
     int totalSeconds = 0; // ← 改為累加秒數
-    
-    for (var day = firstDayOfMonth; 
-         day.isBefore(lastDayOfMonth.add(const Duration(days: 1))); 
-         day = day.add(const Duration(days: 1))) {
-      final dateString = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+
+    for (var day = firstDayOfMonth;
+        day.isBefore(lastDayOfMonth.add(const Duration(days: 1)));
+        day = day.add(const Duration(days: 1))) {
+      final dateString =
+          '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
       totalSeconds += _weeklyPracticeData[dateString] ?? 0; // ← 直接累加秒數
     }
-    
+
     // ← 最後統一轉換為小時和分鐘
     final totalMinutes = totalSeconds ~/ 60;
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
-    
+
     if (hours > 0) {
       return '${hours}h ${minutes}min';
     } else {
@@ -527,7 +598,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
     final weekDates = _getWeekDates();
     final maxMinutes = _getMaxMinutes();
     final today = DateTime.now();
-    
+
     return SizedBox(
       height: 160, // 降低高度從 180 到 160
       child: Row(
@@ -538,11 +609,11 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
           final minutes = _getPracticeMinutes(date);
           final heightRatio = minutes / maxMinutes;
           final barHeight = heightRatio * 100; // 降低最大高度從 120 到 100
-          final isToday = date.year == today.year && 
-                         date.month == today.month && 
-                         date.day == today.day;
+          final isToday = date.year == today.year &&
+              date.month == today.month &&
+              date.day == today.day;
           final isFuture = date.isAfter(today);
-          
+
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3), // 減少橫向間距
@@ -554,7 +625,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                     height: 14, // 減少高度
                     child: minutes > 0
                         ? Text(
-                            minutes >= 60 
+                            minutes >= 60
                                 ? '${(minutes / 60).toStringAsFixed(1)}h'
                                 : '${minutes}m',
                             style: TextStyle(
@@ -565,9 +636,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                           )
                         : const SizedBox.shrink(),
                   ),
-                  
+
                   const SizedBox(height: 3), // 減少間距
-                  
+
                   // 長條
                   Container(
                     width: double.infinity,
@@ -580,8 +651,10 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                               end: Alignment.topCenter,
                               colors: minutes == 0
                                   ? [
-                                      AppColors.dynamicTextLight.withOpacity(0.2),
-                                      AppColors.dynamicTextLight.withOpacity(0.1),
+                                      AppColors.dynamicTextLight
+                                          .withOpacity(0.2),
+                                      AppColors.dynamicTextLight
+                                          .withOpacity(0.1),
                                     ]
                                   : [
                                       AppColors.dynamicPrimary,
@@ -593,15 +666,16 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                       ),
                       border: minutes == 0 && !isFuture
                           ? Border.all(
-                              color: AppColors.dynamicTextLight.withOpacity(0.3),
+                              color:
+                                  AppColors.dynamicTextLight.withOpacity(0.3),
                               width: 1,
                             )
                           : null,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 4), // 減少間距
-                  
+
                   // 星期幾
                   Text(
                     _getWeekdayAbbr(date.weekday),
@@ -610,12 +684,13 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                       color: AppColors.dynamicTextLight,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 2),
-                  
+
                   // 日期文字（實際日期）
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1), // 減小內邊距
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 3, vertical: 1), // 減小內邊距
                     decoration: isToday
                         ? BoxDecoration(
                             color: AppColors.dynamicPrimary.withOpacity(0.1),
@@ -626,8 +701,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard> {
                       '${date.month}/${date.day}',
                       style: TextStyle(
                         fontSize: 9, // 減小字體
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                        color: isToday 
+                        fontWeight:
+                            isToday ? FontWeight.bold : FontWeight.normal,
+                        color: isToday
                             ? AppColors.dynamicPrimary
                             : isFuture
                                 ? AppColors.dynamicTextLight.withOpacity(0.5)

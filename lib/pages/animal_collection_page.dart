@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/animal_collection.dart';
+import '../services/auth_service_config.dart';
+import '../services/user_data_sync_service.dart';
 
 /// 動物圖鑑頁面
 class AnimalCollectionPage extends StatefulWidget {
@@ -12,8 +15,9 @@ class AnimalCollectionPage extends StatefulWidget {
 
 class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
   late AnimalCollectionService _collectionService;
+  final UserDataSyncService _syncService = UserDataSyncService();
   bool _isLoading = true;
-  
+
   // 使用首頁的打卡數據
   Set<String> _checkedDates = {};
   int _consecutiveDays = 0;
@@ -25,18 +29,96 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
     _loadData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 每次頁面顯示時重新載入數據（捕捉打卡變化）
+    if (mounted) {
+      _loadData();
+    }
+  }
+
   Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final checkedDatesJson = prefs.getStringList('checked_dates') ?? [];
-    final consecutiveDays = prefs.getInt('consecutive_days') ?? 0;
-    
     setState(() {
-      _checkedDates = checkedDatesJson.toSet();
-      _consecutiveDays = consecutiveDays;
-      // 根據打卡天數解鎖動物
-      _collectionService.checkAndUnlockAnimals(_checkedDates.length);
-      _isLoading = false;
+      _isLoading = true;
     });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final checkedDatesJson = prefs.getStringList('checked_dates') ?? [];
+      final consecutiveDays = prefs.getInt('consecutive_days') ?? 0;
+
+      // 載入已解鎖動物（從本地或雲端）
+      await _loadUnlockedAnimals();
+
+      setState(() {
+        _checkedDates = checkedDatesJson.toSet();
+        _consecutiveDays = consecutiveDays;
+        // 根據打卡天數解鎖動物
+        _collectionService.checkAndUnlockAnimals(_checkedDates.length);
+        _isLoading = false;
+      });
+
+      // 保存並同步新解鎖的動物
+      await _saveAndSyncUnlockedAnimals();
+    } catch (e) {
+      debugPrint('載入動物圖鑑數據失敗: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// 載入已解鎖動物數據
+  Future<void> _loadUnlockedAnimals() async {
+    final user = authService.currentUser;
+    debugPrint('🐾 載入動物解鎖數據...');
+    debugPrint('🐾 目前使用者: ${user?.email ?? "訪客"}');
+    
+    if (user != null && user.unlockedAnimals.isNotEmpty) {
+      // 從雲端數據載入
+      debugPrint('🐾 從雲端載入: ${user.unlockedAnimals}');
+      _collectionService.loadUnlockedAnimals(user.unlockedAnimals);
+    } else {
+      // 從本地 SharedPreferences 載入（訪客模式）
+      final prefs = await SharedPreferences.getInstance();
+      final unlockedJson = prefs.getString('unlocked_animals');
+      debugPrint('🐾 本地數據: $unlockedJson');
+      
+      if (unlockedJson != null) {
+        try {
+          final Map<String, dynamic> decoded =
+              Map<String, dynamic>.from(jsonDecode(unlockedJson));
+          final Map<String, String> unlockedAnimals =
+              decoded.map((key, value) => MapEntry(key, value as String));
+          debugPrint('🐾 解析後: $unlockedAnimals');
+          _collectionService.loadUnlockedAnimals(unlockedAnimals);
+        } catch (e) {
+          debugPrint('載入本地動物解鎖數據失敗: $e');
+        }
+      }
+    }
+  }
+
+  /// 保存並同步已解鎖動物
+  Future<void> _saveAndSyncUnlockedAnimals() async {
+    final unlockedData = _collectionService.exportUnlockedAnimals();
+
+    // 保存到本地
+    final prefs = await SharedPreferences.getInstance();
+    final unlockedJson = jsonEncode(unlockedData);
+    await prefs.setString('unlocked_animals', unlockedJson);
+
+    // 如果已登入，同步到雲端
+    final user = authService.currentUser;
+    if (user != null) {
+      try {
+        await _syncService.syncUnlockedAnimals(unlockedData);
+        debugPrint('✅ 動物解鎖數據已同步');
+      } catch (e) {
+        debugPrint('同步動物解鎖數據失敗: $e');
+      }
+    }
   }
 
   @override
@@ -73,7 +155,7 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
             SliverToBoxAdapter(
               child: _buildStatsCard(),
             ),
-            
+
             // 動物卡片網格
             SliverPadding(
               padding: const EdgeInsets.all(16),
@@ -87,12 +169,13 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final animal = _collectionService.allAnimals[index];
-                    final status = _collectionService.getAnimalStatus(animal.id);
+                    final status =
+                        _collectionService.getAnimalStatus(animal.id);
                     final isUnlocked = status.isUnlocked;
                     final totalDays = _checkedDates.length;
-                    
+
                     return _AnimalCard(
-                      animal: animal,
+                      animal: status, // ✅ 使用 status（含 unlockedAt）而不是 animal
                       isUnlocked: isUnlocked,
                       currentDays: totalDays,
                     );
@@ -103,61 +186,8 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _handleCheckIn,
-          backgroundColor: Colors.blue[700],
-          icon: const Icon(Icons.check_circle),
-          label: Text(
-            _hasCheckedToday() ? '今天已打卡' : '打卡',
-          ),
-        ),
       ),
     );
-  }
-
-  bool _hasCheckedToday() {
-    final now = DateTime.now();
-    final todayString = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    return _checkedDates.contains(todayString);
-  }
-
-  Future<void> _handleCheckIn() async {
-    if (_hasCheckedToday()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('今天已經打卡過了！請到首頁查看打卡日曆'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
-    // 提示用戶到首頁打卡
-    if (mounted) {
-      final shouldGoHome = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('打卡提示'),
-          content: const Text('請到首頁的打卡日曆進行打卡\n\n打卡後，動物圖鑑會自動同步解鎖進度！'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('前往首頁'),
-            ),
-          ],
-        ),
-      );
-
-      if (shouldGoHome == true && mounted) {
-        Navigator.pop(context); // 返回首頁
-      }
-    }
   }
 
   Widget _buildStatsCard() {
@@ -282,7 +312,7 @@ class _AnimalCard extends StatelessWidget {
                 child: _buildAnimalImage(),
               ),
             ),
-            
+
             // 動物名稱
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -298,9 +328,9 @@ class _AnimalCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis, // 超出顯示省略號
               ),
             ),
-            
+
             const SizedBox(height: 6),
-            
+
             // 解鎖狀態或進度
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -308,7 +338,8 @@ class _AnimalCard extends StatelessWidget {
                   ? Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green[600], size: 14),
+                        Icon(Icons.check_circle,
+                            color: Colors.green[600], size: 14),
                         const SizedBox(width: 3),
                         Text(
                           '已收集',
@@ -344,7 +375,7 @@ class _AnimalCard extends StatelessWidget {
                       ],
                     ),
             ),
-            
+
             const SizedBox(height: 8),
           ],
         ),
@@ -363,7 +394,7 @@ class _AnimalCard extends StatelessWidget {
               0.2126, 0.7152, 0.0722, 0, 0, // Red channel
               0.2126, 0.7152, 0.0722, 0, 0, // Green channel
               0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
-              0,      0,      0,      1, 0, // Alpha channel
+              0, 0, 0, 1, 0, // Alpha channel
             ]),
             child: Image.asset(
               animal.assetPath,
@@ -387,39 +418,62 @@ class _AnimalCard extends StatelessWidget {
               color: isUnlocked ? Colors.amber : Colors.grey,
             ),
             const SizedBox(width: 8),
-            Text(isUnlocked ? animal.name : '未解鎖'),
+            Expanded(
+              child: Text(
+                isUnlocked ? animal.name : '???',
+                style: const TextStyle(fontSize: 20),
+              ),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 150,
-              child: _buildAnimalImage(),
+            // 動物圖片
+            Center(
+              child: SizedBox(
+                height: 150,
+                child: _buildAnimalImage(),
+              ),
             ),
-            const SizedBox(height: 16),
-            if (!isUnlocked) ...[
-              Text(
-                '需要打卡 ${animal.requiredCheckInDays} 天才能解鎖',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '目前進度: $currentDays / ${animal.requiredCheckInDays} 天',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            const SizedBox(height: 20),
+
+            // 詳細資訊
+            if (isUnlocked) ...[
+              _buildInfoRow(Icons.verified, '狀態', '已解鎖', Colors.green),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                  Icons.calendar_today,
+                  '取得日期',
+                  animal.unlockedAt != null
+                      ? _formatDate(animal.unlockedAt!)
+                      : '未知',
+                  Colors.blue),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.emoji_events, '解鎖條件',
+                  '打卡 ${animal.requiredCheckInDays} 天', Colors.orange),
             ] else ...[
-              Text(
-                '解鎖時間: ${_formatDate(animal.unlockedAt!)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
+              _buildInfoRow(Icons.lock, '狀態', '未解鎖', Colors.grey),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.emoji_events, '解鎖條件',
+                  '打卡 ${animal.requiredCheckInDays} 天', Colors.orange),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                  Icons.show_chart,
+                  '目前進度',
+                  '$currentDays / ${animal.requiredCheckInDays} 天',
+                  Colors.blue),
+              const SizedBox(height: 12),
+              // 進度條
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: (currentDays / animal.requiredCheckInDays)
+                      .clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[400]!),
                 ),
               ),
             ],
@@ -432,6 +486,32 @@ class _AnimalCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -6,12 +6,12 @@ import 'audio_analyzer_service.dart';
 import 'models/spectrogram.dart';
 
 /// 音訊分析服務實現
-/// 
+///
 /// 使用 STFT (短時距傅立葉變換) 將音訊轉換為時頻譜圖
 class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
   // FFT 參數配置
-  static const int fftSize = 2048;      // FFT 窗口大小
-  static const int hopSize = 512;       // 跳躍大小 (每次移動的樣本數)
+  static const int fftSize = 2048; // FFT 窗口大小
+  static const int hopSize = 512; // 跳躍大小 (每次移動的樣本數)
   static const int defaultSampleRate = 44100;
 
   @override
@@ -24,10 +24,10 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
       }
 
       final bytes = await file.readAsBytes();
-      
+
       // 解析 WAV 格式
       final wavData = _parseWavFile(bytes);
-      
+
       return analyzeData(wavData.samples, wavData.sampleRate);
     } catch (e) {
       throw Exception('音訊分析失敗: $e');
@@ -38,14 +38,14 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
   Future<Spectrogram> analyzeData(Uint8List wavData, int sampleRate) async {
     // 將 PCM16 數據轉換為 double 數組 (-1.0 到 1.0)
     final audioSamples = _pcm16ToDouble(wavData);
-    
+
     // 執行 STFT
     final frames = _performSTFT(audioSamples, sampleRate);
-    
+
     // 創建 Spectrogram 對象
     return Spectrogram(
       timeFrames: frames.length,
-      freqBins: fftSize ~/ 2 + 1,  // 只保留正頻率部分
+      freqBins: fftSize ~/ 2 + 1, // 只保留正頻率部分
       data: frames,
       sampleRate: sampleRate,
       fftSize: fftSize,
@@ -63,7 +63,7 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
     for (int i = 0; i < audio.length - fftSize; i += hopSize) {
       // 提取當前窗口的樣本
       final frame = audio.sublist(i, i + fftSize);
-      
+
       // 應用 Hanning 窗函數
       final windowedFrame = List<double>.generate(
         fftSize,
@@ -89,7 +89,7 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
   }
 
   /// 生成 Hanning 窗函數
-  /// 
+  ///
   /// Hanning 窗可以減少頻譜洩漏,使頻譜分析更準確
   List<double> _hanningWindow(int size) {
     return List<double>.generate(size, (i) {
@@ -100,22 +100,20 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
   /// 將 PCM16 數據轉換為 -1.0 到 1.0 的 double 數組
   List<double> _pcm16ToDouble(Uint8List pcmData) {
     final samples = <double>[];
-    
+
     // PCM16 是 16-bit signed integer, 每個樣本 2 bytes
     for (int i = 0; i < pcmData.length - 1; i += 2) {
       // Little-endian: 低位在前
       final int16Value = pcmData[i] | (pcmData[i + 1] << 8);
-      
+
       // 轉換為有符號整數
-      final signedValue = int16Value > 32767 
-          ? int16Value - 65536 
-          : int16Value;
-      
+      final signedValue = int16Value > 32767 ? int16Value - 65536 : int16Value;
+
       // 正規化到 -1.0 到 1.0
       final normalized = signedValue / 32768.0;
       samples.add(normalized);
     }
-    
+
     return samples;
   }
 
@@ -139,10 +137,8 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
     }
 
     // 讀取採樣率 (位置 24-27, little-endian)
-    final sampleRate = bytes[24] | 
-                      (bytes[25] << 8) | 
-                      (bytes[26] << 16) | 
-                      (bytes[27] << 24);
+    final sampleRate =
+        bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
 
     // 讀取聲道數 (位置 22-23)
     final numChannels = bytes[22] | (bytes[23] << 8);
@@ -162,15 +158,17 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
     // 尋找 "data" 區塊
     int dataOffset = 12;
     while (dataOffset < bytes.length - 8) {
-      final chunkId = String.fromCharCodes(bytes.sublist(dataOffset, dataOffset + 4));
-      final chunkSize = bytes[dataOffset + 4] | 
-                       (bytes[dataOffset + 5] << 8) | 
-                       (bytes[dataOffset + 6] << 16) | 
-                       (bytes[dataOffset + 7] << 24);
+      final chunkId =
+          String.fromCharCodes(bytes.sublist(dataOffset, dataOffset + 4));
+      final chunkSize = bytes[dataOffset + 4] |
+          (bytes[dataOffset + 5] << 8) |
+          (bytes[dataOffset + 6] << 16) |
+          (bytes[dataOffset + 7] << 24);
 
       if (chunkId == 'data') {
         // 找到數據區塊
-        final samples = bytes.sublist(dataOffset + 8, dataOffset + 8 + chunkSize);
+        final samples =
+            bytes.sublist(dataOffset + 8, dataOffset + 8 + chunkSize);
         return _WavData(
           samples: samples,
           sampleRate: sampleRate,

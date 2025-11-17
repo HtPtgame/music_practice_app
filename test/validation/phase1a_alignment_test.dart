@@ -1,10 +1,10 @@
 /// Phase 1A 測試: 自動時間對齊驗證
-/// 
+///
 /// 測試目標:
 /// 1. 驗證自動檢測錄音起始點功能
 /// 2. 驗證時間軸對齊功能
 /// 3. 確保不影響樂曲中間的休止符
-/// 
+///
 /// 測試方法:
 /// - 使用現有測試音檔 (生日快樂.mid + 對應 WAV)
 /// - 手動添加不同長度的靜音前綴
@@ -29,20 +29,26 @@ void main(List<String> args) async {
   final testCases = [
     {
       'name': '生日快樂 - 電腦環境錄音',
-      'wav': r'D:\Flutter_project\music_practice_app\assets\test_voice\生日快樂(電腦環境錄製).wav',
-      'midi': r'D:\Flutter_project\music_practice_app\assets\test_voice\生日快樂.mid',
+      'wav':
+          r'D:\Flutter_project\music_practice_app\assets\test_voice\生日快樂(電腦環境錄製).wav',
+      'midi':
+          r'D:\Flutter_project\music_practice_app\assets\test_voice\生日快樂.mid',
       'expectedDelay': '未知 (實際錄音)',
     },
     {
       'name': '小星星 - MIDI轉檔',
-      'wav': r'D:\Flutter_project\music_practice_app\assets\test_voice\小星星(midi轉檔).wav',
-      'midi': r'D:\Flutter_project\music_practice_app\assets\test_voice\小星星.mid',
+      'wav':
+          r'D:\Flutter_project\music_practice_app\assets\test_voice\小星星(midi轉檔).wav',
+      'midi':
+          r'D:\Flutter_project\music_practice_app\assets\test_voice\小星星.mid',
       'expectedDelay': '~0秒 (理論完美對齊)',
     },
     {
       'name': '名偵探柯南 - 手機環境錄音',
-      'wav': r'D:\Flutter_project\music_practice_app\assets\test_voice\名偵探柯南(手機環境錄製).wav',
-      'midi': r'D:\Flutter_project\music_practice_app\assets\test_voice\名偵探柯南.mid',
+      'wav':
+          r'D:\Flutter_project\music_practice_app\assets\test_voice\名偵探柯南(手機環境錄製).wav',
+      'midi':
+          r'D:\Flutter_project\music_practice_app\assets\test_voice\名偵探柯南.mid',
       'expectedDelay': '未知 (實際錄音)',
     },
   ];
@@ -85,10 +91,14 @@ void main(List<String> args) async {
 
       // 分析音訊
       print('\n🎵 分析音訊檔案...');
-      final spectrogram = await audioAnalyzer.analyze(testCase['wav'] as String);
-      print('   頻譜: ${spectrogram.timeFrames} 幀 × ${spectrogram.freqBins} bins');
-      print('   錄音長度: ${(spectrogram.timeFrames * spectrogram.timeResolution).toStringAsFixed(2)} 秒');
-      print('   時間解析度: ${(spectrogram.timeResolution * 1000).toStringAsFixed(2)} ms');
+      final spectrogram =
+          await audioAnalyzer.analyze(testCase['wav'] as String);
+      print(
+          '   頻譜: ${spectrogram.timeFrames} 幀 × ${spectrogram.freqBins} bins');
+      print(
+          '   錄音長度: ${(spectrogram.timeFrames * spectrogram.timeResolution).toStringAsFixed(2)} 秒');
+      print(
+          '   時間解析度: ${(spectrogram.timeResolution * 1000).toStringAsFixed(2)} ms');
 
       // 檢測起始點
       print('\n🔍 檢測錄音起始點...');
@@ -97,7 +107,8 @@ void main(List<String> args) async {
 
       // 對齊時間軸
       print('\n⏰ 對齊 MIDI 時間軸...');
-      final alignedTimeline = autoAlignment.alignMidiTimeline(timeline, actualStart);
+      final alignedTimeline =
+          autoAlignment.alignMidiTimeline(timeline, actualStart);
       // (alignMidiTimeline 內部會打印詳細資訊)
 
       // 驗證結果
@@ -108,7 +119,8 @@ void main(List<String> args) async {
 
       print('   原始第一音符時間: ${originalFirstNote.toStringAsFixed(3)} 秒');
       print('   對齊後第一音符時間: ${alignedFirstNote.toStringAsFixed(3)} 秒');
-      print('   時間偏移量: ${timeShift >= 0 ? '+' : ''}${timeShift.toStringAsFixed(3)} 秒');
+      print(
+          '   時間偏移量: ${timeShift >= 0 ? '+' : ''}${timeShift.toStringAsFixed(3)} 秒');
       print('   預期延遲: ${testCase['expectedDelay']}');
 
       // 簡單的 Pass/Fail 判定 (檢測到的起始點應該 >= 0)
@@ -119,7 +131,6 @@ void main(List<String> args) async {
         print('\n⚠️ FAIL - 檢測結果異常 (起始點: ${actualStart.toStringAsFixed(3)} 秒)');
         failCount++;
       }
-
     } catch (e, stackTrace) {
       print('\n❌ ERROR: $e');
       print('堆疊追蹤:\n$stackTrace');

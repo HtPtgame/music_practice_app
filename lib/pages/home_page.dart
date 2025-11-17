@@ -15,35 +15,41 @@ class HomePage extends StatelessWidget {
     // SafeArea 已在 MainShell 層級處理
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column( // 從 ListView 改為 Column 以便放置 AppBar
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 我們自己的 AppBar 內容放在這裡
-             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.music_note, color: AppColors.dynamicPrimary, size: 28),
-                      const SizedBox(width: 8),
-                      Text('音靈偵探', style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 24, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  // 使用者頭像/登入按鈕
-                  _UserButton(),
-                ],
-              ),
+      child: Column(
+        // 從 ListView 改為 Column 以便放置 AppBar
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 我們自己的 AppBar 內容放在這裡
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.music_note,
+                        color: AppColors.dynamicPrimary, size: 28),
+                    const SizedBox(width: 8),
+                    Text('音靈偵探',
+                        style: TextStyle(
+                            color: AppColors.dynamicTextDark,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                // 使用者頭像/登入按鈕
+                _UserButton(),
+              ],
             ),
-            const SizedBox(height: 16),
-            // 主要內容
-            const Expanded(
-              child: _HomePageContent(),
-            ),
-          ],
-        ),
-      );
+          ),
+          const SizedBox(height: 16),
+          // 主要內容
+          const Expanded(
+            child: _HomePageContent(),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -84,7 +90,8 @@ class _UserButton extends StatelessWidget {
         } else {
           // 未登入：顯示登入按鈕
           return IconButton(
-            icon: Icon(Icons.person_outline, color: AppColors.dynamicTextDark, size: 28),
+            icon: Icon(Icons.person_outline,
+                color: AppColors.dynamicTextDark, size: 28),
             onPressed: () => context.push('/login'),
             tooltip: '登入',
           );
@@ -103,15 +110,15 @@ class _HomePageContent extends StatelessWidget {
     return ListView(
       children: [
         const SizedBox(height: 8),
-        
+
         // 打卡卡片
         const CheckInCard(),
-        
+
         const SizedBox(height: 16),
-        
+
         // 練習計時卡片
         const PracticeTimerCard(),
-        
+
         const SizedBox(height: 100), // 底部間距
       ],
     );

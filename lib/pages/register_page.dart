@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/firebase_auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 /// 註冊頁面 - Firebase 版本
 class RegisterPage extends StatefulWidget {
@@ -31,6 +33,55 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  /// 檢查本地是否有訪客模式數據
+  Future<bool> _hasLocalGuestData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final checkInDates = prefs.getStringList('checked_dates') ?? [];
+      final practiceDataJson = prefs.getString('practice_data');
+
+      Map<String, int> practiceData = {};
+      if (practiceDataJson != null && practiceDataJson.isNotEmpty) {
+        try {
+          practiceData = Map<String, int>.from(jsonDecode(practiceDataJson));
+        } catch (e) {
+          debugPrint('解析練習數據失敗: $e');
+        }
+      }
+
+      return checkInDates.isNotEmpty || practiceData.isNotEmpty;
+    } catch (e) {
+      debugPrint('檢查本地數據失敗: $e');
+      return false;
+    }
+  }
+
+  /// 顯示數據保留選擇對話框
+  Future<bool> _showDataRetentionDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('保留當前數據？'),
+            content: const Text(
+              '檢測到您在訪客模式下已有打卡記錄或練習時長。\n\n'
+              '您希望將這些數據導入新帳號，還是重新開始？',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('重新開始'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('保留當前數據'),
+              ),
+            ],
+          ),
+        ) ??
+        false; // 如果用戶按返回鍵，預設為不保留
+  }
+
   /// 處理 Email/密碼註冊
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
@@ -38,17 +89,27 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
+      // 檢查是否有本地數據
+      final hasLocalData = await _hasLocalGuestData();
+      bool importData = false;
+
+      if (hasLocalData) {
+        // 顯示對話框讓用戶選擇
+        importData = await _showDataRetentionDialog();
+      }
+
       await _authService.register(
         email: _emailController.text.trim(),
         username: _usernameController.text.trim(),
         password: _passwordController.text,
         displayName: _usernameController.text.trim(), // 使用 username 作為顯示名稱
+        importLocalData: importData,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('註冊成功！歡迎加入'),
+          SnackBar(
+            content: Text(importData ? '註冊成功！已保留您的打卡和練習記錄' : '註冊成功！歡迎加入'),
             backgroundColor: Colors.green,
           ),
         );
@@ -58,7 +119,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (mounted) {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -79,14 +140,27 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await _authService.signInWithGoogle();
+      // 檢查是否有本地數據（在 Google 登入前）
+      final hasLocalData = await _hasLocalGuestData();
+      bool importData = false;
+
+      if (hasLocalData) {
+        // 顯示對話框讓用戶選擇
+        importData = await _showDataRetentionDialog();
+      }
+
+      final success = await _authService.signInWithGoogle(
+        importLocalData: importData,
+      );
 
       if (mounted) {
         if (success) {
           // 登入/註冊成功
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Google 登入成功！'),
+            SnackBar(
+              content: Text(importData && hasLocalData
+                  ? 'Google 登入成功！已保留您的打卡和練習記錄'
+                  : 'Google 登入成功！'),
               backgroundColor: Colors.green,
             ),
           );
@@ -100,7 +174,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (mounted) {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -159,7 +233,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (value == null || value.trim().isEmpty) {
                       return '請輸入 Email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return '請輸入有效的 Email';
                     }
                     return null;
@@ -199,7 +274,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
@@ -230,10 +307,13 @@ class _RegisterPageState extends State<RegisterPage> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        _obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
-                        setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                        setState(() =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword);
                       },
                     ),
                     border: const OutlineInputBorder(),
@@ -264,12 +344,14 @@ class _RegisterPageState extends State<RegisterPage> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text(
                           '註冊',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
                 const SizedBox(height: 24),

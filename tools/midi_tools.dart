@@ -1,11 +1,11 @@
 /// MIDI 分析工具
 /// 分析 MIDI 檔案的結構、音符、Tempo 等資訊
-/// 
+///
 /// 使用方式:
 /// ```bash
 /// # 分析單個 MIDI 檔案
 /// dart tools/midi_tools.dart analyze <檔案路徑>
-/// 
+///
 /// # 分析目錄中的所有 MIDI 檔案
 /// dart tools/midi_tools.dart batch <目錄路徑>
 /// ```
@@ -72,7 +72,7 @@ void printUsage() {
 void analyzeMidiFile(String filePath) {
   print('🔍 MIDI 檔案分析工具');
   print('=' * 70);
-  
+
   final file = File(filePath);
   if (!file.existsSync()) {
     throw Exception('檔案不存在: $filePath');
@@ -80,10 +80,10 @@ void analyzeMidiFile(String filePath) {
 
   final bytes = file.readAsBytesSync();
   final fileName = filePath.split(Platform.pathSeparator).last;
-  
+
   print('📁 檔案: $fileName');
   print('📊 檔案大小: ${(bytes.length / 1024).toStringAsFixed(2)} KB');
-  
+
   // 解析 MIDI 標頭
   if (bytes.length < 14) {
     throw Exception('檔案太小，不是有效的 MIDI 檔案');
@@ -97,11 +97,11 @@ void analyzeMidiFile(String filePath) {
   final format = (bytes[8] << 8) | bytes[9];
   final numTracks = (bytes[10] << 8) | bytes[11];
   final division = (bytes[12] << 8) | bytes[13];
-  
+
   print('🎵 格式類型: $format');
   print('📝 軌道數: $numTracks');
   print('⏱️  TPQ (Ticks Per Quarter): $division');
-  
+
   // 解析軌道
   var offset = 14;
   var totalNotes = 0;
@@ -109,40 +109,42 @@ void analyzeMidiFile(String filePath) {
   var maxNote = 0;
   final tempoEvents = <TempoEvent>[];
   final noteTimings = <int>[];
-  
-  for (var trackNum = 0; trackNum < numTracks && offset < bytes.length; trackNum++) {
+
+  for (var trackNum = 0;
+      trackNum < numTracks && offset < bytes.length;
+      trackNum++) {
     final trackHeader = String.fromCharCodes(bytes.sublist(offset, offset + 4));
     if (trackHeader != 'MTrk') {
       print('⚠️  警告: 軌道 $trackNum 標頭不正確');
       break;
     }
-    
+
     final trackLength = (bytes[offset + 4] << 24) |
-                       (bytes[offset + 5] << 16) |
-                       (bytes[offset + 6] << 8) |
-                       bytes[offset + 7];
-    
+        (bytes[offset + 5] << 16) |
+        (bytes[offset + 6] << 8) |
+        bytes[offset + 7];
+
     offset += 8;
     final trackEnd = offset + trackLength;
     var currentTick = 0;
-    
+
     while (offset < trackEnd && offset < bytes.length) {
       // 讀取 delta time
       final deltaTime = _readVarLength(bytes, offset);
       offset = deltaTime.newOffset;
       currentTick += deltaTime.value;
-      
+
       if (offset >= trackEnd) break;
-      
+
       // 讀取事件
       var eventType = bytes[offset];
-      
+
       // Note On (0x90-0x9F)
       if (eventType >= 0x90 && eventType <= 0x9F) {
         if (offset + 2 < trackEnd) {
           final note = bytes[offset + 1];
           final velocity = bytes[offset + 2];
-          
+
           if (velocity > 0) {
             totalNotes++;
             if (note < minNote) minNote = note;
@@ -161,22 +163,22 @@ void analyzeMidiFile(String filePath) {
       // Meta Event (0xFF)
       else if (eventType == 0xFF) {
         if (offset + 1 >= trackEnd) break;
-        
+
         final metaType = bytes[offset + 1];
         offset += 2;
-        
+
         final length = _readVarLength(bytes, offset);
         offset = length.newOffset;
-        
+
         // Tempo event (0x51)
         if (metaType == 0x51 && length.value == 3 && offset + 3 <= trackEnd) {
           final microsecondsPerQuarter = (bytes[offset] << 16) |
-                                         (bytes[offset + 1] << 8) |
-                                         bytes[offset + 2];
+              (bytes[offset + 1] << 8) |
+              bytes[offset + 2];
           final bpm = 60000000 / microsecondsPerQuarter;
           tempoEvents.add(TempoEvent(currentTick, bpm, microsecondsPerQuarter));
         }
-        
+
         offset += length.value;
       }
       // Other events
@@ -184,45 +186,48 @@ void analyzeMidiFile(String filePath) {
         offset++;
         if (eventType >= 0xC0 && eventType <= 0xDF) {
           offset++; // 1 data byte
-        } else if (eventType >= 0x80 && eventType <= 0xBF || 
-                   eventType >= 0xE0 && eventType <= 0xEF) {
+        } else if (eventType >= 0x80 && eventType <= 0xBF ||
+            eventType >= 0xE0 && eventType <= 0xEF) {
           offset += 2; // 2 data bytes
         }
       }
     }
-    
+
     offset = trackEnd;
   }
-  
+
   print('🎵 音符總數: $totalNotes');
   print('🎼 Tempo 事件數: ${tempoEvents.length}');
-  
+
   if (tempoEvents.isNotEmpty) {
     print('\n📌 Tempo 事件詳情:');
     for (var i = 0; i < tempoEvents.length; i++) {
       final event = tempoEvents[i];
-      print('   ${i + 1}. Tick ${event.tick}: ${event.bpm.toStringAsFixed(1)} BPM (${event.microsecondsPerQuarter} μs/quarter)');
+      print(
+          '   ${i + 1}. Tick ${event.tick}: ${event.bpm.toStringAsFixed(1)} BPM (${event.microsecondsPerQuarter} μs/quarter)');
     }
   }
-  
+
   if (totalNotes > 0) {
     print('\n📊 音符分布:');
     print('   最低音符: ${_noteToString(minNote)} ($minNote)');
     print('   最高音符: ${_noteToString(maxNote)} ($maxNote)');
-    print('   音域跨度: ${maxNote - minNote} 半音 (${((maxNote - minNote) / 12).toStringAsFixed(1)} 個八度)');
-    
+    print(
+        '   音域跨度: ${maxNote - minNote} 半音 (${((maxNote - minNote) / 12).toStringAsFixed(1)} 個八度)');
+
     // 計算時長
     if (noteTimings.isNotEmpty && tempoEvents.isNotEmpty) {
       final lastTick = noteTimings.reduce((a, b) => a > b ? a : b);
       final tempo = tempoEvents.first;
-      final ticksPerSecond = 1000000.0 / tempo.microsecondsPerQuarter * division;
+      final ticksPerSecond =
+          1000000.0 / tempo.microsecondsPerQuarter * division;
       final duration = lastTick / ticksPerSecond;
       final density = totalNotes / duration;
-      
+
       print('\n⏰ 時長分析:');
       print('   總時長: ${duration.toStringAsFixed(1)} 秒');
       print('   音符密度: ${density.toStringAsFixed(1)} notes/sec');
-      
+
       String rating;
       if (density > 8) {
         rating = '🔥 極快節奏';
@@ -238,14 +243,14 @@ void analyzeMidiFile(String filePath) {
       print('   評級: $rating');
     }
   }
-  
+
   print('=' * 70);
 }
 
 void batchAnalyzeMidi(String directoryPath) {
   print('🔍 批次分析 MIDI 檔案');
   print('目錄: $directoryPath\n');
-  
+
   final directory = Directory(directoryPath);
   if (!directory.existsSync()) {
     throw Exception('目錄不存在: $directoryPath');
@@ -253,8 +258,9 @@ void batchAnalyzeMidi(String directoryPath) {
 
   final midiFiles = directory
       .listSync()
-      .where((f) => f.path.toLowerCase().endsWith('.mid') || 
-                    f.path.toLowerCase().endsWith('.midi'))
+      .where((f) =>
+          f.path.toLowerCase().endsWith('.mid') ||
+          f.path.toLowerCase().endsWith('.midi'))
       .toList();
 
   if (midiFiles.isEmpty) {
@@ -265,7 +271,7 @@ void batchAnalyzeMidi(String directoryPath) {
   print('📊 找到 ${midiFiles.length} 個 MIDI 檔案\n');
 
   for (var i = 0; i < midiFiles.length; i++) {
-    print('\n[${ i + 1}/${midiFiles.length}]');
+    print('\n[${i + 1}/${midiFiles.length}]');
     analyzeMidiFile(midiFiles[i].path);
     if (i < midiFiles.length - 1) {
       print('\n');
@@ -281,35 +287,48 @@ class TempoEvent {
   final int tick;
   final double bpm;
   final int microsecondsPerQuarter;
-  
+
   TempoEvent(this.tick, this.bpm, this.microsecondsPerQuarter);
 }
 
 class VarLengthResult {
   final int value;
   final int newOffset;
-  
+
   VarLengthResult(this.value, this.newOffset);
 }
 
 VarLengthResult _readVarLength(Uint8List bytes, int offset) {
   var value = 0;
   var currentOffset = offset;
-  
+
   while (currentOffset < bytes.length) {
     final byte = bytes[currentOffset++];
     value = (value << 7) | (byte & 0x7F);
-    
+
     if ((byte & 0x80) == 0) {
       break;
     }
   }
-  
+
   return VarLengthResult(value, currentOffset);
 }
 
 String _noteToString(int note) {
-  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const noteNames = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B'
+  ];
   final octave = (note ~/ 12) - 1;
   final noteName = noteNames[note % 12];
   return '$noteName$octave';

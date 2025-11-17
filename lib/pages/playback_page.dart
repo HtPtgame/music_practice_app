@@ -122,7 +122,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
               builder: (context, constraints) {
                 final screenWidth = constraints.maxWidth;
                 final screenHeight = MediaQuery.of(context).size.height;
-                
+
                 return Center(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
@@ -193,24 +193,29 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                   onChanged: null,
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         _formatTime(_currentPosition),
-                                        style: TextStyle(fontSize: screenWidth * 0.035),
+                                        style: TextStyle(
+                                            fontSize: screenWidth * 0.035),
                                       ),
                                       Text(
                                         _formatTime(_totalDuration),
-                                        style: TextStyle(fontSize: screenWidth * 0.035),
+                                        style: TextStyle(
+                                            fontSize: screenWidth * 0.035),
                                       ),
                                     ],
                                   ),
                                 ),
                                 SizedBox(height: screenHeight * 0.04),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                   children: [
                                     IconButton(
                                       onPressed: _isLoading ? null : _restart,
@@ -225,9 +230,13 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                         shape: BoxShape.circle,
                                       ),
                                       child: IconButton(
-                                        onPressed: _isLoading ? null : _togglePlayPause,
+                                        onPressed: _isLoading
+                                            ? null
+                                            : _togglePlayPause,
                                         icon: Icon(
-                                          _isPlaying ? Icons.pause : Icons.play_arrow,
+                                          _isPlaying
+                                              ? Icons.pause
+                                              : Icons.play_arrow,
                                         ),
                                         iconSize: screenWidth * 0.12,
                                         color: Colors.white,

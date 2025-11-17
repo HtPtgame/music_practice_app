@@ -9,7 +9,7 @@ class SettingsService {
   SettingsService._internal();
 
   SharedPreferences? _prefs;
-  
+
   // 設定鍵名常數
   static const String _keyMasterVolume = 'master_volume';
   static const String _keyMidiVolume = 'midi_volume';

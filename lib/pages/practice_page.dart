@@ -71,7 +71,7 @@ class _PracticePageState extends State<PracticePage> {
     try {
       _recorder = FlutterSoundRecorder();
       _player = FlutterSoundPlayer();
-      
+
       // 關閉 flutter_sound 的內部日誌
       _recorder!.setLogLevel(Level.error);
       _player!.setLogLevel(Level.error);
@@ -86,7 +86,6 @@ class _PracticePageState extends State<PracticePage> {
       // 初始化錄音器和播放器
       await _recorder!.openRecorder();
       await _player!.openPlayer();
-
     } catch (e, stackTrace) {
       debugPrint('❌ 音訊初始化失敗: $e');
       debugPrint('堆疊追蹤: $stackTrace');
@@ -97,13 +96,12 @@ class _PracticePageState extends State<PracticePage> {
 
         _recorder = FlutterSoundRecorder();
         _player = FlutterSoundPlayer();
-        
+
         _recorder!.setLogLevel(Level.error);
         _player!.setLogLevel(Level.error);
 
         await _recorder!.openRecorder();
         await _player!.openPlayer();
-
       } catch (retryError) {
         debugPrint('❌ 重新初始化也失敗: $retryError');
       }
@@ -1381,18 +1379,21 @@ class _PracticePageState extends State<PracticePage> {
     double currentTime = 0.0;
     const int ticksPerQuarterNote = 480; // MIDI 時間分辨率
     const int tempo = 500000; // 微秒/四分音符 (120 BPM)
-    const double ticksPerSecond = ticksPerQuarterNote * 1000000.0 / tempo; // ~960 ticks/sec
+    const double ticksPerSecond =
+        ticksPerQuarterNote * 1000000.0 / tempo; // ~960 ticks/sec
 
     for (var event in allEvents) {
       double eventTime = event['time'] as double;
-      int deltaTicks = ((eventTime - currentTime) * ticksPerSecond).round().clamp(0, 0x0FFFFFFF);
+      int deltaTicks = ((eventTime - currentTime) * ticksPerSecond)
+          .round()
+          .clamp(0, 0x0FFFFFFF);
 
       int midiNote = event['midiNote'] as int;
       int velocity = event['velocity'] as int;
 
       // 使用變長編碼 (Variable Length Quantity)
       List<int> deltaBytes = _encodeVariableLength(deltaTicks);
-      
+
       if (event['type'] == 'noteOn') {
         trackEvents.addAll([...deltaBytes, 0x90, midiNote, velocity]);
       } else {
@@ -1403,7 +1404,9 @@ class _PracticePageState extends State<PracticePage> {
     }
 
     // 軌道結束
-    int finalDeltaTicks = ((totalDurationSec - currentTime) * ticksPerSecond).round().clamp(0, 0x0FFFFFFF);
+    int finalDeltaTicks = ((totalDurationSec - currentTime) * ticksPerSecond)
+        .round()
+        .clamp(0, 0x0FFFFFFF);
     List<int> finalDeltaBytes = _encodeVariableLength(finalDeltaTicks);
     trackEvents.addAll([...finalDeltaBytes, 0xFF, 0x2F, 0x00]);
 
@@ -1430,45 +1433,46 @@ class _PracticePageState extends State<PracticePage> {
   List<int> _encodeVariableLength(int value) {
     List<int> bytes = [];
     bytes.add(value & 0x7F);
-    
+
     value >>= 7;
     while (value > 0) {
       bytes.insert(0, (value & 0x7F) | 0x80);
       value >>= 7;
     }
-    
+
     return bytes;
   }
 
   // 使用 MidiPro 播放 MIDI 檔案
-  Future<void> _playMidiWithMidiPro(MidiPro midiPro, Uint8List midiBytes, int sfId) async {
+  Future<void> _playMidiWithMidiPro(
+      MidiPro midiPro, Uint8List midiBytes, int sfId) async {
     try {
       debugPrint('🎵 開始解析並播放 MIDI 檔案...');
-      
+
       // MIDI 解析
       int offset = 0;
-      
+
       // 跳過 MIDI 檔案頭 (MThd)
       if (midiBytes.length < 14) {
         throw Exception('MIDI 檔案格式錯誤');
       }
-      
+
       offset = 14; // 跳過 MThd header
-      
+
       // 讀取軌道 (MTrk)
       if (offset + 8 > midiBytes.length) {
         debugPrint('⚠️ MIDI 檔案過短');
         return;
       }
-      
+
       // 跳過 MTrk 標頭
       offset += 8;
-      
+
       // 收集所有 MIDI 事件
       List<Map<String, dynamic>> midiEvents = [];
       double currentTicks = 0.0;
       const double ticksPerSecond = 960.0;
-      
+
       while (offset < midiBytes.length - 3) {
         // 讀取 delta time (變長編碼)
         int deltaTime = 0;
@@ -1477,20 +1481,20 @@ class _PracticePageState extends State<PracticePage> {
           deltaTime = (deltaTime << 7) | (byte & 0x7F);
           if ((byte & 0x80) == 0) break;
         }
-        
+
         currentTicks += deltaTime;
         double eventTime = currentTicks / ticksPerSecond;
-        
+
         if (offset >= midiBytes.length) break;
-        
+
         int status = midiBytes[offset++];
-        
+
         // Note On (0x90)
         if ((status & 0xF0) == 0x90) {
           if (offset + 1 >= midiBytes.length) break;
           int note = midiBytes[offset++];
           int velocity = midiBytes[offset++];
-          
+
           if (velocity > 0) {
             midiEvents.add({
               'type': 'noteOn',
@@ -1512,7 +1516,7 @@ class _PracticePageState extends State<PracticePage> {
           if (offset + 1 >= midiBytes.length) break;
           int note = midiBytes[offset++];
           offset++; // skip velocity
-          
+
           midiEvents.add({
             'type': 'noteOff',
             'time': eventTime,
@@ -1542,27 +1546,28 @@ class _PracticePageState extends State<PracticePage> {
           }
         }
       }
-      
+
       debugPrint('✅ 解析完成，共 ${midiEvents.length} 個事件');
-      
+
       // 播放事件
       if (midiEvents.isEmpty) {
         debugPrint('⚠️ 沒有可播放的 MIDI 事件');
         return;
       }
-      
+
       final startTime = DateTime.now();
       double lastEventTime = 0.0;
-      
+
       for (var event in midiEvents) {
         double eventTime = event['time'] as double;
-        
+
         // 等待到事件時間
         double waitTime = eventTime - lastEventTime;
         if (waitTime > 0) {
-          await Future.delayed(Duration(milliseconds: (waitTime * 1000).round()));
+          await Future.delayed(
+              Duration(milliseconds: (waitTime * 1000).round()));
         }
-        
+
         if (event['type'] == 'noteOn') {
           await midiPro.playNote(
             key: event['note'] as int,
@@ -1575,13 +1580,12 @@ class _PracticePageState extends State<PracticePage> {
             sfId: sfId,
           );
         }
-        
+
         lastEventTime = eventTime;
       }
-      
+
       final elapsed = DateTime.now().difference(startTime);
       debugPrint('🎉 MIDI 播放完成！播放時長: ${elapsed.inSeconds} 秒');
-      
     } catch (e, stackTrace) {
       debugPrint('❌ MIDI 播放過程錯誤: $e');
       debugPrint('堆疊: $stackTrace');
@@ -1807,13 +1811,13 @@ class _PracticePageState extends State<PracticePage> {
 
       // 執行推論
       debugPrint('🧠 執行 AI 模型推論...');
-      
+
       // 將 outputBuffers 轉換為正確的類型 Map<int, Object>
       final Map<int, Object> outputMap = {};
       outputBuffers.forEach((key, value) {
         outputMap[key] = value as Object;
       });
-      
+
       _interpreter!.runForMultipleInputs([inputData], outputMap);
 
       debugPrint('✅ AI 推論完成，輸出 ${outputMap.length} 個張量');
@@ -1886,30 +1890,31 @@ class _PracticePageState extends State<PracticePage> {
     // AI 模型輸出格式：[time_frames * notes]
     // 展平後的格式：每個張量是 [32 * 88] = 2816 個值
     // 需要重塑為 [32 time_frames, 88 notes]
-    
+
     if (aiOutput.length >= 2) {
       // 假設有兩個輸出：onsets 和 frames
       final onsetsFlat = aiOutput[0];
       final framesFlat = aiOutput[1];
-      
+
       const int numTimeFrames = 32; // 模型輸出的時間幀數
-      const int numNotes = 88;      // 鋼琴音符數
-      
+      const int numNotes = 88; // 鋼琴音符數
+
       if (onsetsFlat.length != numTimeFrames * numNotes ||
           framesFlat.length != numTimeFrames * numNotes) {
         debugPrint('警告：輸出大小不符合預期');
-        debugPrint('Onsets: ${onsetsFlat.length}, Frames: ${framesFlat.length}');
+        debugPrint(
+            'Onsets: ${onsetsFlat.length}, Frames: ${framesFlat.length}');
         debugPrint('預期: ${numTimeFrames * numNotes}');
       }
-      
+
       // 重塑為 [time, note] 格式，同時將 logits 轉換為機率
       List<List<double>> onsets = [];
       List<List<double>> frames = [];
-      
+
       for (int t = 0; t < numTimeFrames; t++) {
         List<double> onsetFrame = [];
         List<double> frameFrame = [];
-        
+
         for (int n = 0; n < numNotes; n++) {
           int idx = t * numNotes + n;
           if (idx < onsetsFlat.length) {
@@ -1925,57 +1930,61 @@ class _PracticePageState extends State<PracticePage> {
             frameFrame.add(0.0);
           }
         }
-        
+
         onsets.add(onsetFrame);
         frames.add(frameFrame);
       }
-      
+
       debugPrint('重塑完成：$numTimeFrames 時間幀 x $numNotes 音符 (已轉換為機率)');
-      
+
       // 🔍 調試：檢查轉換後的值範圍
       double maxOnset = onsets.expand((f) => f).reduce((a, b) => a > b ? a : b);
       double maxFrame = frames.expand((f) => f).reduce((a, b) => a > b ? a : b);
-      double avgOnset = onsets.expand((f) => f).reduce((a, b) => a + b) / (numTimeFrames * numNotes);
-      double avgFrame = frames.expand((f) => f).reduce((a, b) => a + b) / (numTimeFrames * numNotes);
+      double avgOnset = onsets.expand((f) => f).reduce((a, b) => a + b) /
+          (numTimeFrames * numNotes);
+      double avgFrame = frames.expand((f) => f).reduce((a, b) => a + b) /
+          (numTimeFrames * numNotes);
       debugPrint('🔍 Sigmoid轉換後 - Onset: max=$maxOnset, avg=$avgOnset');
       debugPrint('🔍 Sigmoid轉換後 - Frame: max=$maxFrame, avg=$avgFrame');
-      
+
       // 設定閾值（進一步降低以捕捉更多音符）
-      const double onsetThreshold = 0.1;   // Onset 閾值（從 0.15 降低到 0.1）
-      const double frameThreshold = 0.03;  // Frame 閾值（從 0.05 降低到 0.03）
+      const double onsetThreshold = 0.1; // Onset 閾值（從 0.15 降低到 0.1）
+      const double frameThreshold = 0.03; // Frame 閾值（從 0.05 降低到 0.03）
       const double minNoteDuration = 0.05; // 最小音符持續時間（50ms）
-      
+
       // 追蹤每個音符的狀態
       Map<int, Map<String, dynamic>> activeNotes = {};
-      
+
       // 每個時間幀的時間長度（秒）
       const double frameTime = 1.0 / numTimeFrames; // ~0.03125 秒/幀
-      
+
       debugPrint('🎯 使用閾值 - Onset: $onsetThreshold, Frame: $frameThreshold');
-      
+
       // 🔍 計數檢測到的onset
       int onsetCount = 0;
-      
+
       for (int t = 0; t < numTimeFrames; t++) {
         double currentTime = t * frameTime;
-        
+
         for (int n = 0; n < numNotes; n++) {
           double onsetValue = onsets[t][n];
           double frameValue = frames[t][n];
-          
+
           int midiNote = 21 + n; // MIDI 21 = A0 (最低鋼琴音)
-          
+
           // 檢測音符開始 (onset)
           if (onsetValue > onsetThreshold) {
             onsetCount++;
-            if (onsetCount <= 5) {  // 只打印前5個
-              debugPrint('  🎵 檢測onset: t=$t, note=$midiNote, onset=$onsetValue, frame=$frameValue');
+            if (onsetCount <= 5) {
+              // 只打印前5個
+              debugPrint(
+                  '  🎵 檢測onset: t=$t, note=$midiNote, onset=$onsetValue, frame=$frameValue');
             }
             // 如果該音符已經在活動中，先結束它
             if (activeNotes.containsKey(midiNote)) {
               var note = activeNotes[midiNote]!;
               double duration = currentTime - (note['startTime'] as double);
-              
+
               // 只有持續時間足夠長才記錄
               if (duration >= minNoteDuration) {
                 note['endTime'] = currentTime;
@@ -1983,7 +1992,7 @@ class _PracticePageState extends State<PracticePage> {
                 noteEvents.add(note);
               }
             }
-            
+
             // 開始新音符
             activeNotes[midiNote] = {
               'midiNote': midiNote,
@@ -1993,14 +2002,14 @@ class _PracticePageState extends State<PracticePage> {
               'onsetStrength': onsetValue,
             };
           }
-          
+
           // 檢查音符是否持續 (frame)
           if (activeNotes.containsKey(midiNote)) {
             if (frameValue < frameThreshold) {
               // 音符結束
               var note = activeNotes[midiNote]!;
               double duration = currentTime - (note['startTime'] as double);
-              
+
               // 只有持續時間足夠長才記錄
               if (duration >= minNoteDuration) {
                 note['endTime'] = currentTime;
@@ -2015,11 +2024,11 @@ class _PracticePageState extends State<PracticePage> {
           }
         }
       }
-      
+
       // 結束所有仍在活動的音符
       activeNotes.forEach((midiNote, note) {
         double duration = 1.0 - (note['startTime'] as double);
-        
+
         // 只有持續時間足夠長才記錄
         if (duration >= minNoteDuration) {
           note['endTime'] = 1.0; // 區塊結束時間
@@ -2027,9 +2036,9 @@ class _PracticePageState extends State<PracticePage> {
           noteEvents.add(note);
         }
       });
-      
-      debugPrint('📊 本區塊檢測到 ${noteEvents.length} 個有效音符 (onset觸發: $onsetCount 次)');
-      
+
+      debugPrint(
+          '📊 本區塊檢測到 ${noteEvents.length} 個有效音符 (onset觸發: $onsetCount 次)');
     } else if (aiOutput.length == 1) {
       // 單一輸出，嘗試簡單處理
       final combined = aiOutput[0];
@@ -2141,7 +2150,7 @@ class _PracticePageState extends State<PracticePage> {
 
       // 使用 flutter_midi_pro 播放
       final midiPro = MidiPro();
-      
+
       // 載入音色庫 (SoundFont) - 鋼琴音色
       const soundfontPath = 'assets/TimGM6mb.sf2';
       final sfId = await midiPro.loadSoundfont(
@@ -2149,9 +2158,9 @@ class _PracticePageState extends State<PracticePage> {
         bank: 0,
         program: 0, // 0 = Piano
       );
-      
+
       debugPrint('音色庫載入成功: $sfId');
-      
+
       // 讀取並解析 MIDI 檔案
       final midiBytes = await midiFile.readAsBytes();
       await _playMidiWithMidiPro(midiPro, midiBytes, sfId);
@@ -2419,7 +2428,7 @@ class _PracticePageState extends State<PracticePage> {
               Text(
                 '正在練習: ${getFileNameWithoutExtension()}',
                 style: TextStyle(
-                  fontSize: 18, 
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.dynamicTextDark,
                 ),
@@ -2436,7 +2445,8 @@ class _PracticePageState extends State<PracticePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.mic, color: AppColors.dynamicPrimary, size: 28),
+                          Icon(Icons.mic,
+                              color: AppColors.dynamicPrimary, size: 28),
                           const SizedBox(width: 8),
                           const Text('錄音控制',
                               style: TextStyle(
@@ -2451,7 +2461,8 @@ class _PracticePageState extends State<PracticePage> {
                           const Icon(Icons.timer, size: 20, color: Colors.grey),
                           const SizedBox(width: 8),
                           const Text('3秒倒數計時',
-                              style: TextStyle(fontSize: 14, color: Colors.grey)),
+                              style:
+                                  TextStyle(fontSize: 14, color: Colors.grey)),
                           const SizedBox(width: 12),
                           Switch(
                             value: _enableCountdown,
@@ -2469,22 +2480,29 @@ class _PracticePageState extends State<PracticePage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton.icon(
-                            onPressed: isRecording ? stopRecording : startRecording,
-                            icon: Icon(isRecording ? Icons.stop : Icons.fiber_manual_record),
-                            label: Text(isRecording 
-                                ? '停止' 
+                            onPressed:
+                                isRecording ? stopRecording : startRecording,
+                            icon: Icon(isRecording
+                                ? Icons.stop
+                                : Icons.fiber_manual_record),
+                            label: Text(isRecording
+                                ? '停止'
                                 : (_audioPath != null ? '重新錄音' : '開始')),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isRecording ? Colors.grey : Colors.red,
+                              backgroundColor:
+                                  isRecording ? Colors.grey : Colors.red,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 12),
                             ),
                           ),
                           const SizedBox(width: 20),
                           Row(
                             children: [
                               Icon(
-                                isRecording ? Icons.fiber_manual_record : Icons.stop_circle_outlined,
+                                isRecording
+                                    ? Icons.fiber_manual_record
+                                    : Icons.stop_circle_outlined,
                                 color: isRecording ? Colors.red : Colors.green,
                                 size: 20,
                               ),
@@ -2492,12 +2510,14 @@ class _PracticePageState extends State<PracticePage> {
                               Text(
                                 isRecording
                                     ? '正在錄音... ${_recordingDurationSeconds}s'
-                                    : (_audioPath != null
-                                        ? '錄音完成'
-                                        : '未錄音'),
+                                    : (_audioPath != null ? '錄音完成' : '未錄音'),
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: isRecording ? Colors.red : (_audioPath != null ? Colors.green : Colors.grey),
+                                  color: isRecording
+                                      ? Colors.red
+                                      : (_audioPath != null
+                                          ? Colors.green
+                                          : Colors.grey),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -2510,12 +2530,14 @@ class _PracticePageState extends State<PracticePage> {
                           padding: const EdgeInsets.only(top: 12),
                           child: Row(
                             children: [
-                              Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+                              Icon(Icons.info_outline,
+                                  size: 16, color: Colors.grey[400]),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   '建議錄音至少 3 秒以獲得更好的轉換效果',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey[400]),
                                 ),
                               ),
                             ],
@@ -2537,7 +2559,8 @@ class _PracticePageState extends State<PracticePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.volume_up, color: AppColors.dynamicPrimary, size: 28),
+                          Icon(Icons.volume_up,
+                              color: AppColors.dynamicPrimary, size: 28),
                           const SizedBox(width: 8),
                           const Text('播放控制',
                               style: TextStyle(
@@ -2577,8 +2600,8 @@ class _PracticePageState extends State<PracticePage> {
 
               // Week 4 Phase 2: 演奏分析卡片
               Card(
-                color: (_audioPath != null && widget.file != null) 
-                    ? null 
+                color: (_audioPath != null && widget.file != null)
+                    ? null
                     : Colors.purple.withValues(alpha: 0.05),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -2587,7 +2610,8 @@ class _PracticePageState extends State<PracticePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.analytics_outlined, color: Colors.purple, size: 28),
+                          Icon(Icons.analytics_outlined,
+                              color: Colors.purple, size: 28),
                           SizedBox(width: 8),
                           Text(
                             '演奏分析',
@@ -2602,7 +2626,7 @@ class _PracticePageState extends State<PracticePage> {
                       Text(
                         '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
                         style: TextStyle(
-                          fontSize: 13, 
+                          fontSize: 13,
                           color: AppColors.dynamicTextDark.withOpacity(0.7),
                           fontWeight: FontWeight.w500,
                         ),
@@ -2610,21 +2634,26 @@ class _PracticePageState extends State<PracticePage> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                        onPressed: (!isRecording && _audioPath != null && !_isAnalyzing && widget.file != null)
+                        onPressed: (!isRecording &&
+                                _audioPath != null &&
+                                !_isAnalyzing &&
+                                widget.file != null)
                             ? _analyzePerformance
                             : null,
                         icon: _isAnalyzing
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.analytics_outlined),
                         label: Text(_isAnalyzing ? '分析中...' : '分析演奏'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.purple,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 16),
                           minimumSize: const Size(double.infinity, 50),
                         ),
                       ),
@@ -2643,13 +2672,15 @@ class _PracticePageState extends State<PracticePage> {
   Future<void> _analyzePerformance() async {
     if (_audioPath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ 請先錄製您的演奏'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('❌ 請先錄製您的演奏'), backgroundColor: Colors.red),
       );
       return;
     }
     if (widget.file == null || widget.file!.path == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ 請先從樂庫選擇 MIDI 曲目'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('❌ 請先從樂庫選擇 MIDI 曲目'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -2657,7 +2688,8 @@ class _PracticePageState extends State<PracticePage> {
     if (!await audioFile.exists()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ 錄音文件不存在，請重新錄音'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('❌ 錄音文件不存在，請重新錄音'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -2665,12 +2697,17 @@ class _PracticePageState extends State<PracticePage> {
     if (!await midiFile.exists()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ MIDI文件不存在，請重新選擇'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('❌ MIDI文件不存在，請重新選擇'), backgroundColor: Colors.red),
       );
       return;
     }
 
-    setState(() { _isAnalyzing = true; _analysisProgress = 0.0; _analysisPhase = ''; });
+    setState(() {
+      _isAnalyzing = true;
+      _analysisProgress = 0.0;
+      _analysisPhase = '';
+    });
 
     try {
       if (!mounted) return;
@@ -2710,11 +2747,19 @@ class _PracticePageState extends State<PracticePage> {
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('分析失敗: $e'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
+          SnackBar(
+              content: Text('分析失敗: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5)),
         );
       }
     } finally {
-      if (mounted) setState(() { _isAnalyzing = false; _analysisProgress = 0.0; _analysisPhase = ''; });
+      if (mounted)
+        setState(() {
+          _isAnalyzing = false;
+          _analysisProgress = 0.0;
+          _analysisPhase = '';
+        });
     }
   }
 
@@ -2731,7 +2776,11 @@ class _PracticePageState extends State<PracticePage> {
       builder: (context, setDialogState) {
         return AlertDialog(
           title: const Row(
-            children: [Icon(Icons.analytics, color: Colors.purple), SizedBox(width: 8), Text('演奏分析中')],
+            children: [
+              Icon(Icons.analytics, color: Colors.purple),
+              SizedBox(width: 8),
+              Text('演奏分析中')
+            ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2743,9 +2792,13 @@ class _PracticePageState extends State<PracticePage> {
                 valueColor: const AlwaysStoppedAnimation<Color>(Colors.purple),
               ),
               const SizedBox(height: 16),
-              Text('${(_analysisProgress * 100).toInt()}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text('${(_analysisProgress * 100).toInt()}%',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text(_analysisPhase, style: const TextStyle(fontSize: 14, color: Colors.grey), textAlign: TextAlign.center),
+              Text(_analysisPhase,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  textAlign: TextAlign.center),
             ],
           ),
         );

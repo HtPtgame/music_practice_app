@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Phase 1B: 倒數計時 Overlay Widget
-/// 
+///
 /// 在用戶按下錄音按鈕後，顯示 3-2-1 倒數計時，
 /// 讓用戶有時間準備，然後才真正開始錄音。
 class CountdownOverlay extends StatefulWidget {
@@ -28,7 +28,7 @@ class _CountdownOverlayState extends State<CountdownOverlay>
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -51,7 +51,7 @@ class _CountdownOverlayState extends State<CountdownOverlay>
   void _startCountdown() async {
     for (int i = 3; i >= 1; i--) {
       if (!mounted) return;
-      
+
       setState(() {
         _currentCount = i;
       });
@@ -83,7 +83,7 @@ class _CountdownOverlayState extends State<CountdownOverlay>
           Container(
             color: Colors.black.withOpacity(0.5),
           ),
-          
+
           // 倒數數字
           Center(
             child: AnimatedBuilder(
@@ -101,7 +101,8 @@ class _CountdownOverlayState extends State<CountdownOverlay>
                         color: _getCountColor(_currentCount),
                         boxShadow: [
                           BoxShadow(
-                            color: _getCountColor(_currentCount).withOpacity(0.5),
+                            color:
+                                _getCountColor(_currentCount).withOpacity(0.5),
                             blurRadius: 30,
                             spreadRadius: 10,
                           ),

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'models/note_event.dart';
 
 /// MIDI 解析服務
-/// 
+///
 /// 將 MIDI 文件解析為 MidiTimeline
 class MidiParserService {
   /// 從 MIDI 文件解析時間軸
@@ -37,18 +37,18 @@ class MidiParserService {
 
       // 讀取格式類型 (bytes 8-9)
       final format = (bytes[8] << 8) | bytes[9];
-      
+
       // 讀取音軌數量 (bytes 10-11)
       final numTracks = (bytes[10] << 8) | bytes[11];
-      
+
       // 讀取時間分度 (bytes 12-13)
       final division = (bytes[12] << 8) | bytes[13];
-      
+
       print('📄 MIDI 格式: $format, 音軌數: $numTracks, 時間分度: $division');
 
       // 解析所有音軌
       final events = <NoteEvent>[];
-      int offset = 14;  // 跳過 header
+      int offset = 14; // 跳過 header
 
       for (int trackNum = 0; trackNum < numTracks; trackNum++) {
         final trackEvents = _parseTrack(bytes, offset, division);
@@ -64,7 +64,8 @@ class MidiParserService {
         }
       }
 
-      print('🎵 解析完成: ${events.length} 個音符, 總時長: ${maxEndTime.toStringAsFixed(2)}秒');
+      print(
+          '🎵 解析完成: ${events.length} 個音符, 總時長: ${maxEndTime.toStringAsFixed(2)}秒');
 
       return MidiTimeline(
         events: events,
@@ -85,22 +86,22 @@ class MidiParserService {
 
     // 讀取音軌長度
     final trackLength = (bytes[offset + 4] << 24) |
-                       (bytes[offset + 5] << 16) |
-                       (bytes[offset + 6] << 8) |
-                       bytes[offset + 7];
+        (bytes[offset + 5] << 16) |
+        (bytes[offset + 6] << 8) |
+        bytes[offset + 7];
 
     final trackEnd = offset + 8 + trackLength;
     int pos = offset + 8;
 
     final events = <NoteEvent>[];
-    final activeNotes = <int, _ActiveNote>{};  // MIDI note -> 開始時間
-    
+    final activeNotes = <int, _ActiveNote>{}; // MIDI note -> 開始時間
+
     int currentTick = 0;
     int runningStatus = 0;
 
     // 假設默認 tempo (120 BPM = 500000 微秒/拍)
     double microsecondsPerQuarterNote = 500000;
-    
+
     while (pos < trackEnd) {
       // 讀取 delta time (可變長度)
       final deltaResult = _readVariableLength(bytes, pos);
@@ -111,7 +112,7 @@ class MidiParserService {
 
       // 讀取事件
       int status = bytes[pos];
-      
+
       // 處理 running status
       if (status < 0x80) {
         status = runningStatus;
@@ -126,12 +127,13 @@ class MidiParserService {
       // Note On (0x90)
       if (eventType == 0x90) {
         if (pos + 1 >= trackEnd) break;
-        
+
         final note = bytes[pos];
         final velocity = bytes[pos + 1];
         pos += 2;
 
-        final timeInSeconds = _ticksToSeconds(currentTick, division, microsecondsPerQuarterNote);
+        final timeInSeconds =
+            _ticksToSeconds(currentTick, division, microsecondsPerQuarterNote);
 
         if (velocity > 0) {
           // Note On
@@ -156,13 +158,14 @@ class MidiParserService {
       // Note Off (0x80)
       else if (eventType == 0x80) {
         if (pos + 1 >= trackEnd) break;
-        
-        final note = bytes[pos];
-        pos += 2;  // 跳過 velocity
 
-        final timeInSeconds = _ticksToSeconds(currentTick, division, microsecondsPerQuarterNote);
+        final note = bytes[pos];
+        pos += 2; // 跳過 velocity
+
+        final timeInSeconds =
+            _ticksToSeconds(currentTick, division, microsecondsPerQuarterNote);
         final activeNote = activeNotes.remove(note);
-        
+
         if (activeNote != null) {
           events.add(NoteEvent(
             midiNote: note,
@@ -175,20 +178,20 @@ class MidiParserService {
       // Meta Event (0xFF)
       else if (status == 0xFF) {
         if (pos >= trackEnd) break;
-        
+
         final metaType = bytes[pos];
         pos++;
-        
+
         final lengthResult = _readVariableLength(bytes, pos);
         pos = lengthResult.nextPos;
-        
+
         // Set Tempo (0x51)
         if (metaType == 0x51 && lengthResult.value == 3) {
-          microsecondsPerQuarterNote = ((bytes[pos] << 16) |
-                                       (bytes[pos + 1] << 8) |
-                                       bytes[pos + 2]).toDouble();
+          microsecondsPerQuarterNote =
+              ((bytes[pos] << 16) | (bytes[pos + 1] << 8) | bytes[pos + 2])
+                  .toDouble();
         }
-        
+
         pos += lengthResult.value;
       }
       // 其他事件 (控制變化, 程序變化等)
@@ -210,7 +213,8 @@ class MidiParserService {
   }
 
   /// 將 MIDI ticks 轉換為秒
-  double _ticksToSeconds(int ticks, int division, double microsecondsPerQuarterNote) {
+  double _ticksToSeconds(
+      int ticks, int division, double microsecondsPerQuarterNote) {
     // division 通常是每四分音符的 ticks 數
     final secondsPerTick = microsecondsPerQuarterNote / (division * 1000000.0);
     return ticks * secondsPerTick;
@@ -227,7 +231,7 @@ class MidiParserService {
       currentPos++;
 
       if ((byte & 0x80) == 0) {
-        break;  // 最高位為 0,結束
+        break; // 最高位為 0,結束
       }
     }
 
