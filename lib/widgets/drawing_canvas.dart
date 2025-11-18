@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:async';
@@ -46,8 +46,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   int _currentStrokeCachedPoints = 0;
   bool _isCurrentStrokeCacheBuilding = false;
 
-  // 📜 Undo 歷史記錄
+  // 📜 Undo 歷史記錄（筆劃數據 + 快取圖片）
   final List<List<DrawingStroke>> _history = [];
+  final List<ui.Image?> _cacheHistory = [];
   int _historyIndex = -1;
 
   @override
@@ -56,25 +57,34 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     _drawingData = widget.initialDrawing;
     _initializeTexturePool();
 
-    // � 初始化歷史記錄
-    if (_drawingData.strokes.isNotEmpty) {
-      _history.add(List.from(_drawingData.strokes));
-      _historyIndex = 0;
-    }
-
-    // �🚀 如果有舊紀錄，建立背景快取避免重複運算
+    // 如果有舊紀錄，建立背景快取並保存到歷史
     if (_drawingData.strokes.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _rebuildCache();
+        _rebuildCache().then((_) {
+          if (mounted) _saveToHistory();
+        });
       });
+    } else {
+      // 空畫布也要保存初始狀態
+      _saveToHistory();
     }
   }
 
   @override
   void dispose() {
     _texturePool?.dispose();
-    _cachedBackground?.dispose();
     _currentStrokeCache?.dispose();
+    
+    // 清理快取歷史
+    for (var cache in _cacheHistory) {
+      cache?.dispose();
+    }
+    
+    // 如果當前快取不在歷史中，才需要 dispose
+    if (_cachedBackground != null && !_cacheHistory.contains(_cachedBackground)) {
+      _cachedBackground!.dispose();
+    }
+    
     super.dispose();
   }
 
@@ -149,25 +159,32 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
     if (_currentStroke.isNotEmpty) {
       if (_isEraser) {
+        // 橡皮擦：固定大小25.0，碰到整條刪除
+        const eraserRadius = 25.0;
+        final beforeCount = _drawingData.strokes.length;
+        
         setState(() {
-          final beforeCount = _drawingData.strokes.length;
           _drawingData.strokes.removeWhere((stroke) {
-            return _currentStroke.any((point) {
+            return _currentStroke.any((eraserPoint) {
               return stroke.points.any((strokePoint) {
-                final distance = (point - strokePoint).distance;
-                return distance < 15.0;
+                final distance = (eraserPoint - strokePoint).distance;
+                final threshold = eraserRadius + (stroke.strokeWidth / 2);
+                return distance < threshold;
               });
             });
           });
           _currentStroke = [];
-
-          // 🚀 智能快取更新：只有刪除了筆劃才重建
-          if (_drawingData.strokes.length < beforeCount) {
-            _saveToHistory(); // 📜 記錄到歷史
-            _cachedStrokeCount = _drawingData.strokes.length;
-            Future.microtask(() => _rebuildCache());
-          }
         });
+
+        // 如果有刪除筆劃，重建快取並保存到歷史
+        if (_drawingData.strokes.length < beforeCount) {
+          _cachedStrokeCount = _drawingData.strokes.length;
+          _rebuildCache().then((_) {
+            if (mounted) {
+              _saveToHistory();
+            }
+          });
+        }
       } else {
         final stroke = DrawingStroke(
           points: List.from(_currentStroke),
@@ -181,10 +198,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           // 🎯 注意：不立即清除當前筆劃快取
           // 讓 _updateCache() 先使用它合併到背景
         });
-        // � 記錄到歷史
-        _saveToHistory();
-        // �🚀 新筆劃完成後更新背景快取（會在完成後自動清除當前筆劃快取）
-        _updateCacheAndCleanup();
+        // 先更新背景快取，再保存到歷史（確保快取包含新筆劃）
+        _updateCacheAndCleanup().then((_) {
+          if (mounted) {
+            _saveToHistory();
+          }
+        });
       }
       widget.onDrawingChanged(_drawingData);
     }
@@ -196,29 +215,46 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         _historyIndex--;
         _drawingData.strokes.clear();
         _drawingData.strokes.addAll(List.from(_history[_historyIndex]));
-
-        // 🚀 智能快取更新
+        
+        // 直接使用歷史快取，零運算！
+        _cachedBackground = _cacheHistory[_historyIndex];
         _cachedStrokeCount = _drawingData.strokes.length;
-        Future.microtask(() => _rebuildCache());
       });
       widget.onDrawingChanged(_drawingData);
     }
   }
 
-  /// 📜 保存當前狀態到歷史記錄
+  /// 保存當前狀態到歷史記錄
   void _saveToHistory() {
     // 如果不在最新狀態，刪除後面的歷史
     if (_historyIndex < _history.length - 1) {
       _history.removeRange(_historyIndex + 1, _history.length);
+      // 同時清理快取歷史（需要先 dispose 不再使用的 Image）
+      for (int i = _historyIndex + 1; i < _cacheHistory.length; i++) {
+        final imageToDispose = _cacheHistory[i];
+        // 只 dispose 不是當前快取的 Image
+        if (imageToDispose != null && imageToDispose != _cachedBackground) {
+          imageToDispose.dispose();
+        }
+      }
+      _cacheHistory.removeRange(_historyIndex + 1, _cacheHistory.length);
     }
 
-    // 保存當前狀態
+    // 保存當前狀態（筆劃）
     _history.add(List.from(_drawingData.strokes));
+    // 保存當前快取（避免 Undo 時重新運算）
+    _cacheHistory.add(_cachedBackground);
     _historyIndex = _history.length - 1;
 
     // 限制歷史記錄數量（最多 50 步）
     if (_history.length > 50) {
       _history.removeAt(0);
+      final oldImage = _cacheHistory[0];
+      // 只在確定不會再使用時才 dispose
+      if (oldImage != null && oldImage != _cachedBackground) {
+        oldImage.dispose();
+      }
+      _cacheHistory.removeAt(0);
       _historyIndex--;
     }
   }
@@ -268,8 +304,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       final picture = recorder.endRecording();
       final newImage = await picture.toImage(width, height);
 
-      // 釋放舊快取
-      _cachedBackground?.dispose();
+      // 釋放舊快取（但不要 dispose 歷史中的 Image）
+      final oldCache = _cachedBackground;
+      final isInHistory = _cacheHistory.contains(oldCache);
+      if (oldCache != null && !isInHistory) {
+        oldCache.dispose();
+      }
 
       // 更新快取
       if (mounted) {
@@ -307,6 +347,18 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
     try {
       if (_drawingData.strokes.isEmpty) {
+        // 沒有筆劃時，清除快取（但不要 dispose 歷史中的 Image）
+        final oldCache = _cachedBackground;
+        final isInHistory = _cacheHistory.contains(oldCache);
+        if (oldCache != null && !isInHistory) {
+          oldCache.dispose();
+        }
+        if (mounted) {
+          setState(() {
+            _cachedBackground = null;
+            _cachedStrokeCount = 0;
+          });
+        }
         _isCacheBuilding = false;
         return;
       }
