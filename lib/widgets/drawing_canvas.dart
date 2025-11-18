@@ -473,16 +473,31 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   /// �🎨 將單一筆劃繪製到 Canvas
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
-    final painter = _DrawingPainter(
-      strokes: [stroke], // 只繪製這一條
-      currentStroke: [],
-      currentColor: stroke.color,
-      currentStrokeWidth: stroke.strokeWidth,
-      isErasing: false,
-      texturePool: _texturePool,
-      isPoolReady: _isPoolReady,
-    );
-    painter.paint(canvas, Size.infinite);
+    // 重建快取時使用簡單筆刷，確保視覺一致性
+    // 避免複雜紋理的隨機性導致橡皮擦前後顯示不同
+    _drawSimpleBrush(canvas, stroke.points, stroke.color, stroke.strokeWidth);
+  }
+  
+  /// 簡單筆刷渲染
+  void _drawSimpleBrush(Canvas canvas, List<Offset> points, Color color, double strokeWidth) {
+    if (points.isEmpty) return;
+    
+    final paint = Paint()
+      ..color = color
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    
+    if (points.length == 1) {
+      canvas.drawCircle(points[0], strokeWidth / 2, paint..style = PaintingStyle.fill);
+    } else {
+      final path = Path()..moveTo(points[0].dx, points[0].dy);
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, paint..style = PaintingStyle.stroke);
+    }
   }
 
   @override
