@@ -27,7 +27,7 @@ android {
         applicationId = "com.example.music_practice_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21  // 降低至 Android 5.0 以支援更多設備
+        minSdk = 24  // flutter_sound 套件需要 Android 7.0 以上
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -68,7 +68,7 @@ android {
         debug {
             // Debug 版本配置
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
+            // applicationIdSuffix = ".debug"  // 已移除，避免 Firebase 配置問題
             versionNameSuffix = "-DEBUG"
         }
     }
