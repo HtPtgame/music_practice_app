@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/animal_collection.dart';
 import '../services/auth_service_config.dart';
 import '../services/user_data_sync_service.dart';
+import '../widgets/unlock_animation_dialog.dart';
 
 /// 動物圖鑑頁面
 class AnimalCollectionPage extends StatefulWidget {
@@ -51,6 +52,9 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
       // 載入已解鎖動物（從本地或雲端）
       await _loadUnlockedAnimals();
 
+      // 記錄舊的解鎖數量
+      final oldUnlockedCount = _collectionService.collectedCount;
+
       setState(() {
         _checkedDates = checkedDatesJson.toSet();
         _consecutiveDays = consecutiveDays;
@@ -58,6 +62,22 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
         _collectionService.checkAndUnlockAnimals(_checkedDates.length);
         _isLoading = false;
       });
+
+      // 檢查是否有新解鎖的動物
+      final newUnlockedCount = _collectionService.collectedCount;
+      if (newUnlockedCount > oldUnlockedCount) {
+        // 獲得新動物，顯示慶祝動畫
+        final newAnimals = _collectionService.unlockedAnimals
+            .skip(oldUnlockedCount)
+            .toList();
+        
+        // 等待畫面渲染完成後顯示動畫
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          for (var animal in newAnimals) {
+            _showUnlockAnimation(animal);
+          }
+        });
+      }
 
       // 保存並同步新解鎖的動物
       await _saveAndSyncUnlockedAnimals();
@@ -121,13 +141,29 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
     }
   }
 
+  /// 顯示解鎖動物的慶祝動畫
+  void _showUnlockAnimation(AnimalCollection animal) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => UnlockAnimationDialog(animal: animal),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('動物圖鑑'),
-          backgroundColor: Colors.blue[700],
+          title: const Text(
+            '動物圖鑑',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.blue[400], // 與下方統計卡片統一
         ),
         body: const Center(
           child: CircularProgressIndicator(),
@@ -146,8 +182,15 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('動物圖鑑'),
-          backgroundColor: Colors.blue[700],
+          title: const Text(
+            '動物圖鑑',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.blue[400], // 與下方統計卡片統一
         ),
         body: CustomScrollView(
           slivers: [
@@ -384,24 +427,27 @@ class _AnimalCard extends StatelessWidget {
   }
 
   Widget _buildAnimalImage() {
-    return isUnlocked
-        ? Image.asset(
+    if (isUnlocked) {
+      return Image.asset(
+        animal.assetPath,
+        fit: BoxFit.contain,
+      );
+    } else {
+      // 未解鎖：整個圖片變成淺灰色
+      return ColorFiltered(
+        colorFilter: const ColorFilter.mode(
+          Color(0xFFBDBDBD), // 淺灰色
+          BlendMode.srcATop,
+        ),
+        child: Opacity(
+          opacity: 0.5,
+          child: Image.asset(
             animal.assetPath,
             fit: BoxFit.contain,
-          )
-        : ColorFiltered(
-            colorFilter: const ColorFilter.matrix([
-              0.2126, 0.7152, 0.0722, 0, 0, // Red channel
-              0.2126, 0.7152, 0.0722, 0, 0, // Green channel
-              0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
-              0, 0, 0, 1, 0, // Alpha channel
-            ]),
-            child: Image.asset(
-              animal.assetPath,
-              fit: BoxFit.contain,
-              opacity: const AlwaysStoppedAnimation(0.3),
-            ),
-          );
+          ),
+        ),
+      );
+    }
   }
 
   void _showAnimalDetail(BuildContext context) {
