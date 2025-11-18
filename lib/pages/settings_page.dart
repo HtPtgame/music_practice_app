@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/utils/theme_manager.dart';
+import 'package:music_practice_app/utils/language_manager.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:music_practice_app/services/settings_service.dart';
 import 'package:music_practice_app/services/haptic_service.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
@@ -35,36 +37,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // 載入狀態
   bool _isLoading = true;
-
-  final Map<String, String> _languages = {
-    'zh_TW': '繁體中文',
-    'zh_CN': '繁体中文',
-    'en': 'Traditional Chinese',
-    'ja': '繁體中文',
-    'ko': '繁體中文',
-    'es': 'Chino Tradicional',
-    'fr': 'Chinois Traditionnel',
-    'de': 'Traditionelles Chinesisch',
-    'it': 'Cinese Tradizionale',
-    'pt': 'Chinês Tradicional',
-    'ru': 'Традиционный китайский',
-    'ar': 'الصينية التقليدية',
-  };
-
-  final Map<String, String> _languageDescriptions = {
-    'zh_TW': '繁體中文（台灣）',
-    'zh_CN': '繁体中文（中国大陆）',
-    'en': 'English (Traditional Chinese)',
-    'ja': '日本語（繁體中文）',
-    'ko': '한국어（繁體中文）',
-    'es': 'Español (Chino Tradicional)',
-    'fr': 'Français (Chinois Traditionnel)',
-    'de': 'Deutsch (Traditionelles Chinesisch)',
-    'it': 'Italiano (Cinese Tradizionale)',
-    'pt': 'Português (Chinês Tradicional)',
-    'ru': 'Русский (Традиционный китайский)',
-    'ar': 'العربية (الصينية التقليدية)',
-  };
 
   @override
   void initState() {
@@ -345,7 +317,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _languageDescriptions[_selectedLanguage] ?? '繁體中文（台灣）',
+                      LanguageManager.instance.currentLanguageName,
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.dynamicTextLight,
@@ -733,6 +705,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -748,19 +722,11 @@ class _SettingsPageState extends State<SettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '選擇語言',
+                  l10n.settingsLanguageSelect,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppColors.dynamicTextDark,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '請注意：所有語言選項都將顯示繁體中文介面',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.dynamicTextLight,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -768,11 +734,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   height: 300,
                   width: double.maxFinite,
                   child: ListView.builder(
-                    itemCount: _languages.length,
+                    itemCount: LanguageManager.languageNames.length,
                     itemBuilder: (context, index) {
-                      final languageCode = _languages.keys.elementAt(index);
-                      final languageName = _languages[languageCode]!;
-                      final isSelected = _selectedLanguage == languageCode;
+                      final languageCode = LanguageManager.languageNames.keys.elementAt(index);
+                      final languageName = LanguageManager.languageNames[languageCode]!;
+                      final isSelected = LanguageManager.instance.currentLanguageCode == languageCode;
 
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(
@@ -781,87 +747,50 @@ class _SettingsPageState extends State<SettingsPage> {
                           languageName,
                           style: TextStyle(
                             fontSize: 16,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                             color: isSelected
-                                ? AppColors.dynamicPrimary
+                                ? Colors.blue[700]
                                 : AppColors.dynamicTextDark,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        subtitle: Text(
-                          _languageDescriptions[languageCode] ?? '',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isSelected
-                                ? AppColors.dynamicPrimary
-                                    .withValues(alpha: 0.7)
-                                : AppColors.dynamicTextLight,
                           ),
                         ),
                         trailing: isSelected
-                            ? Icon(
-                                Icons.check_circle,
-                                color: AppColors.dynamicPrimary,
-                                size: 20,
-                              )
+                            ? Icon(Icons.check, color: Colors.blue[700])
                             : null,
                         onTap: () async {
-                          try {
-                            // 震動回饋
-                            await _hapticService.selectionClick();
+                          Navigator.pop(context);
+                          
+                          // 使用 LanguageManager 切換語言
+                          await LanguageManager.instance.setLocale(languageCode);
+                          await _settingsService.setSelectedLanguage(languageCode);
+                          
+                          if (authService.isAuthenticated) {
+                            await _syncService.syncSettings({
+                              'selectedLanguage': languageCode,
+                            });
+                          }
 
-                            // 先關閉對話框
-                            if (Navigator.canPop(context)) {
-                              Navigator.of(context).pop();
-                            }
+                          if (mounted) {
+                            setState(() {
+                              _selectedLanguage = languageCode;
+                            });
 
-                            // 等待對話框關閉完成
-                            await Future.delayed(
-                                const Duration(milliseconds: 100));
-
-                            if (mounted) {
-                              setState(() {
-                                _selectedLanguage = languageCode;
-                              });
-
-                              // 儲存設定
-                              await _saveSettings();
-
-                              // 等待 setState 完成
-                              await Future.delayed(
-                                  const Duration(milliseconds: 50));
-
-                              if (mounted) {
-                                _showSuccessMessage('已切換至 $languageName');
-                              }
-                            }
-                          } catch (e) {
-                            // 錯誤處理：至少設定語言
-                            if (mounted) {
-                              setState(() {
-                                _selectedLanguage = languageCode;
-                              });
-                              await _saveSettings();
-                            }
+                            _showSuccessMessage('${l10n.settingsLanguageTitle}: ${l10n.successUpdated}');
                           }
                         },
                       );
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(
-                        '關閉',
-                        style: TextStyle(color: AppColors.dynamicTextLight),
-                      ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      l10n.cancel,
+                      style: TextStyle(color: Colors.blue[700]),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
