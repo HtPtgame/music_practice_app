@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:async';
@@ -46,8 +46,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   int _currentStrokeCachedPoints = 0;
   bool _isCurrentStrokeCacheBuilding = false;
 
-  // 📜 Undo 歷史記錄
+  // 📜 Undo 歷史記錄（筆劃數據 + 快取圖片）
   final List<List<DrawingStroke>> _history = [];
+  final List<ui.Image?> _cacheHistory = [];
   int _historyIndex = -1;
 
   @override
@@ -56,25 +57,34 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     _drawingData = widget.initialDrawing;
     _initializeTexturePool();
 
-    // � 初始化歷史記錄
-    if (_drawingData.strokes.isNotEmpty) {
-      _history.add(List.from(_drawingData.strokes));
-      _historyIndex = 0;
-    }
-
-    // �🚀 如果有舊紀錄，建立背景快取避免重複運算
+    // 如果有舊紀錄，建立背景快取並保存到歷史
     if (_drawingData.strokes.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _rebuildCache();
+        _rebuildCache().then((_) {
+          if (mounted) _saveToHistory();
+        });
       });
+    } else {
+      // 空畫布也要保存初始狀態
+      _saveToHistory();
     }
   }
 
   @override
   void dispose() {
     _texturePool?.dispose();
-    _cachedBackground?.dispose();
     _currentStrokeCache?.dispose();
+    
+    // 清理快取歷史
+    for (var cache in _cacheHistory) {
+      cache?.dispose();
+    }
+    
+    // 如果當前快取不在歷史中，才需要 dispose
+    if (_cachedBackground != null && !_cacheHistory.contains(_cachedBackground)) {
+      _cachedBackground!.dispose();
+    }
+    
     super.dispose();
   }
 
@@ -149,23 +159,45 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
     if (_currentStroke.isNotEmpty) {
       if (_isEraser) {
-        setState(() {
-          final beforeCount = _drawingData.strokes.length;
-          _drawingData.strokes.removeWhere((stroke) {
-            return _currentStroke.any((point) {
-              return stroke.points.any((strokePoint) {
-                final distance = (point - strokePoint).distance;
-                return distance < 15.0;
-              });
+        // 橡皮擦：固定大小25.0，碰到整條刪除
+        const eraserRadius = 25.0;
+        
+        // 先找出要刪除的筆劃（但不立即刪除）
+        final toDelete = <DrawingStroke>[];
+        for (final stroke in _drawingData.strokes) {
+          final shouldDelete = _currentStroke.any((eraserPoint) {
+            return stroke.points.any((strokePoint) {
+              final distance = (eraserPoint - strokePoint).distance;
+              final threshold = eraserRadius + (stroke.strokeWidth / 2);
+              return distance < threshold;
             });
           });
-          _currentStroke = [];
-
-          // 🚀 智能快取更新：只有刪除了筆劃才重建
-          if (_drawingData.strokes.length < beforeCount) {
-            _saveToHistory(); // 📜 記錄到歷史
-            _cachedStrokeCount = _drawingData.strokes.length;
-            Future.microtask(() => _rebuildCache());
+          if (shouldDelete) {
+            toDelete.add(stroke);
+          }
+        }
+        
+        // 如果沒有要刪除的筆劃，直接返回
+        if (toDelete.isEmpty) {
+          setState(() {
+            _currentStroke = [];
+          });
+          return;
+        }
+        
+        // 先刪除筆劃（不觸發重繪）
+        for (final stroke in toDelete) {
+          _drawingData.strokes.remove(stroke);
+        }
+        _currentStroke = [];
+        
+        // 立即重建快取，完成後一次性更新畫面
+        _rebuildCache().then((_) {
+          if (mounted) {
+            setState(() {
+              // 快取已更新，觸發重繪
+            });
+            _saveToHistory();
           }
         });
       } else {
@@ -181,10 +213,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           // 🎯 注意：不立即清除當前筆劃快取
           // 讓 _updateCache() 先使用它合併到背景
         });
-        // � 記錄到歷史
-        _saveToHistory();
-        // �🚀 新筆劃完成後更新背景快取（會在完成後自動清除當前筆劃快取）
-        _updateCacheAndCleanup();
+        // 先更新背景快取，再保存到歷史（確保快取包含新筆劃）
+        _updateCacheAndCleanup().then((_) {
+          if (mounted) {
+            _saveToHistory();
+          }
+        });
       }
       widget.onDrawingChanged(_drawingData);
     }
@@ -196,29 +230,46 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         _historyIndex--;
         _drawingData.strokes.clear();
         _drawingData.strokes.addAll(List.from(_history[_historyIndex]));
-
-        // 🚀 智能快取更新
+        
+        // 直接使用歷史快取，零運算！
+        _cachedBackground = _cacheHistory[_historyIndex];
         _cachedStrokeCount = _drawingData.strokes.length;
-        Future.microtask(() => _rebuildCache());
       });
       widget.onDrawingChanged(_drawingData);
     }
   }
 
-  /// 📜 保存當前狀態到歷史記錄
+  /// 保存當前狀態到歷史記錄
   void _saveToHistory() {
     // 如果不在最新狀態，刪除後面的歷史
     if (_historyIndex < _history.length - 1) {
       _history.removeRange(_historyIndex + 1, _history.length);
+      // 同時清理快取歷史（需要先 dispose 不再使用的 Image）
+      for (int i = _historyIndex + 1; i < _cacheHistory.length; i++) {
+        final imageToDispose = _cacheHistory[i];
+        // 只 dispose 不是當前快取的 Image
+        if (imageToDispose != null && imageToDispose != _cachedBackground) {
+          imageToDispose.dispose();
+        }
+      }
+      _cacheHistory.removeRange(_historyIndex + 1, _cacheHistory.length);
     }
 
-    // 保存當前狀態
+    // 保存當前狀態（筆劃）
     _history.add(List.from(_drawingData.strokes));
+    // 保存當前快取（避免 Undo 時重新運算）
+    _cacheHistory.add(_cachedBackground);
     _historyIndex = _history.length - 1;
 
     // 限制歷史記錄數量（最多 50 步）
     if (_history.length > 50) {
       _history.removeAt(0);
+      final oldImage = _cacheHistory[0];
+      // 只在確定不會再使用時才 dispose
+      if (oldImage != null && oldImage != _cachedBackground) {
+        oldImage.dispose();
+      }
+      _cacheHistory.removeAt(0);
       _historyIndex--;
     }
   }
@@ -268,8 +319,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       final picture = recorder.endRecording();
       final newImage = await picture.toImage(width, height);
 
-      // 釋放舊快取
-      _cachedBackground?.dispose();
+      // 釋放舊快取（但不要 dispose 歷史中的 Image）
+      final oldCache = _cachedBackground;
+      final isInHistory = _cacheHistory.contains(oldCache);
+      if (oldCache != null && !isInHistory) {
+        oldCache.dispose();
+      }
 
       // 更新快取
       if (mounted) {
@@ -300,13 +355,25 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     }
   }
 
-  ///  重建整個快取
+  ///  重建整個快取（橡皮擦專用：快速重建）
   Future<void> _rebuildCache() async {
     if (_isCacheBuilding) return;
     _isCacheBuilding = true;
 
     try {
       if (_drawingData.strokes.isEmpty) {
+        // 沒有筆劃時，清除快取（但不要 dispose 歷史中的 Image）
+        final oldCache = _cachedBackground;
+        final isInHistory = _cacheHistory.contains(oldCache);
+        if (oldCache != null && !isInHistory) {
+          oldCache.dispose();
+        }
+        if (mounted) {
+          setState(() {
+            _cachedBackground = null;
+            _cachedStrokeCount = 0;
+          });
+        }
         _isCacheBuilding = false;
         return;
       }
@@ -320,7 +387,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
-      // 🎨 繪製所有筆劃
+      // 繪製所有剩餘筆劃（橡皮擦後只執行一次）
       for (final stroke in _drawingData.strokes) {
         _drawStrokeToCanvas(canvas, stroke);
       }
@@ -406,18 +473,29 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   /// �🎨 將單一筆劃繪製到 Canvas
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
+    // ✨ 使用和即時繪製完全相同的渲染路徑
+    // 關鍵：創建臨時 Painter，但不使用紋理池（確保顏色正確）
     final painter = _DrawingPainter(
-      strokes: [stroke], // 只繪製這一條
+      strokes: [],
       currentStroke: [],
       currentColor: stroke.color,
       currentStrokeWidth: stroke.strokeWidth,
       isErasing: false,
-      texturePool: _texturePool,
-      isPoolReady: _isPoolReady,
+      texturePool: null,           // 🔥 不使用紋理池，確保顏色正確
+      isPoolReady: false,          // 🔥 強制使用即時渲染
+      cachedBackground: null,
     );
-    painter.paint(canvas, Size.infinite);
+    
+    // 使用 Painter 的渲染方法，會調用 _drawFullStampAtPoint（確定性8層渲染）
+    painter._drawFullTextureBrush(
+      canvas,
+      stroke.points,
+      stroke.color,
+      stroke.strokeWidth,
+      useSkipping: true,
+    );
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -698,25 +776,45 @@ class _DrawingPainter extends CustomPainter {
 
   void _drawFullStampAtPoint(Canvas canvas, Offset point, Color color,
       double strokeWidth, int pointIndex) {
-    // 🎯 完整8層肌理渲染 - 最佳視覺效果
-    final random = math.Random(point.hashCode + pointIndex);
+    // 🎯 完整8層肌理渲染 - 確定性算法（無隨機數）
+    
+    // ✨ 確定性偽隨機數生成器 - 基於座標和索引
+    double deterministicRandom(int seed) {
+      // 使用數學函數生成 [0,1) 的確定性值
+      final hash = ((seed * 2654435761) ^ (seed >> 16)) & 0x7FFFFFFF;
+      return (hash % 10000) / 10000.0;
+    }
+    
+    int seedCounter = 0;
+    double nextRandom() {
+      final seed = point.dx.toInt() * 73856093 ^ 
+                   point.dy.toInt() * 19349663 ^ 
+                   pointIndex * 83492791 ^ 
+                   seedCounter;
+      seedCounter++;
+      return deterministicRandom(seed);
+    }
+    
+    int nextInt(int max) {
+      return (nextRandom() * max).floor();
+    }
 
     Color getHueVariation(Color baseColor, double variation) {
       final hslColor = HSLColor.fromColor(baseColor);
-      final hueShift = (random.nextDouble() - 0.5) * variation;
+      final hueShift = (nextRandom() - 0.5) * variation;
       return hslColor.withHue((hslColor.hue + hueShift) % 360).toColor();
     }
 
     // 第0層: 紙張纖維紋理 (8-12條)
-    final fiberCount = 8 + random.nextInt(5);
+    final fiberCount = 8 + nextInt(5);
     for (int j = 0; j < fiberCount; j++) {
-      final baseAngle = random.nextDouble() * 2 * math.pi;
-      final angleVariation = (random.nextDouble() - 0.5) * 0.4;
+      final baseAngle = nextRandom() * 2 * math.pi;
+      final angleVariation = (nextRandom() - 0.5) * 0.4;
       final fiberAngle = baseAngle + angleVariation;
-      final fiberLength = strokeWidth * (0.6 + random.nextDouble() * 0.9);
-      final fiberThickness = strokeWidth * 0.05 * (0.5 + random.nextDouble());
-      final startOffsetX = (random.nextDouble() - 0.5) * strokeWidth * 1.2;
-      final startOffsetY = (random.nextDouble() - 0.5) * strokeWidth * 1.2;
+      final fiberLength = strokeWidth * (0.6 + nextRandom() * 0.9);
+      final fiberThickness = strokeWidth * 0.05 * (0.5 + nextRandom());
+      final startOffsetX = (nextRandom() - 0.5) * strokeWidth * 1.2;
+      final startOffsetY = (nextRandom() - 0.5) * strokeWidth * 1.2;
       final startPoint =
           Offset(point.dx + startOffsetX, point.dy + startOffsetY);
       final endPoint = Offset(
@@ -725,7 +823,7 @@ class _DrawingPainter extends CustomPainter {
       );
       final fiberColor = getHueVariation(color, 15);
       _paintCache
-        ..color = fiberColor.withOpacity(0.02 + random.nextDouble() * 0.04)
+        ..color = fiberColor.withOpacity(0.02 + nextRandom() * 0.04)
         ..strokeWidth = fiberThickness
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
@@ -733,20 +831,20 @@ class _DrawingPainter extends CustomPainter {
     }
 
     // 第1層: 底層擴散 (12-20個點)
-    final spreadCount = 12 + random.nextInt(9);
+    final spreadCount = 12 + nextInt(9);
     for (int i = 0; i < spreadCount; i++) {
-      final angleBase = random.nextDouble() * 2 * math.pi;
-      final angleNoise = (random.nextDouble() - 0.5) * 0.8;
+      final angleBase = nextRandom() * 2 * math.pi;
+      final angleNoise = (nextRandom() - 0.5) * 0.8;
       final angle = angleBase + angleNoise;
-      final distFactor1 = math.pow(random.nextDouble(), 0.4).toDouble();
-      final distFactor2 = random.nextDouble();
+      final distFactor1 = math.pow(nextRandom(), 0.4).toDouble();
+      final distFactor2 = nextRandom();
       final distFactor = (distFactor1 * 0.7 + distFactor2 * 0.3);
-      final maxDistance = strokeWidth * (2.2 + random.nextDouble() * 1.4);
+      final maxDistance = strokeWidth * (2.2 + nextRandom() * 1.4);
       final distance = distFactor * maxDistance;
       final offsetX = math.cos(angle) * distance;
       final offsetY = math.sin(angle) * distance;
       final opacity = 0.03 + (1 - distFactor) * 0.12;
-      final dotSize = strokeWidth * (0.25 + random.nextDouble() * 0.45);
+      final dotSize = strokeWidth * (0.25 + nextRandom() * 0.45);
       final dotColor = getHueVariation(color, 10);
       _paintCache.color = dotColor.withOpacity(opacity);
       _paintCache.style = PaintingStyle.fill;
@@ -755,14 +853,14 @@ class _DrawingPainter extends CustomPainter {
     }
 
     // 第2層: 顆粒層 (8-16個點)
-    final particleCount = 8 + random.nextInt(9);
+    final particleCount = 8 + nextInt(9);
     for (int i = 0; i < particleCount; i++) {
       final offsetX =
-          (math.pow(random.nextDouble(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
+          (math.pow(nextRandom(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
       final offsetY =
-          (math.pow(random.nextDouble(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
-      final opacity = 0.12 + random.nextDouble() * 0.32;
-      final sizeVariation = random.nextDouble();
+          (math.pow(nextRandom(), 0.6) - 0.5) * 2 * strokeWidth * 1.6;
+      final opacity = 0.12 + nextRandom() * 0.32;
+      final sizeVariation = nextRandom();
       final particleSize =
           strokeWidth * (0.2 + math.pow(sizeVariation, 0.7) * 0.6);
       final particleColor = getHueVariation(color, 12);
@@ -773,16 +871,16 @@ class _DrawingPainter extends CustomPainter {
 
     // 第3層: 刮擦紋理 (2-4條刮痕) - 只在有方向的地方添加
     if (pointIndex > 0) {
-      final scratchCount = 2 + random.nextInt(3);
+      final scratchCount = 2 + nextInt(3);
       for (int j = 0; j < scratchCount; j++) {
-        final angle = random.nextDouble() * 2 * math.pi;
+        final angle = nextRandom() * 2 * math.pi;
         final offset = (j - scratchCount / 2) * strokeWidth * 0.3;
         final perpAngle = angle + math.pi / 2;
         final offsetX = math.cos(perpAngle) * offset;
         final offsetY = math.sin(perpAngle) * offset;
-        final scratchLength = strokeWidth * (0.5 + random.nextDouble() * 0.5);
-        final scratchOpacity = 0.08 + random.nextDouble() * 0.15;
-        final scratchWidth = strokeWidth * (0.1 + random.nextDouble() * 0.15);
+        final scratchLength = strokeWidth * (0.5 + nextRandom() * 0.5);
+        final scratchOpacity = 0.08 + nextRandom() * 0.15;
+        final scratchWidth = strokeWidth * (0.1 + nextRandom() * 0.15);
         final scratchColor = getHueVariation(color, 8);
         final p1 = Offset(point.dx + offsetX, point.dy + offsetY);
         final p2 = Offset(p1.dx + math.cos(angle) * scratchLength,
@@ -797,16 +895,16 @@ class _DrawingPainter extends CustomPainter {
     }
 
     // 第4層: 厚塗堆積 (5-10個層)
-    final layerCount = 5 + random.nextInt(6);
+    final layerCount = 5 + nextInt(6);
     for (int j = 0; j < layerCount; j++) {
-      final clusterFactor = math.pow(random.nextDouble(), 0.5).toDouble();
+      final clusterFactor = math.pow(nextRandom(), 0.5).toDouble();
       final offsetX =
-          (random.nextDouble() - 0.5) * strokeWidth * 1.1 * clusterFactor;
+          (nextRandom() - 0.5) * strokeWidth * 1.1 * clusterFactor;
       final offsetY =
-          (random.nextDouble() - 0.5) * strokeWidth * 1.1 * clusterFactor;
-      final opacity = 0.15 + random.nextDouble() * 0.35;
+          (nextRandom() - 0.5) * strokeWidth * 1.1 * clusterFactor;
+      final opacity = 0.15 + nextRandom() * 0.35;
       final layerSize =
-          strokeWidth * (0.3 + math.pow(random.nextDouble(), 0.6) * 0.5);
+          strokeWidth * (0.3 + math.pow(nextRandom(), 0.6) * 0.5);
       final layerColor = getHueVariation(color, 10);
       _paintCache.color = layerColor.withOpacity(opacity);
       _paintCache.style = PaintingStyle.fill;
@@ -819,44 +917,44 @@ class _DrawingPainter extends CustomPainter {
     canvas.drawCircle(point, strokeWidth * 0.5, _paintCache);
 
     // 第6層: 高光 (2-4個)
-    final highlightCount = 2 + random.nextInt(3);
+    final highlightCount = 2 + nextInt(3);
     for (int i = 0; i < highlightCount; i++) {
-      final offsetX = (random.nextDouble() - 0.75) * strokeWidth * 0.5;
-      final offsetY = (random.nextDouble() - 0.75) * strokeWidth * 0.5;
-      final highlightSize = strokeWidth * (0.2 + random.nextDouble() * 0.2);
+      final offsetX = (nextRandom() - 0.75) * strokeWidth * 0.5;
+      final offsetY = (nextRandom() - 0.75) * strokeWidth * 0.5;
+      final highlightSize = strokeWidth * (0.2 + nextRandom() * 0.2);
       final highlightColor = getHueVariation(color, 8);
       _paintCache.color =
-          highlightColor.withOpacity(0.35 + random.nextDouble() * 0.25);
+          highlightColor.withOpacity(0.35 + nextRandom() * 0.25);
       canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY),
           highlightSize, _paintCache);
     }
 
     // 第7層: 陰影 (1-3個)
-    final shadowCount = 1 + random.nextInt(3);
+    final shadowCount = 1 + nextInt(3);
     for (int j = 0; j < shadowCount; j++) {
-      final shadowX = (random.nextDouble() + 0.15) * strokeWidth * 0.4;
-      final shadowY = (random.nextDouble() + 0.15) * strokeWidth * 0.4;
-      final shadowSize = strokeWidth * (0.15 + random.nextDouble() * 0.15);
+      final shadowX = (nextRandom() + 0.15) * strokeWidth * 0.4;
+      final shadowY = (nextRandom() + 0.15) * strokeWidth * 0.4;
+      final shadowSize = strokeWidth * (0.15 + nextRandom() * 0.15);
       final shadowColor = getHueVariation(color, 8);
       _paintCache.color =
-          shadowColor.withOpacity(0.15 + random.nextDouble() * 0.12);
+          shadowColor.withOpacity(0.15 + nextRandom() * 0.12);
       canvas.drawCircle(Offset(point.dx + shadowX, point.dy + shadowY),
           shadowSize, _paintCache);
     }
 
     // 第8層: 邊緣毛邊 (3-6個點)
-    final edgeCount = 3 + random.nextInt(4);
+    final edgeCount = 3 + nextInt(4);
     for (int i = 0; i < edgeCount; i++) {
       final angleBase = (i / edgeCount) * 2 * math.pi;
-      final angleNoise = (random.nextDouble() - 0.5) * 0.6;
+      final angleNoise = (nextRandom() - 0.5) * 0.6;
       final angle = angleBase + angleNoise;
-      final distanceVariation = 0.6 + random.nextDouble() * 1.2;
+      final distanceVariation = 0.6 + nextRandom() * 1.2;
       final distance = strokeWidth * distanceVariation;
       final offsetX = math.cos(angle) * distance;
       final offsetY = math.sin(angle) * distance;
       final edgeSize =
-          strokeWidth * (0.08 + math.pow(random.nextDouble(), 0.7) * 0.25);
-      final edgeOpacity = 0.08 + random.nextDouble() * 0.22;
+          strokeWidth * (0.08 + math.pow(nextRandom(), 0.7) * 0.25);
+      final edgeOpacity = 0.08 + nextRandom() * 0.22;
       final edgeColor = getHueVariation(color, 12);
       _paintCache.color = edgeColor.withOpacity(edgeOpacity);
       canvas.drawCircle(Offset(point.dx + offsetX, point.dy + offsetY),
@@ -905,13 +1003,26 @@ class _DrawingPainter extends CustomPainter {
   void _drawQuickStamp(
       Canvas canvas, Offset point, Color color, double strokeWidth) {
     // 只渲染核心 3 層，保證速度
-    final random = math.Random(point.hashCode);
+    // 確定性偽隨機數
+    double deterministicRandom(int seed) {
+      final hash = ((seed * 2654435761) ^ (seed >> 16)) & 0x7FFFFFFF;
+      return (hash % 10000) / 10000.0;
+    }
+    
+    int seedCounter = 0;
+    double nextRandom() {
+      final seed = point.dx.toInt() * 73856093 ^ 
+                   point.dy.toInt() * 19349663 ^ 
+                   seedCounter;
+      seedCounter++;
+      return deterministicRandom(seed);
+    }
 
     // 第1層: 底層擴散（簡化）
     final diffusionCount = 6; // 減少數量
     for (int i = 0; i < diffusionCount; i++) {
       final angle = (i / diffusionCount) * 2 * math.pi;
-      final distance = strokeWidth * (0.3 + random.nextDouble() * 0.5);
+      final distance = strokeWidth * (0.3 + nextRandom() * 0.5);
       final offsetX = math.cos(angle) * distance;
       final offsetY = math.sin(angle) * distance;
       final size = strokeWidth * 0.2;
@@ -961,10 +1072,29 @@ class _DrawingPainter extends CustomPainter {
   /// 🚀 從紋理池繪製 stamp (O(1) 複雜度)
   void _drawStampFromPool(
       Canvas canvas, Offset point, double strokeWidth, int pointIndex) {
-    final texture = texturePool!.getRandomTexture();
-    if (texture == null) return;
+    // ✨ 確定性紋理選擇 - 基於座標和索引
+    if (texturePool!._textures.isEmpty) return;
+    
+    final textureIndex = (point.dx.toInt() * 73856093 ^ 
+                         point.dy.toInt() * 19349663 ^ 
+                         pointIndex * 83492791).abs() % texturePool!._textures.length;
+    final texture = texturePool!._textures[textureIndex];
 
-    final random = math.Random(point.hashCode + pointIndex);
+    // 確定性偽隨機數
+    double deterministicRandom(int seed) {
+      final hash = ((seed * 2654435761) ^ (seed >> 16)) & 0x7FFFFFFF;
+      return (hash % 10000) / 10000.0;
+    }
+    
+    int seedCounter = 0;
+    double nextRandom() {
+      final seed = point.dx.toInt() * 73856093 ^ 
+                   point.dy.toInt() * 19349663 ^ 
+                   pointIndex * 83492791 ^ 
+                   seedCounter;
+      seedCounter++;
+      return deterministicRandom(seed);
+    }
 
     // 計算 stamp 實際大小
     final stampDisplaySize = strokeWidth * 4;
@@ -975,11 +1105,11 @@ class _DrawingPainter extends CustomPainter {
     canvas.translate(point.dx, point.dy);
 
     // 🎨 輕微旋轉 (±8°)
-    final rotation = (random.nextDouble() - 0.5) * 0.28; // ±8° ≈ 0.14 rad
+    final rotation = (nextRandom() - 0.5) * 0.28; // ±8° ≈ 0.14 rad
     canvas.rotate(rotation);
 
     // 🎨 微縮放 (95%~105%)
-    final scale = 0.95 + random.nextDouble() * 0.1;
+    final scale = 0.95 + nextRandom() * 0.1;
     canvas.scale(scale);
 
     // 居中 stamp
@@ -1016,7 +1146,6 @@ class BrushTexturePool {
   static const int _stampSize = 128; // 紋理圖片尺寸
 
   List<ui.Image> _textures = [];
-  final math.Random _random = math.Random();
 
   bool get isReady => _textures.length == _poolSize;
 
@@ -1040,34 +1169,50 @@ class BrushTexturePool {
       Color color, double strokeWidth, int seed) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final random = math.Random(seed);
     final paint = Paint()..style = PaintingStyle.fill;
 
     final center = Offset(_stampSize / 2, _stampSize / 2);
     final scale = _stampSize / (strokeWidth * 4); // 縮放到合適大小
 
+    // ✨ 確定性偽隨機數生成器
+    double deterministicRandom(int s) {
+      final hash = ((s * 2654435761) ^ (s >> 16)) & 0x7FFFFFFF;
+      return (hash % 10000) / 10000.0;
+    }
+    
+    int seedCounter = 0;
+    double nextRandom() {
+      final s = seed * 73856093 ^ seedCounter * 19349663;
+      seedCounter++;
+      return deterministicRandom(s);
+    }
+    
+    int nextInt(int max) {
+      return (nextRandom() * max).floor();
+    }
+
     Color getHueVariation(Color baseColor, double variation) {
       final hslColor = HSLColor.fromColor(baseColor);
-      final hueShift = (random.nextDouble() - 0.5) * variation;
+      final hueShift = (nextRandom() - 0.5) * variation;
       return hslColor.withHue((hslColor.hue + hueShift) % 360).toColor();
     }
 
     // 🎨 繪製 8 層肌理（整合到單一 stamp）
 
     // 第0層: 紙張纖維紋理
-    final fiberCount = 8 + random.nextInt(5);
+    final fiberCount = 8 + nextInt(5);
     for (int j = 0; j < fiberCount; j++) {
-      final baseAngle = random.nextDouble() * 2 * math.pi;
-      final angleVariation = (random.nextDouble() - 0.5) * 0.4;
+      final baseAngle = nextRandom() * 2 * math.pi;
+      final angleVariation = (nextRandom() - 0.5) * 0.4;
       final fiberAngle = baseAngle + angleVariation;
       final fiberLength =
-          strokeWidth * scale * (0.6 + random.nextDouble() * 0.9);
+          strokeWidth * scale * (0.6 + nextRandom() * 0.9);
       final fiberThickness =
-          strokeWidth * scale * 0.05 * (0.5 + random.nextDouble());
+          strokeWidth * scale * 0.05 * (0.5 + nextRandom());
       final startOffsetX =
-          (random.nextDouble() - 0.5) * strokeWidth * scale * 1.2;
+          (nextRandom() - 0.5) * strokeWidth * scale * 1.2;
       final startOffsetY =
-          (random.nextDouble() - 0.5) * strokeWidth * scale * 1.2;
+          (nextRandom() - 0.5) * strokeWidth * scale * 1.2;
       final startPoint =
           Offset(center.dx + startOffsetX, center.dy + startOffsetY);
       final endPoint = Offset(
@@ -1076,7 +1221,7 @@ class BrushTexturePool {
       );
       final fiberColor = getHueVariation(color, 15);
       paint
-        ..color = fiberColor.withOpacity(0.02 + random.nextDouble() * 0.04)
+        ..color = fiberColor.withOpacity(0.02 + nextRandom() * 0.04)
         ..strokeWidth = fiberThickness
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
@@ -1084,17 +1229,17 @@ class BrushTexturePool {
     }
 
     // 第1層: 底層擴散
-    final spreadCount = 12 + random.nextInt(9);
+    final spreadCount = 12 + nextInt(9);
     for (int i = 0; i < spreadCount; i++) {
-      final angle = random.nextDouble() * 2 * math.pi;
-      final distFactor = math.pow(random.nextDouble(), 0.4).toDouble();
+      final angle = nextRandom() * 2 * math.pi;
+      final distFactor = math.pow(nextRandom(), 0.4).toDouble();
       final maxDistance =
-          strokeWidth * scale * (2.2 + random.nextDouble() * 1.4);
+          strokeWidth * scale * (2.2 + nextRandom() * 1.4);
       final distance = distFactor * maxDistance;
       final offsetX = math.cos(angle) * distance;
       final offsetY = math.sin(angle) * distance;
       final opacity = 0.03 + (1 - distFactor) * 0.12;
-      final dotSize = strokeWidth * scale * (0.25 + random.nextDouble() * 0.45);
+      final dotSize = strokeWidth * scale * (0.25 + nextRandom() * 0.45);
       final dotColor = getHueVariation(color, 10);
       paint.color = dotColor.withOpacity(opacity);
       paint.style = PaintingStyle.fill;
@@ -1103,16 +1248,16 @@ class BrushTexturePool {
     }
 
     // 第2層: 顆粒層
-    final particleCount = 8 + random.nextInt(9);
+    final particleCount = 8 + nextInt(9);
     for (int i = 0; i < particleCount; i++) {
       final offsetX =
-          (random.nextDouble() - 0.5) * 2 * strokeWidth * scale * 1.6;
+          (nextRandom() - 0.5) * 2 * strokeWidth * scale * 1.6;
       final offsetY =
-          (random.nextDouble() - 0.5) * 2 * strokeWidth * scale * 1.6;
-      final opacity = 0.12 + random.nextDouble() * 0.32;
+          (nextRandom() - 0.5) * 2 * strokeWidth * scale * 1.6;
+      final opacity = 0.12 + nextRandom() * 0.32;
       final particleSize = strokeWidth *
           scale *
-          (0.2 + math.pow(random.nextDouble(), 0.7) * 0.6);
+          (0.2 + math.pow(nextRandom(), 0.7) * 0.6);
       final particleColor = getHueVariation(color, 12);
       paint.color = particleColor.withOpacity(opacity);
       canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY),
@@ -1120,18 +1265,18 @@ class BrushTexturePool {
     }
 
     // 第3層: 刮擦紋理
-    final scratchCount = 2 + random.nextInt(3);
+    final scratchCount = 2 + nextInt(3);
     for (int j = 0; j < scratchCount; j++) {
-      final angle = random.nextDouble() * 2 * math.pi;
+      final angle = nextRandom() * 2 * math.pi;
       final offset = (j - scratchCount / 2) * strokeWidth * scale * 0.3;
       final perpAngle = angle + math.pi / 2;
       final offsetX = math.cos(perpAngle) * offset;
       final offsetY = math.sin(perpAngle) * offset;
       final scratchLength =
-          strokeWidth * scale * (0.5 + random.nextDouble() * 0.5);
-      final scratchOpacity = 0.08 + random.nextDouble() * 0.15;
+          strokeWidth * scale * (0.5 + nextRandom() * 0.5);
+      final scratchOpacity = 0.08 + nextRandom() * 0.15;
       final scratchWidth =
-          strokeWidth * scale * (0.1 + random.nextDouble() * 0.15);
+          strokeWidth * scale * (0.1 + nextRandom() * 0.15);
       final scratchColor = getHueVariation(color, 8);
       final p1 = Offset(center.dx + offsetX, center.dy + offsetY);
       final p2 = Offset(p1.dx + math.cos(angle) * scratchLength,
@@ -1145,14 +1290,14 @@ class BrushTexturePool {
     }
 
     // 第4層: 厚塗堆積
-    final layerCount = 5 + random.nextInt(6);
+    final layerCount = 5 + nextInt(6);
     for (int j = 0; j < layerCount; j++) {
-      final offsetX = (random.nextDouble() - 0.5) * strokeWidth * scale * 1.1;
-      final offsetY = (random.nextDouble() - 0.5) * strokeWidth * scale * 1.1;
-      final opacity = 0.15 + random.nextDouble() * 0.35;
+      final offsetX = (nextRandom() - 0.5) * strokeWidth * scale * 1.1;
+      final offsetY = (nextRandom() - 0.5) * strokeWidth * scale * 1.1;
+      final opacity = 0.15 + nextRandom() * 0.35;
       final layerSize = strokeWidth *
           scale *
-          (0.3 + math.pow(random.nextDouble(), 0.6) * 0.5);
+          (0.3 + math.pow(nextRandom(), 0.6) * 0.5);
       final layerColor = getHueVariation(color, 10);
       paint.color = layerColor.withOpacity(opacity);
       paint.style = PaintingStyle.fill;
@@ -1165,46 +1310,46 @@ class BrushTexturePool {
     canvas.drawCircle(center, strokeWidth * scale * 0.5, paint);
 
     // 第6層: 高光
-    final highlightCount = 2 + random.nextInt(3);
+    final highlightCount = 2 + nextInt(3);
     for (int i = 0; i < highlightCount; i++) {
-      final offsetX = (random.nextDouble() - 0.75) * strokeWidth * scale * 0.5;
-      final offsetY = (random.nextDouble() - 0.75) * strokeWidth * scale * 0.5;
+      final offsetX = (nextRandom() - 0.75) * strokeWidth * scale * 0.5;
+      final offsetY = (nextRandom() - 0.75) * strokeWidth * scale * 0.5;
       final highlightSize =
-          strokeWidth * scale * (0.2 + random.nextDouble() * 0.2);
+          strokeWidth * scale * (0.2 + nextRandom() * 0.2);
       final highlightColor = getHueVariation(color, 8);
       paint.color =
-          highlightColor.withOpacity(0.35 + random.nextDouble() * 0.25);
+          highlightColor.withOpacity(0.35 + nextRandom() * 0.25);
       canvas.drawCircle(Offset(center.dx + offsetX, center.dy + offsetY),
           highlightSize, paint);
     }
 
     // 第7層: 陰影
-    final shadowCount = 1 + random.nextInt(3);
+    final shadowCount = 1 + nextInt(3);
     for (int j = 0; j < shadowCount; j++) {
-      final shadowX = (random.nextDouble() + 0.15) * strokeWidth * scale * 0.4;
-      final shadowY = (random.nextDouble() + 0.15) * strokeWidth * scale * 0.4;
+      final shadowX = (nextRandom() + 0.15) * strokeWidth * scale * 0.4;
+      final shadowY = (nextRandom() + 0.15) * strokeWidth * scale * 0.4;
       final shadowSize =
-          strokeWidth * scale * (0.15 + random.nextDouble() * 0.15);
+          strokeWidth * scale * (0.15 + nextRandom() * 0.15);
       final shadowColor = getHueVariation(color, 8);
-      paint.color = shadowColor.withOpacity(0.15 + random.nextDouble() * 0.12);
+      paint.color = shadowColor.withOpacity(0.15 + nextRandom() * 0.12);
       canvas.drawCircle(
           Offset(center.dx + shadowX, center.dy + shadowY), shadowSize, paint);
     }
 
     // 第8層: 邊緣毛邊
-    final edgeCount = 3 + random.nextInt(4);
+    final edgeCount = 3 + nextInt(4);
     for (int i = 0; i < edgeCount; i++) {
       final angleBase = (i / edgeCount) * 2 * math.pi;
-      final angleNoise = (random.nextDouble() - 0.5) * 0.6;
+      final angleNoise = (nextRandom() - 0.5) * 0.6;
       final angle = angleBase + angleNoise;
-      final distanceVariation = 0.6 + random.nextDouble() * 1.2;
+      final distanceVariation = 0.6 + nextRandom() * 1.2;
       final distance = strokeWidth * scale * distanceVariation;
       final offsetX = math.cos(angle) * distance;
       final offsetY = math.sin(angle) * distance;
       final edgeSize = strokeWidth *
           scale *
-          (0.08 + math.pow(random.nextDouble(), 0.7) * 0.25);
-      final edgeOpacity = 0.08 + random.nextDouble() * 0.22;
+          (0.08 + math.pow(nextRandom(), 0.7) * 0.25);
+      final edgeOpacity = 0.08 + nextRandom() * 0.22;
       final edgeColor = getHueVariation(color, 12);
       paint.color = edgeColor.withOpacity(edgeOpacity);
       canvas.drawCircle(
@@ -1214,12 +1359,6 @@ class BrushTexturePool {
     // 轉換為圖片
     final picture = recorder.endRecording();
     return await picture.toImage(_stampSize, _stampSize);
-  }
-
-  /// 從池中取得隨機紋理
-  ui.Image? getRandomTexture() {
-    if (_textures.isEmpty) return null;
-    return _textures[_random.nextInt(_textures.length)];
   }
 
   /// 清理紋理
