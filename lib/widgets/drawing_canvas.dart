@@ -179,6 +179,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         // 如果有刪除筆劃，重建快取並保存到歷史
         if (_drawingData.strokes.length < beforeCount) {
           _cachedStrokeCount = _drawingData.strokes.length;
+          // 重建快取後才保存歷史（確保快取包含刪除後的狀態）
           _rebuildCache().then((_) {
             if (mounted) {
               _saveToHistory();
@@ -195,8 +196,6 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         setState(() {
           _drawingData.strokes.add(stroke);
           _currentStroke = [];
-          // 🎯 注意：不立即清除當前筆劃快取
-          // 讓 _updateCache() 先使用它合併到背景
         });
         // 先更新背景快取，再保存到歷史（確保快取包含新筆劃）
         _updateCacheAndCleanup().then((_) {
