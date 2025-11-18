@@ -2,17 +2,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class AnalysisPage extends StatelessWidget {
   const AnalysisPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-          title: const Text('演奏分析報告',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n?.analysisReportTitle ?? '演奏分析報告',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           automaticallyImplyLeading: false),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -25,7 +33,7 @@ class AnalysisPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    Text('本次得分',
+                    Text(l10n?.analysisThisScore ?? '本次得分',
                         style: TextStyle(
                             fontSize: 20, color: AppColors.dynamicTextLight)),
                     const SizedBox(height: 8),
@@ -49,12 +57,12 @@ class AnalysisPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             _buildStatCard(
-                '正確率', '95%', Icons.check_circle_outline, Colors.green),
+                l10n?.analysisAccuracyRate ?? '正確率', '95%', Icons.check_circle_outline, Colors.green),
             const SizedBox(height: 12),
-            _buildStatCard('音準錯誤', '8 次', Icons.music_off_outlined, Colors.red),
+            _buildStatCard(l10n?.analysisPitchErrors ?? '音準錯誤', '8 ${l10n?.analysisTimes ?? '次'}', Icons.music_off_outlined, Colors.red),
             const SizedBox(height: 12),
             _buildStatCard(
-                '節奏錯誤', '3 次', Icons.hourglass_empty_outlined, Colors.orange),
+                l10n?.analysisRhythmErrors ?? '節奏錯誤', '3 ${l10n?.analysisTimes ?? '次'}', Icons.hourglass_empty_outlined, Colors.orange),
             const SizedBox(height: 32),
             Row(
               children: [
@@ -67,9 +75,12 @@ class AnalysisPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30)),
                     ),
-                    child: Text('返回首頁',
-                        style: TextStyle(
-                            fontSize: 16, color: AppColors.dynamicPrimary)),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(l10n?.analysisReturnHome ?? '返回首頁',
+                          style: TextStyle(
+                              fontSize: 16, color: AppColors.dynamicPrimary)),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -83,7 +94,11 @@ class AnalysisPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30)),
                     ),
-                    child: const Text('再次挑戰', style: TextStyle(fontSize: 16)),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(l10n?.analysisRetryChallenge ?? '再次挑戰', 
+                          style: const TextStyle(fontSize: 16)),
+                    ),
                   ),
                 ),
               ],

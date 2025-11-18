@@ -6,6 +6,7 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 import 'package:music_practice_app/services/settings_service.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
@@ -357,15 +358,20 @@ class _MetronomePageState extends State<MetronomePage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(
-          '節拍器',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.dynamicTextDark,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            l10n?.metronomeTitle ?? '節拍器',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.dynamicTextDark,
+            ),
           ),
         ),
         backgroundColor: AppColors.dynamicBackground,
@@ -413,11 +419,14 @@ class _MetronomePageState extends State<MetronomePage>
                                       height: 1.2, // 設定行高，減少文字被切除
                                     ),
                                   ),
-                                  Text(
-                                    'BPM (點擊輸入)',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.dynamicTextLight,
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${l10n?.metronomeBPM ?? 'BPM'} (${l10n?.metronomeBpmInputHint ?? '點擊輸入'})',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.dynamicTextLight,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -698,7 +707,7 @@ class _MetronomePageState extends State<MetronomePage>
                           // Accent toggle
                           _buildControlCard(
                             icon: Icons.volume_up,
-                            label: '重音',
+                            label: l10n?.metronomeAccent ?? '重音',
                             onTap: () {
                               setState(() {
                                 _accentEnabled = !_accentEnabled;
@@ -821,8 +830,11 @@ class _BPMInputPageState extends State<_BPMInputPage> {
   }
 
   void _handleNumberInput(String value) {
+    final l10n = AppLocalizations.of(context);
+    final clearText = l10n?.metronomeClear ?? '清除';
+    
     setState(() {
-      if (value == '清除') {
+      if (value == clearText) {
         inputValue = '0';
       } else if (value == '⌫') {
         if (inputValue.length > 1) {
@@ -842,16 +854,17 @@ class _BPMInputPageState extends State<_BPMInputPage> {
   }
 
   void _handleConfirm() {
+    final l10n = AppLocalizations.of(context);
     int newBPM = int.tryParse(inputValue) ?? widget.currentBPM;
     if (newBPM >= 30 && newBPM <= 300) {
       widget.onBPMChanged(newBPM);
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('BPM 必須在 30 到 300 之間'),
+        SnackBar(
+          content: Text(l10n?.metronomeBpmRange ?? 'BPM 必須在 30 到 300 之間'),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -859,6 +872,8 @@ class _BPMInputPageState extends State<_BPMInputPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.15), // 降低透明度
       body: GestureDetector(
@@ -937,7 +952,7 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildNumberButton('清除', isSpecial: true),
+                        child: _buildNumberButton(l10n?.metronomeClear ?? '清除', isSpecial: true),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -964,10 +979,13 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        '確定',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          l10n?.confirm ?? '確定',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ),

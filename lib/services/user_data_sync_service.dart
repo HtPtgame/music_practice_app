@@ -251,4 +251,53 @@ class UserDataSyncService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// 登入後從雲端同步數據到本地
+  /// 這個方法會從 Firestore 下載使用者的完整數據
+  Future<void> syncFromCloudAfterLogin() async {
+    final user = _authService.currentUser;
+    if (user == null) {
+      debugPrint('用戶未登入，無法同步數據');
+      return;
+    }
+
+    if (_isSyncing) {
+      debugPrint('正在同步中，跳過本次同步請求');
+      return;
+    }
+
+    _isSyncing = true;
+    notifyListeners();
+
+    try {
+      debugPrint('🔄 開始從雲端同步數據...');
+      
+      // 從 Firestore 讀取使用者文檔
+      final doc = await _firestore.collection('users').doc(user.id).get();
+      
+      if (doc.exists) {
+        final data = doc.data()!;
+        
+        // 更新 AuthService 中的使用者數據
+        // 這會觸發 notifyListeners 並更新整個 app
+        final updatedUser = User.fromJson(data);
+        _authService.updateCurrentUser(updatedUser);
+        
+        debugPrint('✅ 成功從雲端同步數據');
+        debugPrint('  - 打卡記錄: ${updatedUser.checkInDates.length} 筆');
+        debugPrint('  - 練習時間: ${updatedUser.practiceTime.length} 天');
+        debugPrint('  - 解鎖動物: ${updatedUser.unlockedAnimals.length} 隻');
+      } else {
+        debugPrint('⚠️ 雲端無使用者數據，將創建新文檔');
+        // 如果雲端沒有數據，創建一個新的文檔
+        await _firestore.collection('users').doc(user.id).set(user.toJson());
+      }
+    } catch (e) {
+      debugPrint('❌ 從雲端同步數據失敗: $e');
+      // 不要 rethrow，讓登入流程繼續
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
+  }
 }

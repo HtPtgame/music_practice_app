@@ -4,6 +4,7 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 // 樂譜目錄數據模型
 class MusicSheet {
@@ -107,25 +108,29 @@ class _NotePageState extends State<NotePage> {
   }
 
   void _showAddMusicSheetDialog() {
+    final l10n = AppLocalizations.of(context);
     final TextEditingController nameController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            '新增樂譜目錄',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.dynamicTextDark,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n?.notePageAddSheet ?? '新增樂譜目錄',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.dynamicTextDark,
+              ),
             ),
           ),
           content: TextField(
             controller: nameController,
             decoration: InputDecoration(
-              labelText: '樂譜名稱',
+              labelText: l10n?.notePageSheetName ?? '樂譜名稱',
               labelStyle: TextStyle(color: AppColors.dynamicTextLight),
-              hintText: '例如：Beethoven op.53、Mozart K.545',
+              hintText: l10n?.notePageSheetNameHint ?? '例如：Beethoven op.53、Mozart K.545',
               hintStyle: TextStyle(color: AppColors.dynamicTextLight),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -140,9 +145,12 @@ class _NotePageState extends State<NotePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                '取消',
-                style: TextStyle(color: AppColors.dynamicTextLight),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n?.notePageCancel ?? '取消',
+                  style: TextStyle(color: AppColors.dynamicTextLight),
+                ),
               ),
             ),
             ElevatedButton(
@@ -162,9 +170,12 @@ class _NotePageState extends State<NotePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.dynamicPrimary,
               ),
-              child: const Text(
-                '新增',
-                style: TextStyle(color: Colors.white),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n?.notePageAdd ?? '新增',
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],
@@ -185,16 +196,24 @@ class _NotePageState extends State<NotePage> {
   void _deleteSelectedSheets() {
     if (_selectedIndices.isEmpty) return;
 
+    final l10n = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('確認刪除'),
-          content: Text('確定要刪除 ${_selectedIndices.length} 個樂譜及其所有筆記嗎？'),
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(l10n?.notePageConfirmDelete ?? '確認刪除'),
+          ),
+          content: Text('${l10n?.notePageConfirmDeleteMessage ?? '確定要刪除'} ${_selectedIndices.length} ${l10n?.notePageConfirmDeleteSuffix ?? '個樂譜及其所有筆記嗎?'}'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(l10n?.notePageCancel ?? '取消'),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -211,9 +230,12 @@ class _NotePageState extends State<NotePage> {
                 await _saveMusicSheets();
                 Navigator.of(context).pop();
               },
-              child: const Text(
-                '刪除',
-                style: TextStyle(color: Colors.red),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n?.notePageDelete ?? '刪除',
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             ),
           ],
@@ -244,16 +266,21 @@ class _NotePageState extends State<NotePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       key: const ValueKey('note_page'),
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(
-          _isEditMode ? '選擇要刪除的樂譜' : '樂譜目錄',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.dynamicTextDark,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _isEditMode ? (l10n?.notePageSelectToDelete ?? '選擇要刪除的樂譜') : (l10n?.notePageTitle ?? '樂譜目錄'),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.dynamicTextDark,
+            ),
           ),
         ),
         backgroundColor: AppColors.dynamicBackground,
@@ -265,18 +292,21 @@ class _NotePageState extends State<NotePage> {
             IconButton(
               onPressed: () => context.go('/notes/sheet-annotation'),
               icon: const Icon(Icons.auto_stories),
-              tooltip: '電子譜面標註',
+              tooltip: l10n?.notePageSheetAnnotation ?? '電子譜面標註',
               color: AppColors.dynamicPrimary,
             ),
           if (_musicSheets.isNotEmpty)
             TextButton(
               onPressed: _isEditMode ? _toggleEditMode : _toggleEditMode,
-              child: Text(
-                _isEditMode ? '取消' : '編輯',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
-                  fontWeight: FontWeight.bold,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _isEditMode ? (l10n?.notePageCancel ?? '取消') : (l10n?.notePageEdit ?? '編輯'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -284,11 +314,11 @@ class _NotePageState extends State<NotePage> {
             IconButton(
               onPressed: _deleteSelectedSheets,
               icon: const Icon(Icons.delete, color: Colors.red),
-              tooltip: '刪除選中項',
+              tooltip: l10n?.notePageDeleteSelected ?? '刪除選中項',
             ),
         ],
       ),
-      body: _buildMusicSheetsTab(),
+      body: _buildMusicSheetsTab(l10n),
       floatingActionButton: _isEditMode
           ? null
           : FloatingActionButton(
@@ -299,7 +329,7 @@ class _NotePageState extends State<NotePage> {
     );
   }
 
-  Widget _buildMusicSheetsTab() {
+  Widget _buildMusicSheetsTab(AppLocalizations? l10n) {
     // 如果正在載入，顯示加載指示器
     if (_isLoading) {
       return Center(
@@ -311,7 +341,7 @@ class _NotePageState extends State<NotePage> {
             ),
             const SizedBox(height: 16),
             Text(
-              '載入中...',
+              l10n?.notePageLoading ?? '載入中...',
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.dynamicTextLight,
@@ -336,7 +366,7 @@ class _NotePageState extends State<NotePage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '還沒有任何樂譜目錄',
+                    l10n?.notePageEmpty ?? '還沒有任何樂譜目錄',
                     style: TextStyle(
                       fontSize: 18,
                       color: AppColors.dynamicTextLight.withValues(alpha: 0.7),
@@ -344,7 +374,7 @@ class _NotePageState extends State<NotePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '點擊右下角的 + 按鈕新增樂譜',
+                    l10n?.notePageEmptyHint ?? '點擊右下角的 + 按鈕新增樂譜',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
@@ -354,7 +384,7 @@ class _NotePageState extends State<NotePage> {
                   ElevatedButton.icon(
                     onPressed: () => context.go('/notes/sheet-annotation'),
                     icon: const Icon(Icons.auto_stories),
-                    label: const Text('或使用電子譜面標註'),
+                    label: Text(l10n?.notePageOrUseAnnotation ?? '或使用電子譜面標註'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.dynamicPrimary,
                       foregroundColor: Colors.white,
@@ -431,7 +461,7 @@ class _NotePageState extends State<NotePage> {
                               Padding(
                                 padding: const EdgeInsets.only(left: 32),
                                 child: Text(
-                                  '${sheet.notes.length} 條筆記',
+                                  '${sheet.notes.length} ${l10n?.notePageNotesCount ?? '條筆記'}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: AppColors.dynamicTextLight

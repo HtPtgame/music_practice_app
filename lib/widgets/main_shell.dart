@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -12,6 +13,9 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 安全獲取翻譯，提供預設值
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       body: SafeArea(
@@ -38,7 +42,7 @@ class MainShell extends StatelessWidget {
                 activeIcon: RepaintBoundary(
                   child: _buildHomeIcon(context, true),
                 ),
-                label: '首頁',
+                label: l10n?.navHome ?? '首頁',
               ),
               BottomNavigationBarItem(
                 icon: RepaintBoundary(
@@ -47,7 +51,7 @@ class MainShell extends StatelessWidget {
                 activeIcon: RepaintBoundary(
                   child: _buildLibraryIcon(context, true),
                 ),
-                label: '我的樂庫',
+                label: l10n?.navLibrary ?? '我的樂庫',
               ),
               BottomNavigationBarItem(
                 icon: RepaintBoundary(
@@ -56,13 +60,13 @@ class MainShell extends StatelessWidget {
                 activeIcon: RepaintBoundary(
                   child: _buildMetronomeIcon(context, true),
                 ),
-                label: '節拍器',
+                label: l10n?.metronomeTitle ?? '節拍器',
               ),
-              const BottomNavigationBarItem(
-                icon: RepaintBoundary(
+              BottomNavigationBarItem(
+                icon: const RepaintBoundary(
                   child: Icon(Icons.note_alt, size: 35),
                 ),
-                label: '筆記',
+                label: l10n?.navPractice ?? '練習',
               ),
               BottomNavigationBarItem(
                 icon: RepaintBoundary(
@@ -71,7 +75,7 @@ class MainShell extends StatelessWidget {
                 activeIcon: RepaintBoundary(
                   child: _buildSettingsIcon(context, true),
                 ),
-                label: '設定',
+                label: l10n?.navSettings ?? '設定',
               ),
             ],
           ),

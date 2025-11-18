@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/animal_collection.dart';
 import '../services/auth_service_config.dart';
 import '../services/user_data_sync_service.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// 動物圖鑑頁面
 class AnimalCollectionPage extends StatefulWidget {
@@ -123,10 +124,15 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('動物圖鑑'),
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(l10n?.animalCollectionTitle ?? '動物圖鑑'),
+          ),
           backgroundColor: Colors.blue[700],
         ),
         body: const Center(
@@ -146,14 +152,17 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('動物圖鑑'),
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(l10n?.animalCollectionTitle ?? '動物圖鑑'),
+          ),
           backgroundColor: Colors.blue[700],
         ),
         body: CustomScrollView(
           slivers: [
-            // 統計資訊卡片（可滑動）
+            // 統計資訊卡片(可滑動)
             SliverToBoxAdapter(
-              child: _buildStatsCard(),
+              child: _buildStatsCard(l10n),
             ),
 
             // 動物卡片網格
@@ -178,6 +187,7 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
                       animal: status, // ✅ 使用 status（含 unlockedAt）而不是 animal
                       isUnlocked: isUnlocked,
                       currentDays: totalDays,
+                      l10n: l10n,
                     );
                   },
                   childCount: _collectionService.allAnimals.length,
@@ -190,7 +200,7 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
     );
   }
 
-  Widget _buildStatsCard() {
+  Widget _buildStatsCard(AppLocalizations? l10n) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -215,18 +225,18 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildStatItem(
-                '收集進度',
+                l10n?.animalCollectionProgress ?? '收集進度',
                 '${_collectionService.collectedCount}/${_collectionService.totalAnimals}',
                 Icons.pets,
               ),
               _buildStatItem(
-                '總打卡天數',
+                l10n?.animalCollectionTotalCheckIns ?? '總打卡天數',
                 '${_checkedDates.length}',
                 Icons.calendar_today,
               ),
               _buildStatItem(
-                '連續打卡',
-                '${_consecutiveDays}天',
+                l10n?.animalCollectionConsecutiveStreak ?? '連續打卡',
+                '${_consecutiveDays}${l10n?.animalCollectionDaysUnit ?? '天'}',
                 Icons.local_fire_department,
               ),
             ],
@@ -248,27 +258,39 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
   }
 
   Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white, size: 28),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 12,
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -278,11 +300,13 @@ class _AnimalCard extends StatelessWidget {
   final AnimalCollection animal;
   final bool isUnlocked;
   final int currentDays;
+  final AppLocalizations? l10n;
 
   const _AnimalCard({
     required this.animal,
     required this.isUnlocked,
     required this.currentDays,
+    required this.l10n,
   });
 
   @override
@@ -317,7 +341,7 @@ class _AnimalCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                isUnlocked ? animal.name : '???',
+                isUnlocked ? animal.name : (l10n?.animalCollectionUnknown ?? '???'),
                 style: TextStyle(
                   fontSize: 13, // 縮小字體
                   fontWeight: FontWeight.bold,
@@ -342,7 +366,7 @@ class _AnimalCard extends StatelessWidget {
                             color: Colors.green[600], size: 14),
                         const SizedBox(width: 3),
                         Text(
-                          '已收集',
+                          l10n?.animalCollectionCollected ?? '已收集',
                           style: TextStyle(
                             color: Colors.green[600],
                             fontSize: 11,
@@ -354,7 +378,7 @@ class _AnimalCard extends StatelessWidget {
                   : Column(
                       children: [
                         Text(
-                          '需${animal.requiredCheckInDays}天',
+                          '${l10n?.animalCollectionNeedDays ?? '需'}${animal.requiredCheckInDays}${l10n?.animalCollectionRequireDays ?? '天'}',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 10,
@@ -420,7 +444,7 @@ class _AnimalCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                isUnlocked ? animal.name : '???',
+                isUnlocked ? animal.name : (l10n?.animalCollectionUnknown ?? '???'),
                 style: const TextStyle(fontSize: 20),
               ),
             ),
@@ -482,7 +506,10 @@ class _AnimalCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('關閉'),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(l10n?.animalCollectionClose ?? '關閉'),
+            ),
           ),
         ],
       ),

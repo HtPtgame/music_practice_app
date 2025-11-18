@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/firebase_auth_service.dart';
+import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// 登入頁面 - Firebase 版本
 class LoginPage extends StatefulWidget {
@@ -16,6 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = FirebaseAuthService();
+  final _syncService = UserDataSyncService();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -39,9 +42,17 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (mounted) {
+        // 登入成功後同步雲端數據
+        try {
+          await _syncService.syncFromCloudAfterLogin();
+        } catch (e) {
+          debugPrint('同步雲端數據時發生錯誤（不影響登入）: $e');
+        }
+
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('登入成功！'),
+          SnackBar(
+            content: Text(l10n?.loginSuccess ?? '登入成功！'),
             backgroundColor: Colors.green,
           ),
         );
@@ -76,10 +87,17 @@ class _LoginPageState extends State<LoginPage> {
 
       if (mounted) {
         if (success) {
-          // 登入成功
+          // 登入成功，同步雲端數據
+          try {
+            await _syncService.syncFromCloudAfterLogin();
+          } catch (e) {
+            debugPrint('同步雲端數據時發生錯誤（不影響登入）: $e');
+          }
+
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Google 登入成功！'),
+            SnackBar(
+              content: Text(l10n?.loginGoogleSuccess ?? 'Google 登入成功！'),
               backgroundColor: Colors.green,
             ),
           );
@@ -111,9 +129,11 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('登入'),
+        title: Text(l10n?.loginTitle ?? '登入'),
       ),
       body: SafeArea(
         child: Center(
@@ -134,12 +154,15 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 16),
 
                   // 標題
-                  Text(
-                    '歡迎回來',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                    textAlign: TextAlign.center,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      l10n?.loginWelcomeBack ?? '歡迎回來',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -154,19 +177,19 @@ class _LoginPageState extends State<LoginPage> {
                   // Email
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n?.loginEmailLabel ?? 'Email',
+                      prefixIcon: const Icon(Icons.email),
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return '請輸入 Email';
+                        return l10n?.loginEmailHint ?? '請輸入 Email';
                       }
                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                           .hasMatch(value)) {
-                        return '請輸入有效的 Email';
+                        return l10n?.loginEmailInvalid ?? '請輸入有效的 Email';
                       }
                       return null;
                     },
@@ -179,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: '密碼',
+                      labelText: l10n?.loginPasswordLabel ?? '密碼',
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -195,7 +218,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return '請輸入密碼';
+                        return l10n?.loginPasswordHint ?? '請輸入密碼';
                       }
                       return null;
                     },
@@ -220,10 +243,13 @@ class _LoginPageState extends State<LoginPage> {
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            '登入',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                        : FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              l10n?.loginButton ?? '登入',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                           ),
                   ),
                   const SizedBox(height: 24),
@@ -235,7 +261,7 @@ class _LoginPageState extends State<LoginPage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          '或',
+                          l10n?.loginOr ?? '或',
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: Colors.grey,
@@ -266,12 +292,15 @@ class _LoginPageState extends State<LoginPage> {
                         return const Icon(Icons.g_mobiledata, size: 24);
                       },
                     ),
-                    label: const Text(
-                      '使用 Google 帳號登入',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        l10n?.loginGoogleButton ?? '使用 Google 帳號登入',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                   ),
@@ -281,11 +310,11 @@ class _LoginPageState extends State<LoginPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('還沒有帳號？'),
+                      Text(l10n?.loginNoAccount ?? '還沒有帳號？'),
                       TextButton(
                         onPressed:
                             _isLoading ? null : () => context.push('/register'),
-                        child: const Text('立即註冊'),
+                        child: Text(l10n?.loginRegisterNow ?? '立即註冊'),
                       ),
                     ],
                   ),

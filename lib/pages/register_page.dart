@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/firebase_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// 註冊頁面 - Firebase 版本
 class RegisterPage extends StatefulWidget {
@@ -58,23 +59,23 @@ class _RegisterPageState extends State<RegisterPage> {
 
   /// 顯示數據保留選擇對話框
   Future<bool> _showDataRetentionDialog() async {
+    final l10n = AppLocalizations.of(context);
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            title: const Text('保留當前數據？'),
-            content: const Text(
-              '檢測到您在訪客模式下已有打卡記錄或練習時長。\n\n'
-              '您希望將這些數據導入新帳號，還是重新開始？',
+            title: Text(l10n?.registerDataRetentionTitle ?? '保留當前數據？'),
+            content: Text(
+              l10n?.registerDataRetentionMessage ?? '檢測到您在訪客模式下已有打卡記錄或練習時長。\n\n您希望將這些數據導入新帳號，還是重新開始？',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('重新開始'),
+                child: Text(l10n?.registerDataRetentionRestart ?? '重新開始'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('保留當前數據'),
+                child: Text(l10n?.registerDataRetentionKeep ?? '保留當前數據'),
               ),
             ],
           ),
@@ -107,9 +108,12 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(importData ? '註冊成功！已保留您的打卡和練習記錄' : '註冊成功！歡迎加入'),
+            content: Text(importData 
+              ? (l10n?.registerSuccessWithData ?? '註冊成功！已保留您的打卡和練習記錄') 
+              : (l10n?.registerSuccessWelcome ?? '註冊成功！歡迎加入')),
             backgroundColor: Colors.green,
           ),
         );
@@ -156,11 +160,12 @@ class _RegisterPageState extends State<RegisterPage> {
       if (mounted) {
         if (success) {
           // 登入/註冊成功
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(importData && hasLocalData
-                  ? 'Google 登入成功！已保留您的打卡和練習記錄'
-                  : 'Google 登入成功！'),
+                  ? (l10n?.registerGoogleSuccessWithData ?? 'Google 登入成功！已保留您的打卡和練習記錄')
+                  : (l10n?.registerGoogleSuccess ?? 'Google 登入成功！')),
               backgroundColor: Colors.green,
             ),
           );
@@ -192,9 +197,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('註冊'),
+        title: Text(l10n?.registerTitle ?? '註冊'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -211,31 +218,34 @@ class _RegisterPageState extends State<RegisterPage> {
                   color: Theme.of(context).primaryColor,
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  '建立新帳號',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    l10n?.registerCreateAccount ?? '建立新帳號',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
                 const SizedBox(height: 32),
 
                 // Email
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n?.registerEmailLabel ?? 'Email',
+                    prefixIcon: const Icon(Icons.email),
+                    border: const OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return '請輸入 Email';
+                      return l10n?.registerEmailHint ?? '請輸入 Email';
                     }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                         .hasMatch(value)) {
-                      return '請輸入有效的 Email';
+                      return l10n?.registerEmailInvalid ?? '請輸入有效的 Email';
                     }
                     return null;
                   },
@@ -246,18 +256,18 @@ class _RegisterPageState extends State<RegisterPage> {
                 // 使用者名稱（同時作為顯示名稱）
                 TextFormField(
                   controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: '使用者名稱',
-                    prefixIcon: Icon(Icons.account_circle),
-                    border: OutlineInputBorder(),
-                    helperText: '3-20個字元，將作為您的顯示名稱',
+                  decoration: InputDecoration(
+                    labelText: l10n?.registerUsernameLabel ?? '使用者名稱',
+                    prefixIcon: const Icon(Icons.account_circle),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n?.registerUsernameHint ?? '3-20個字元，將作為您的顯示名稱',
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return '請輸入使用者名稱';
+                      return l10n?.registerUsernameRequired ?? '請輸入使用者名稱';
                     }
                     if (value.length < 3 || value.length > 20) {
-                      return '使用者名稱長度需為 3-20 個字元';
+                      return l10n?.registerUsernameLength ?? '使用者名稱長度需為 3-20 個字元';
                     }
                     return null;
                   },
@@ -270,7 +280,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: '密碼',
+                    labelText: l10n?.registerPasswordLabel ?? '密碼',
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -283,14 +293,14 @@ class _RegisterPageState extends State<RegisterPage> {
                       },
                     ),
                     border: const OutlineInputBorder(),
-                    helperText: '至少 6 個字元',
+                    helperText: l10n?.registerPasswordHint ?? '至少 6 個字元',
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '請輸入密碼';
+                      return l10n?.registerPasswordRequired ?? '請輸入密碼';
                     }
                     if (value.length < 6) {
-                      return '密碼至少需要 6 個字元';
+                      return l10n?.registerPasswordMinLength ?? '密碼至少需要 6 個字元';
                     }
                     return null;
                   },
@@ -303,7 +313,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
-                    labelText: '確認密碼',
+                    labelText: l10n?.registerConfirmPasswordLabel ?? '確認密碼',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -320,10 +330,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '請再次輸入密碼';
+                      return l10n?.registerConfirmPasswordHint ?? '請再次輸入密碼';
                     }
                     if (value != _passwordController.text) {
-                      return '兩次輸入的密碼不一致';
+                      return l10n?.registerPasswordNotMatch ?? '兩次輸入的密碼不一致';
                     }
                     return null;
                   },
@@ -348,10 +358,13 @@ class _RegisterPageState extends State<RegisterPage> {
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          '註冊',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            l10n?.registerButton ?? '註冊',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                         ),
                 ),
                 const SizedBox(height: 24),
@@ -363,7 +376,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        '或',
+                        l10n?.registerOr ?? '或',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.grey,
                             ),
@@ -393,12 +406,15 @@ class _RegisterPageState extends State<RegisterPage> {
                       return const Icon(Icons.g_mobiledata, size: 24);
                     },
                   ),
-                  label: const Text(
-                    '使用 Google 帳號註冊',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      l10n?.registerGoogleButton ?? '使用 Google 帳號註冊',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),
@@ -408,10 +424,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('已有帳號？'),
+                    Text(l10n?.registerHaveAccount ?? '已有帳號？'),
                     TextButton(
                       onPressed: _isLoading ? null : () => context.pop(),
-                      child: const Text('立即登入'),
+                      child: Text(l10n?.registerLoginNow ?? '立即登入'),
                     ),
                   ],
                 ),

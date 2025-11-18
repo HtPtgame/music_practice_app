@@ -5,12 +5,15 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/widgets/check_in_card.dart';
 import 'package:music_practice_app/widgets/practice_timer_card.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     // Scaffold 和 AppBar 已被移除，由 MainShell 處理
     // SafeArea 已在 MainShell 層級處理
     return Padding(
@@ -25,18 +28,27 @@ class HomePage extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.music_note,
-                        color: AppColors.dynamicPrimary, size: 28),
-                    const SizedBox(width: 8),
-                    Text('音靈偵探',
-                        style: TextStyle(
-                            color: AppColors.dynamicTextDark,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold)),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.music_note,
+                          color: AppColors.dynamicPrimary, size: 28),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(l10n?.appName ?? '音靈偵探',
+                              style: TextStyle(
+                                  color: AppColors.dynamicTextDark,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 // 使用者頭像/登入按鈕
                 _UserButton(),
               ],
@@ -57,6 +69,7 @@ class HomePage extends StatelessWidget {
 class _UserButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListenableBuilder(
       listenable: authService,
       builder: (context, _) {
@@ -88,12 +101,14 @@ class _UserButton extends StatelessWidget {
             ),
           );
         } else {
-          // 未登入：顯示登入按鈕
-          return IconButton(
-            icon: Icon(Icons.person_outline,
-                color: AppColors.dynamicTextDark, size: 28),
-            onPressed: () => context.push('/login'),
-            tooltip: '登入',
+          // 未登入：顯示登入按鈕（使用 Tooltip 替換文字）
+          return Tooltip(
+            message: l10n?.loginTitle ?? '登入',
+            child: IconButton(
+              icon: Icon(Icons.person_outline,
+                  color: AppColors.dynamicTextDark, size: 28),
+              onPressed: () => context.push('/login'),
+            ),
           );
         }
       },

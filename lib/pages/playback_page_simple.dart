@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class PlaybackPage extends StatefulWidget {
   final PlatformFile? file;
@@ -20,13 +21,18 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(
-          widget.file?.name ?? 'MIDI 播放器',
-          style: TextStyle(
-            color: AppColors.dynamicTextDark,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            widget.file?.name ?? (l10n?.playbackPageTitle ?? 'MIDI 播放器'),
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
+            ),
           ),
         ),
         backgroundColor: AppColors.dynamicBackground,
@@ -212,12 +218,13 @@ class _PlaybackPageState extends State<PlaybackPage> {
   }
 
   String _getStatusText() {
+    final l10n = AppLocalizations.of(context);
     if (_isPlaying) {
-      return '播放中...';
+      return l10n?.playbackPagePlaying ?? '播放中...';
     } else if (_isPaused) {
-      return '已暫停';
+      return l10n?.playbackPagePaused ?? '已暫停';
     } else if (_currentPosition > 0) {
-      return '已停止';
+      return l10n?.playbackPageStopped ?? '已停止';
     } else {
       return '';
     }

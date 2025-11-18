@@ -155,6 +155,8 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       body: SingleChildScrollView(
@@ -163,25 +165,25 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 帳號設定區塊
-            _buildSectionTitle('帳號設定'),
+            _buildSectionTitle(l10n?.settingsAccount ?? '帳號設定'),
             const SizedBox(height: 16),
             _buildAccountCard(),
             const SizedBox(height: 32),
 
             // 語言設定區塊
-            _buildSectionTitle('語言設定'),
+            _buildSectionTitle(l10n?.settingsLanguage ?? '語言設定'),
             const SizedBox(height: 16),
             _buildLanguageCard(),
             const SizedBox(height: 32),
 
             // 音效設定區塊
-            _buildSectionTitle('音效設定'),
+            _buildSectionTitle(l10n?.settingsAudio ?? '音效設定'),
             const SizedBox(height: 16),
             _buildSoundSettingsCard(),
             const SizedBox(height: 32),
 
             // 其他設定區塊
-            _buildSectionTitle('其他設定'),
+            _buildSectionTitle(l10n?.settingsOther ?? '其他設定'),
             const SizedBox(height: 16),
             _buildOtherSettingsCards(),
           ],
@@ -202,6 +204,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAccountCard() {
+    final l10n = AppLocalizations.of(context);
     return ListenableBuilder(
       listenable: authService,
       builder: (context, _) {
@@ -243,22 +246,28 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          user != null ? '個人帳號' : '登入 / 註冊',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.dynamicTextDark,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            user != null ? (l10n?.settingsPersonalAccount ?? '個人帳號') : (l10n?.settingsLoginRegister ?? '登入 / 註冊'),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.dynamicTextDark,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          user != null
-                              ? user.displayName ?? user.username
-                              : '登入以同步您的練習記錄',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.dynamicTextLight,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            user != null
+                                ? user.displayName ?? user.username
+                                : (l10n?.settingsLoginToSync ?? '登入以同步您的練習記錄'),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.dynamicTextLight,
+                            ),
                           ),
                         ),
                       ],
@@ -278,6 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildLanguageCard() {
+    final l10n = AppLocalizations.of(context);
     return Card(
       color: AppColors.dynamicCard,
       elevation: 1.5,
@@ -307,12 +317,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '語言',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.dynamicTextDark,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        l10n?.settingsLanguageTitle ?? '語言',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.dynamicTextDark,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -339,6 +352,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSoundSettingsCard() {
+    final l10n = AppLocalizations.of(context);
     return Card(
       color: AppColors.dynamicCard,
       elevation: 2,
@@ -353,18 +367,24 @@ class _SettingsPageState extends State<SettingsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '音量控制',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.dynamicTextDark,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    l10n?.settingsVolumeControl ?? '音量控制',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.dynamicTextDark,
+                    ),
                   ),
                 ),
                 TextButton.icon(
                   onPressed: _resetVolumesToDefault,
                   icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('重置'),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(l10n?.settingsReset ?? '重置'),
+                  ),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.dynamicPrimary,
                     padding:
@@ -378,7 +398,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // 主音量
             _buildVolumeSlider(
               icon: Icons.volume_up,
-              title: '主音量',
+              title: l10n?.settingsMasterVolume ?? '主音量',
               value: _masterVolume,
               onChanged: (value) async {
                 setState(() => _masterVolume = value);
@@ -391,7 +411,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // MIDI 音量
             _buildVolumeSlider(
               icon: Icons.piano,
-              title: 'MIDI 音量',
+              title: l10n?.settingsMidiVolume ?? 'MIDI 音量',
               value: _midiVolume,
               onChanged: (value) async {
                 setState(() => _midiVolume = value);
@@ -404,7 +424,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // 節拍器音量
             _buildVolumeSlider(
               icon: Icons.av_timer,
-              title: '節拍器音量',
+              title: l10n?.settingsMetronomeVolume ?? '節拍器音量',
               value: _metronomeVolume,
               onChanged: (value) async {
                 setState(() => _metronomeVolume = value);
@@ -417,7 +437,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // 錄音音量
             _buildVolumeSlider(
               icon: Icons.mic,
-              title: '錄音音量',
+              title: l10n?.settingsRecordingVolume ?? '錄音音量',
               value: _recordingVolume,
               onChanged: (value) async {
                 setState(() => _recordingVolume = value);
@@ -432,8 +452,8 @@ class _SettingsPageState extends State<SettingsPage> {
             // 音效開關
             _buildSwitchTile(
               icon: Icons.music_note,
-              title: '音效',
-              subtitle: _soundEnabled ? '已啟用' : '已關閉',
+              title: l10n?.settingsSoundEffect ?? '音效',
+              subtitle: _soundEnabled ? (l10n?.settingsEnableSoundEffect ?? '已啟用') : '已關閉',
               value: _soundEnabled,
               onChanged: (value) async {
                 setState(() => _soundEnabled = value);
@@ -446,8 +466,8 @@ class _SettingsPageState extends State<SettingsPage> {
             // 震動開關
             _buildSwitchTile(
               icon: Icons.vibration,
-              title: '震動回饋',
-              subtitle: _vibrationEnabled ? '已啟用' : '已關閉',
+              title: l10n?.settingsVibration ?? '震動回饋',
+              subtitle: _vibrationEnabled ? (l10n?.settingsEnableVibration ?? '已啟用') : '已關閉',
               value: _vibrationEnabled,
               onChanged: (value) async {
                 setState(() => _vibrationEnabled = value);
@@ -601,12 +621,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildOtherSettingsCards() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       children: [
         _buildSettingCard(
           icon: Icons.pets,
-          title: '動物圖鑑',
-          subtitle: '查看您收集的可愛動物',
+          title: l10n?.settingsAnimalCollection ?? '動物圖鑑',
+          subtitle: l10n?.settingsAnimalCollectionDesc ?? '查看您收集的可愛動物',
           onTap: () {
             context.push('/animal-collection');
           },
@@ -614,22 +635,22 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 12),
         _buildSettingCard(
           icon: Icons.notifications,
-          title: '通知設定',
-          subtitle: '管理應用程式通知',
-          onTap: () => _showFeatureNotAvailable('通知設定'),
+          title: l10n?.settingsNotifications ?? '通知設定',
+          subtitle: l10n?.settingsNotificationsDesc ?? '管理應用程式通知',
+          onTap: () => _showFeatureNotAvailable(l10n?.settingsNotifications ?? '通知設定'),
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
           icon: Icons.palette,
-          title: '主題設定',
-          subtitle: '選擇應用程式主題顏色',
+          title: l10n?.settingsThemeTitle ?? '主題設定',
+          subtitle: l10n?.settingsThemeDesc ?? '選擇應用程式主題顏色',
           onTap: () => _showThemeDialog(),
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
           icon: Icons.info,
-          title: '關於應用程式',
-          subtitle: '版本資訊和開發團隊',
+          title: l10n?.settingsAboutTitle ?? '關於應用程式',
+          subtitle: l10n?.settingsAboutDesc ?? '版本資訊和開發團隊',
           onTap: () {
             _showAboutDialog();
           },
@@ -673,20 +694,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.dynamicTextDark,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.dynamicTextDark,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.dynamicTextLight,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.dynamicTextLight,
+                        ),
                       ),
                     ),
                   ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// Phase 1B: 倒數計時 Overlay Widget
 ///
@@ -132,20 +133,28 @@ class _CountdownOverlayState extends State<CountdownOverlay>
               left: 0,
               right: 0,
               child: Center(
-                child: TextButton.icon(
-                  onPressed: widget.onCancel,
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  label: const Text(
-                    '取消',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.red.withOpacity(0.8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
-                    ),
-                  ),
+                child: Builder(
+                  builder: (context) {
+                    final l10n = AppLocalizations.of(context);
+                    return TextButton.icon(
+                      onPressed: widget.onCancel,
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          l10n?.countdownCancel ?? '取消',
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.red.withOpacity(0.8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 15,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

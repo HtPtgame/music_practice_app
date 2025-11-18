@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/midi_player_service.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class PlaybackPage extends StatefulWidget {
   final PlatformFile? file;
@@ -97,14 +98,19 @@ class _PlaybackPageState extends State<PlaybackPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: const Text(
-          '播放 MIDI',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            l10n?.playbackTitle ?? '播放 MIDI',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
         ),
         leading: IconButton(
@@ -157,7 +163,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       ),
                                       SizedBox(height: screenHeight * 0.02),
                                       Text(
-                                        widget.file?.name ?? '未知檔案',
+                                        widget.file?.name ?? (l10n?.playbackUnknownFile ?? '未知檔案'),
                                         style: TextStyle(
                                           fontSize: screenWidth * 0.04,
                                           fontWeight: FontWeight.bold,
@@ -170,7 +176,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       if (widget.file != null) ...[
                                         SizedBox(height: screenHeight * 0.01),
                                         Text(
-                                          '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
+                                          '${l10n?.playbackFileSize ?? '檔案大小'}: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
                                           style: TextStyle(
                                             fontSize: screenWidth * 0.03,
                                             color: AppColors.dynamicTextLight,
@@ -222,7 +228,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       icon: const Icon(Icons.replay),
                                       iconSize: screenWidth * 0.09,
                                       color: AppColors.dynamicTextDark,
-                                      tooltip: '重新播放',
+                                      tooltip: l10n?.playbackTooltipReplay ?? '重新播放',
                                     ),
                                     Container(
                                       decoration: BoxDecoration(
@@ -240,7 +246,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                         ),
                                         iconSize: screenWidth * 0.12,
                                         color: Colors.white,
-                                        tooltip: _isPlaying ? '暫停' : '播放',
+                                        tooltip: _isPlaying 
+                                            ? (l10n?.playbackTooltipPause ?? '暫停') 
+                                            : (l10n?.playbackTooltipPlay ?? '播放'),
                                       ),
                                     ),
                                     IconButton(
@@ -248,7 +256,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                       icon: const Icon(Icons.stop),
                                       iconSize: screenWidth * 0.09,
                                       color: AppColors.dynamicTextDark,
-                                      tooltip: '停止',
+                                      tooltip: l10n?.playbackTooltipStop ?? '停止',
                                     ),
                                   ],
                                 ),

@@ -1,6 +1,7 @@
 // lib/widgets/recent_activity_card.dart
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class RecentActivityCard extends StatelessWidget {
   final String title;
@@ -16,6 +17,8 @@ class RecentActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Card(
       color: AppColors.dynamicCard,
       elevation: 1.5,
@@ -47,7 +50,10 @@ class RecentActivityCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              child: const Text('繼續'),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(l10n?.recentActivityContinue ?? '繼續'),
+              ),
             ),
           ),
         ),

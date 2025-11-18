@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class UploadPage extends StatelessWidget {
   const UploadPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -21,12 +24,18 @@ class UploadPage extends StatelessWidget {
               children: [
                 Icon(Icons.upload, color: AppColors.dynamicPrimary, size: 28),
                 const SizedBox(width: 8),
-                Text(
-                  '上傳音樂檔案',
-                  style: TextStyle(
-                    color: AppColors.dynamicTextDark,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n?.uploadPageTitle ?? '上傳音樂檔案',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextDark,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -36,16 +45,16 @@ class UploadPage extends StatelessWidget {
           _buildUploadOption(
             context,
             icon: MaterialCommunityIcons.midi_port,
-            label: '從本機上傳 MIDI',
-            subtitle: '支援 .mid 和 .midi 格式',
+            label: l10n?.uploadLocalMidi ?? '從本機上傳 MIDI',
+            subtitle: l10n?.uploadLocalMidiSubtitle ?? '支援 .mid 和 .midi 格式',
             onTap: () => context.go('/upload2'),
           ),
           const SizedBox(height: 16),
           _buildUploadOption(
             context,
             icon: MaterialCommunityIcons.image_multiple_outline,
-            label: '從本機上傳樂譜',
-            subtitle: '支援圖片格式的樂譜',
+            label: l10n?.uploadLocalScore ?? '從本機上傳樂譜',
+            subtitle: l10n?.uploadLocalScoreSubtitle ?? '支援圖片格式的樂譜',
             onTap: () => _showFeatureNotAvailable(context),
           ),
         ],
@@ -54,28 +63,37 @@ class UploadPage extends StatelessWidget {
   }
 
   void _showFeatureNotAvailable(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
-          title: Text(
-            '功能開發中',
-            style: TextStyle(
-              color: AppColors.dynamicTextDark,
-              fontWeight: FontWeight.bold,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              l10n?.uploadFeatureNotAvailable ?? '功能開發中',
+              style: TextStyle(
+                color: AppColors.dynamicTextDark,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           content: Text(
-            '此功能正在開發中，敬請期待！',
+            l10n?.uploadFeatureNotAvailableMessage ?? '此功能正在開發中，敬請期待！',
             style: TextStyle(color: AppColors.dynamicTextDark),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                '確定',
-                style: TextStyle(color: AppColors.dynamicPrimary),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n?.ok ?? '確定',
+                  style: TextStyle(color: AppColors.dynamicPrimary),
+                ),
               ),
             ),
           ],

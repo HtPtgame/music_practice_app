@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart'; // 確保這個導入也存在
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 // 全域MIDI檔案管理類別
 // 這些類別必須放在這裡 (文件頂層)，才能被其他文件導入和使用
@@ -60,15 +61,20 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground, // 使用您定義的背景色
       appBar: AppBar(
-        title: const Text(
-          '我的樂庫',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            l10n?.libraryTitle ?? '我的樂庫',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
         ),
         centerTitle: true,
@@ -96,7 +102,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        '尚無音樂檔案',
+                        l10n?.libraryEmpty ?? '尚無音樂檔案',
                         style: TextStyle(
                           fontSize: 18,
                           color: AppColors.dynamicTextLight,
@@ -104,11 +110,12 @@ class _LibraryPageState extends State<LibraryPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '請前往上傳頁面添加MIDI檔案',
+                        l10n?.libraryEmptyDesc ?? '請前往上傳頁面添加MIDI檔案',
                         style: TextStyle(
                           fontSize: 14,
                           color: AppColors.dynamicTextLight,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -135,7 +142,7 @@ class _LibraryPageState extends State<LibraryPage> {
         },
         backgroundColor: AppColors.dynamicPrimary, // 使用您定義的主題色
         foregroundColor: Colors.white, // 加號圖標
-        tooltip: '新增樂曲', // 圖標顏色
+        tooltip: l10n?.libraryUpload ?? '新增樂曲', // 圖標顏色
         child: const Icon(Icons.add), // 長按提示
       ),
     );
@@ -143,6 +150,8 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Widget _buildMidiFileCard(
       BuildContext context, MidiFileInfo midiFile, int index) {
+    final l10n = AppLocalizations.of(context);
+    
     return Card(
       color: AppColors.dynamicCard,
       elevation: 1.5,
@@ -178,14 +187,14 @@ class _LibraryPageState extends State<LibraryPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '大小: ${(midiFile.size / 1024).toStringAsFixed(1)} KB',
+                      '${l10n?.libraryFileSize ?? '大小'}: ${(midiFile.size / 1024).toStringAsFixed(1)} KB',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.dynamicTextLight,
                       ),
                     ),
                     Text(
-                      '上傳時間: ${_formatDate(midiFile.uploadTime)}',
+                      '${l10n?.libraryUploadTime ?? '上傳時間'}: ${_formatDate(midiFile.uploadTime)}',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.dynamicTextLight,
@@ -201,19 +210,19 @@ class _LibraryPageState extends State<LibraryPage> {
                     icon: const Icon(Icons.play_arrow),
                     color: AppColors.dynamicPrimary,
                     onPressed: () => _playMidiFile(context, midiFile),
-                    tooltip: '播放',
+                    tooltip: l10n?.libraryPlay ?? '播放',
                   ),
                   IconButton(
                     icon: const Icon(Icons.school),
                     color: Colors.green,
                     onPressed: () => _goToPractice(context, midiFile),
-                    tooltip: '練習',
+                    tooltip: l10n?.libraryPractice ?? '練習',
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
                     color: Colors.red,
                     onPressed: () => _deleteMidiFile(context, index),
-                    tooltip: '刪除',
+                    tooltip: l10n?.libraryDelete ?? '刪除',
                   ),
                 ],
               )
@@ -235,19 +244,22 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   void _deleteMidiFile(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
           title: Text(
-            '確認刪除',
+            l10n?.libraryDeleteConfirmTitle ?? '確認刪除',
             style: TextStyle(
               color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
+            l10n?.libraryDeleteConfirmMessage.replaceAll('{name}', MidiFileManager.midiFiles[index].name) ?? 
             '確定要刪除「${MidiFileManager.midiFiles[index].name}」嗎？',
             style: TextStyle(
               color: AppColors.dynamicTextDark,
@@ -256,7 +268,7 @@ class _LibraryPageState extends State<LibraryPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
+              child: Text(l10n?.cancel ?? '取消'),
             ),
             TextButton(
               onPressed: () {
@@ -266,8 +278,8 @@ class _LibraryPageState extends State<LibraryPage> {
                 });
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('檔案已刪除'),
+                  SnackBar(
+                    content: Text(l10n?.libraryDeleteSuccess ?? '檔案已刪除'),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -275,7 +287,7 @@ class _LibraryPageState extends State<LibraryPage> {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
-              child: const Text('刪除'),
+              child: Text(l10n?.delete ?? '刪除'),
             ),
           ],
         );

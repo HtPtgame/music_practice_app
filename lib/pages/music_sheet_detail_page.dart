@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import '../utils/app_colors.dart';
 import '../models/drawing_data.dart';
 import '../widgets/drawing_canvas.dart';
@@ -93,6 +94,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
   }
 
   void _showAddNoteDialog() {
+    final l10n = AppLocalizations.of(context);
     _measureController.clear();
     _contentController.clear();
 
@@ -101,11 +103,14 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
-          title: Text(
-            '新增練習要點',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.dynamicTextDark,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n?.sheetDetailAddNote ?? '新增練習要點',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.dynamicTextDark,
+              ),
             ),
           ),
           content: Column(
@@ -115,9 +120,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 controller: _measureController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: '小節數',
+                  labelText: l10n?.sheetDetailMeasureNumber ?? '小節數',
                   labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: 'Ex: 12',
+                  hintText: l10n?.sheetDetailMeasureHint ?? 'Ex: 12',
                   hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -134,9 +139,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 controller: _contentController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: '注意事項',
+                  labelText: l10n?.sheetDetailContent ?? '注意事項',
                   labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: '記錄需要注意的地方、技巧要點或練習重點...',
+                  hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
                   hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -153,7 +158,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                '取消',
+                l10n?.sheetDetailCancel ?? '取消',
                 style: TextStyle(color: AppColors.dynamicTextLight),
               ),
             ),
@@ -182,9 +187,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.dynamicPrimary,
               ),
-              child: const Text(
-                '新增',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                l10n?.sheetDetailAdd ?? '新增',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -194,32 +199,33 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
   }
 
   void _deleteNote(int index) {
+    final l10n = AppLocalizations.of(context);
     showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
           title: Text(
-            '確認刪除',
+            l10n?.sheetDetailConfirmDelete ?? '確認刪除',
             style: TextStyle(color: AppColors.dynamicTextDark),
           ),
           content: Text(
-            '確定要刪除這條筆記嗎？',
+            l10n?.sheetDetailConfirmDeleteMessage ?? '確定要刪除這條筆記嗎？',
             style: TextStyle(color: AppColors.dynamicTextDark),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
-                '取消',
+                l10n?.sheetDetailCancel ?? '取消',
                 style: TextStyle(color: AppColors.dynamicTextLight),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                '刪除',
-                style: TextStyle(color: Colors.red),
+              child: Text(
+                l10n?.sheetDetailDelete ?? '刪除',
+                style: const TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -236,6 +242,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
   }
 
   void _showDrawingDialog(int index) {
+    final l10n = AppLocalizations.of(context);
     final note = _notes[index];
     DrawingData drawingData = note.drawing ?? DrawingData();
 
@@ -254,12 +261,16 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                     Icon(Icons.brush, color: AppColors.dynamicPrimary),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        '第 ${note.measure} 小節 - 音樂畫面',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.dynamicTextDark,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${l10n?.sheetDetailMeasurePrefix ?? '第'} ${note.measure} ${l10n?.sheetDetailMeasureSuffix ?? '小節'} - ${l10n?.sheetDetailDrawing ?? '音樂畫面'}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dynamicTextDark,
+                          ),
                         ),
                       ),
                     ),
@@ -285,7 +296,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(
-                        '取消',
+                        l10n?.sheetDetailCancel ?? '取消',
                         style: TextStyle(color: AppColors.dynamicTextLight),
                       ),
                     ),
@@ -307,9 +318,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.dynamicPrimary,
                       ),
-                      child: const Text(
-                        '儲存',
-                        style: TextStyle(color: Colors.white),
+                      child: Text(
+                        l10n?.sheetDetailSave ?? '儲存',
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ],
@@ -323,6 +334,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
   }
 
   void _editNote(int index) {
+    final l10n = AppLocalizations.of(context);
     final note = _notes[index];
     _measureController.text = note.measure.toString();
     _contentController.text = note.content;
@@ -332,11 +344,14 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
-          title: Text(
-            '編輯練習要點',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.dynamicTextDark,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n?.sheetDetailEditNote ?? '編輯練習要點',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.dynamicTextDark,
+              ),
             ),
           ),
           content: Column(
@@ -346,9 +361,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 controller: _measureController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: '小節數',
+                  labelText: l10n?.sheetDetailMeasureLabel ?? '小節數',
                   labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: '例如：16',
+                  hintText: l10n?.sheetDetailMeasureExample ?? '例如：16',
                   hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -364,9 +379,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                 controller: _contentController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: '注意事項',
+                  labelText: l10n?.sheetDetailContent ?? '注意事項',
                   labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: '記錄需要注意的地方、技巧要點或練習重點...',
+                  hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
                   hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -383,7 +398,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                '取消',
+                l10n?.sheetDetailCancel ?? '取消',
                 style: TextStyle(color: AppColors.dynamicTextLight),
               ),
             ),
@@ -412,9 +427,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.dynamicPrimary,
               ),
-              child: const Text(
-                '儲存',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                l10n?.sheetDetailSave ?? '儲存',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -425,6 +440,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       // 移除 AppBar，改為全螢幕
@@ -472,20 +489,28 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '點擊下方按鈕新增練習要點',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.dynamicTextDark,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          l10n?.sheetDetailClickToAdd ?? '點擊下方按鈕新增練習要點',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.dynamicTextDark,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '可以針對特定小節記錄需要注意的地方',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.dynamicTextLight,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          l10n?.sheetDetailAddDescription ?? '可以針對特定小節記錄需要注意的地方',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.dynamicTextLight,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -494,9 +519,12 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                         child: ElevatedButton.icon(
                           onPressed: _addNote,
                           icon: const Icon(Icons.add, color: Colors.white),
-                          label: const Text(
-                            '新增筆記',
-                            style: TextStyle(color: Colors.white),
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              l10n?.sheetDetailAddButton ?? '新增筆記',
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.dynamicPrimary,
@@ -527,21 +555,27 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                                   .withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 16),
-                            Text(
-                              '還沒有任何練習要點',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: AppColors.dynamicTextLight
-                                    .withValues(alpha: 0.7),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                l10n?.sheetDetailEmpty ?? '還沒有任何練習要點',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: AppColors.dynamicTextLight
+                                      .withValues(alpha: 0.7),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              '開始記錄這首曲子的練習重點吧！',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.dynamicTextLight
-                                    .withValues(alpha: 0.5),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                l10n?.sheetDetailEmptyHint ?? '開始記錄這首曲子的練習重點吧！',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.dynamicTextLight
+                                      .withValues(alpha: 0.5),
+                                ),
                               ),
                             ),
                           ],
@@ -583,7 +617,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                                             color: AppColors.dynamicPrimary),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '包含音樂畫面',
+                                          l10n?.sheetDetailDrawingIncluded ?? '包含音樂畫面',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: AppColors.dynamicPrimary,
@@ -605,7 +639,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> {
                                               : Colors.grey,
                                     ),
                                     onPressed: () => _showDrawingDialog(index),
-                                    tooltip: '編輯音樂畫面',
+                                    tooltip: l10n?.sheetDetailDrawingEdit ?? '編輯音樂畫面',
                                   ),
                                   IconButton(
                                     icon: Icon(Icons.edit_outlined,

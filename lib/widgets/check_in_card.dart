@@ -4,6 +4,7 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class CheckInCard extends StatefulWidget {
   const CheckInCard({super.key});
@@ -137,6 +138,8 @@ class _CheckInCardState extends State<CheckInCard> {
   Future<void> _checkIn() async {
     if (_hasCheckedToday) return;
 
+    final l10n = AppLocalizations.of(context);
+
     // 備份當前狀態（用於錯誤回滾）
     final backupCheckedDates = Set<String>.from(_checkedDates);
     final backupConsecutiveDays = _consecutiveDays;
@@ -157,7 +160,7 @@ class _CheckInCardState extends State<CheckInCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
-                Text('打卡成功！連續 $_consecutiveDays 天，累計 $_totalCheckInDays 天 🎉'),
+                Text(l10n?.checkInSuccessMessage.replaceAll('{consecutive}', '$_consecutiveDays').replaceAll('{total}', '$_totalCheckInDays') ?? '打卡成功！連續 $_consecutiveDays 天，累計 $_totalCheckInDays 天 🎉'),
             backgroundColor: AppColors.dynamicPrimary,
             duration: const Duration(seconds: 2),
           ),
@@ -175,10 +178,10 @@ class _CheckInCardState extends State<CheckInCard> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('打卡失敗，請檢查網路連線'),
+          SnackBar(
+            content: Text(l10n?.checkInFailure ?? '打卡失敗，請檢查網路連線'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -242,6 +245,7 @@ class _CheckInCardState extends State<CheckInCard> {
   }
 
   Widget _buildCardContent() {
+    final l10n = AppLocalizations.of(context);
     final daysInMonth = _getDaysInMonth(_selectedMonth);
     final firstDayWeekday = daysInMonth.first.weekday; // 1 = Monday, 7 = Sunday
 
@@ -255,12 +259,16 @@ class _CheckInCardState extends State<CheckInCard> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '練習打卡',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.dynamicTextDark,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n?.checkInTitle ?? '練習打卡',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.dynamicTextDark,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -270,12 +278,15 @@ class _CheckInCardState extends State<CheckInCard> {
                     Icon(Icons.local_fire_department,
                         color: Colors.orange, size: 20),
                     const SizedBox(width: 4),
-                    Text(
-                      '連續 $_consecutiveDays 天',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.dynamicPrimary,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${l10n?.checkInConsecutive ?? '連續'} $_consecutiveDays ${l10n?.checkInDaysUnit ?? '天'}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.dynamicPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -286,12 +297,15 @@ class _CheckInCardState extends State<CheckInCard> {
                   children: [
                     Icon(Icons.emoji_events, color: Colors.amber, size: 20),
                     const SizedBox(width: 4),
-                    Text(
-                      '累計 $_totalCheckInDays 天',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.dynamicPrimary,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        '${l10n?.checkInAccumulated ?? '累計'} $_totalCheckInDays ${l10n?.checkInDaysUnit ?? '天'}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.dynamicPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -311,10 +325,13 @@ class _CheckInCardState extends State<CheckInCard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
-              child: Text(
-                _hasCheckedToday ? '已打卡' : '打卡',
-                style:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _hasCheckedToday ? (l10n?.checkInChecked ?? '已打卡') : (l10n?.checkInButton ?? '打卡'),
+                  style:
+                      const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -346,12 +363,15 @@ class _CheckInCardState extends State<CheckInCard> {
               icon: Icon(Icons.chevron_left, color: AppColors.dynamicTextDark),
               onPressed: () => _changeMonth(-1),
             ),
-            Text(
-              '${_selectedMonth.year}年 ${_selectedMonth.month}月',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.dynamicTextDark,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${_selectedMonth.year}${l10n?.checkInYear ?? '年'} ${_selectedMonth.month}${l10n?.checkInMonth ?? '月'}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.dynamicTextDark,
+                ),
               ),
             ),
             IconButton(
@@ -366,16 +386,19 @@ class _CheckInCardState extends State<CheckInCard> {
         // 星期標題
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: ['日', '一', '二', '三', '四', '五', '六'].map((day) {
+          children: (l10n?.checkInWeekdays ?? ['日', '一', '二', '三', '四', '五', '六']).map((day) {
             return SizedBox(
               width: 32,
               child: Center(
-                child: Text(
-                  day,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.dynamicTextLight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    day,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.dynamicTextLight,
+                    ),
                   ),
                 ),
               ),

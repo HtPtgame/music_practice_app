@@ -352,6 +352,13 @@ class FirebaseAuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 內部方法：更新當前使用者數據（用於雲端同步）
+  void updateCurrentUser(app_user.User user) {
+    _currentUser = user;
+    notifyListeners();
+    debugPrint('✅ 已更新當前使用者數據');
+  }
+
   /// 變更密碼
   Future<void> changePassword({
     required String oldPassword,

@@ -9,6 +9,7 @@ import 'package:flutter_midi_pro/flutter_midi_pro.dart'; // 新增：MIDI 播放
 import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/widgets/countdown_overlay.dart'; // Phase 1B: 倒數計時
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'dart:io';
 
 // Week 4 Phase 2: 分析功能
@@ -759,6 +760,7 @@ class _PracticePageState extends State<PracticePage> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
+          final l10n = AppLocalizations.of(context);
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
@@ -766,13 +768,23 @@ class _PracticePageState extends State<PracticePage> {
                   children: [
                     Icon(Icons.music_note, color: AppColors.dynamicPrimary),
                     const SizedBox(width: 8),
-                    const Text('音訊轉 MIDI'),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(l10n?.practiceAudioToMidi ?? '音訊轉 MIDI'),
+                      ),
+                    ),
                   ],
                 ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🤖 使用 AI 模型分析您的完整錄音...'),
+                    Text(
+                      l10n?.practiceAnalyzingRecording ?? '🤖 使用 AI 模型分析您的完整錄音...',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 14),
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       _getProgressDescription(conversionProgress),
@@ -2384,9 +2396,11 @@ class _PracticePageState extends State<PracticePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     // 獲取檔案名稱（不包含副檔名）
     String getFileNameWithoutExtension() {
-      if (widget.file?.name == null) return '未指定曲目';
+      if (widget.file?.name == null) return l10n?.practiceNoFile ?? '未指定曲目';
       final fileName = widget.file!.name;
       final lastDot = fileName.lastIndexOf('.');
       if (lastDot != -1) {
@@ -2398,8 +2412,11 @@ class _PracticePageState extends State<PracticePage> {
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: const Text('演奏偵錯頁面',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(l10n?.practiceTitle ?? '練習模式',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        ),
         backgroundColor: AppColors.dynamicPrimary,
         centerTitle: true,
         leading: IconButton(
@@ -2425,14 +2442,20 @@ class _PracticePageState extends State<PracticePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 16),
-              Text(
-                '正在練習: ${getFileNameWithoutExtension()}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.dynamicTextDark,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '${l10n?.practiceSelectFile ?? '正在練習'}: ${getFileNameWithoutExtension()}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.dynamicTextDark,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
 
@@ -2448,9 +2471,12 @@ class _PracticePageState extends State<PracticePage> {
                           Icon(Icons.mic,
                               color: AppColors.dynamicPrimary, size: 28),
                           const SizedBox(width: 8),
-                          const Text('錄音控制',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(l10n?.practiceRecord ?? '錄音控制',
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -2460,9 +2486,12 @@ class _PracticePageState extends State<PracticePage> {
                         children: [
                           const Icon(Icons.timer, size: 20, color: Colors.grey),
                           const SizedBox(width: 8),
-                          const Text('3秒倒數計時',
-                              style:
-                                  TextStyle(fontSize: 14, color: Colors.grey)),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(l10n?.practiceEnableCountdown ?? '3秒倒數計時',
+                                style:
+                                    const TextStyle(fontSize: 14, color: Colors.grey)),
+                          ),
                           const SizedBox(width: 12),
                           Switch(
                             value: _enableCountdown,
@@ -2486,8 +2515,8 @@ class _PracticePageState extends State<PracticePage> {
                                 ? Icons.stop
                                 : Icons.fiber_manual_record),
                             label: Text(isRecording
-                                ? '停止'
-                                : (_audioPath != null ? '重新錄音' : '開始')),
+                                ? (l10n?.practiceStopRecord ?? '停止')
+                                : (_audioPath != null ? (l10n?.practiceRecord ?? '重新錄音') : (l10n?.practiceRecord ?? '開始'))),  
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
                                   isRecording ? Colors.grey : Colors.red,
@@ -2509,8 +2538,8 @@ class _PracticePageState extends State<PracticePage> {
                               const SizedBox(width: 8),
                               Text(
                                 isRecording
-                                    ? '正在錄音... ${_recordingDurationSeconds}s'
-                                    : (_audioPath != null ? '錄音完成' : '未錄音'),
+                                    ? '${l10n?.practiceRecording ?? '正在錄音'}... ${_recordingDurationSeconds}${l10n?.practiceSeconds ?? 's'}'
+                                    : (_audioPath != null ? (l10n?.practiceRecordingSuccess ?? '錄音完成') : (l10n?.practiceNoRecording ?? '未錄音')),
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: isRecording
@@ -2562,9 +2591,12 @@ class _PracticePageState extends State<PracticePage> {
                           Icon(Icons.volume_up,
                               color: AppColors.dynamicPrimary, size: 28),
                           const SizedBox(width: 8),
-                          const Text('播放控制',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(l10n?.practicePlayback ?? '播放控制',
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -2578,7 +2610,7 @@ class _PracticePageState extends State<PracticePage> {
                                 ? playRecording
                                 : null,
                             icon: const Icon(Icons.play_arrow),
-                            label: const Text('播放'),
+                            label: Text(l10n?.practicePlayback ?? '播放'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
@@ -2587,7 +2619,7 @@ class _PracticePageState extends State<PracticePage> {
                           ElevatedButton.icon(
                             onPressed: isPlaying ? stopPlaying : null,
                             icon: const Icon(Icons.stop),
-                            label: const Text('停止'),
+                            label: Text(l10n?.practiceStopPlayback ?? '停止'),
                           ),
                         ],
                       ),
@@ -2609,28 +2641,37 @@ class _PracticePageState extends State<PracticePage> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.analytics_outlined,
+                        children: [
+                          const Icon(Icons.analytics_outlined,
                               color: Colors.purple, size: 28),
-                          SizedBox(width: 8),
-                          Text(
-                            '演奏分析',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              l10n?.practiceAnalyze ?? '演奏分析',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.dynamicTextDark.withOpacity(0.7),
-                          fontWeight: FontWeight.w500,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            l10n?.practiceAnalysisDescription ?? '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.dynamicTextDark.withOpacity(0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
@@ -2648,7 +2689,7 @@ class _PracticePageState extends State<PracticePage> {
                                     strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.analytics_outlined),
-                        label: Text(_isAnalyzing ? '分析中...' : '分析演奏'),
+                        label: Text(_isAnalyzing ? (l10n?.practiceAnalyzing ?? '分析中...') : (l10n?.practiceAnalyze ?? '分析演奏')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.purple,
                           foregroundColor: Colors.white,
@@ -2772,14 +2813,18 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   Widget _buildAnalysisProgressDialog() {
+    final l10n = AppLocalizations.of(context);
     return StatefulBuilder(
       builder: (context, setDialogState) {
         return AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.analytics, color: Colors.purple),
-              SizedBox(width: 8),
-              Text('演奏分析中')
+              const Icon(Icons.analytics, color: Colors.purple),
+              const SizedBox(width: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(l10n?.practiceAnalyzingTitle ?? '演奏分析中'),
+              ),
             ],
           ),
           content: Column(

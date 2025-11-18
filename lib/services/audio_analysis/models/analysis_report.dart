@@ -1,5 +1,7 @@
 import 'performance_error.dart';
 import 'confusion_matrix.dart';
+import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// 分析報告 (已優化 - 2025/10/25)
 ///
@@ -268,66 +270,67 @@ class AnalysisReport {
   }
 
   /// 生成建議 (已優化 - 2025/10/25)
-  List<String> generateSuggestions() {
+  List<String> generateSuggestions(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final suggestions = <String>[];
 
     // 新增: 亂彈檢測
     if (isProbablyRandomPlaying) {
-      suggestions.add('🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:');
-      suggestions.add('   1. 是否選擇了正確的 MIDI 檔案');
-      suggestions.add('   2. 是否完整演奏了指定曲目');
-      suggestions.add('   3. 是否在安靜環境下錄音');
+      suggestions.add(l10n?.suggestionRandomPlaying ?? '🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:');
+      suggestions.add(l10n?.suggestionCheckCorrectFile ?? '   1. 是否選擇了正確的 MIDI 檔案');
+      suggestions.add(l10n?.suggestionCheckCompleteSong ?? '   2. 是否完整演奏了指定曲目');
+      suggestions.add(l10n?.suggestionCheckQuietEnvironment ?? '   3. 是否在安靜環境下錄音');
       return suggestions; // 直接返回,不提供其他建議
     }
 
     // 新增: 錯誤曲目檢測
     if (isProbablyWrongSong) {
-      suggestions.add('❌ 演奏內容與指定曲目嚴重不符!');
-      suggestions.add('   請確認是否演奏了正確的曲目');
+      suggestions.add(l10n?.suggestionWrongSong ?? '❌ 演奏內容與指定曲目嚴重不符!');
+      suggestions.add(l10n?.suggestionConfirmCorrectSong ?? '   請確認是否演奏了正確的曲目');
       return suggestions;
     }
 
     // 音準建議 (使用 F1 Score 而非 accuracy)
     if (f1Score < 0.6) {
-      suggestions.add('🎹 音準需要加強練習,建議放慢速度逐個音符確認');
+      suggestions.add(l10n?.suggestionPitchNeedsPractice ?? '🎹 音準需要加強練習,建議放慢速度逐個音符確認');
     } else if (f1Score < 0.8) {
-      suggestions.add('🎵 音準基本正確,但仍有進步空間');
+      suggestions.add(l10n?.suggestionPitchBasic ?? '🎵 音準基本正確,但仍有進步空間');
     } else if (f1Score >= 0.95) {
-      suggestions.add('🌟 音準表現完美!');
+      suggestions.add(l10n?.suggestionPitchPerfect ?? '🌟 音準表現完美!');
     } else {
-      suggestions.add('⭐ 音準表現優秀!');
+      suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
     }
 
     // Precision 建議 (新增)
     if (precision < 0.7 && falsePositives > 5) {
-      suggestions.add('⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
-      suggestions.add('   - 避免誤觸其他琴鍵');
-      suggestions.add('   - 確保手指準確按在正確位置');
+      suggestions.add(l10n?.suggestionExtraNotes(falsePositives) ?? '⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
+      suggestions.add(l10n?.suggestionAvoidWrongKeys ?? '   - 避免誤觸其他琴鍵');
+      suggestions.add(l10n?.suggestionEnsureAccuracy ?? '   - 確保手指準確按在正確位置');
     }
 
     // Recall 建議
     if (recall < 0.7) {
-      suggestions.add('❌ 漏音較多 ($missedNotes個),建議:');
-      suggestions.add('   - 檢查手指是否完全按下琴鍵');
-      suggestions.add('   - 在安靜環境下重新錄音');
-      suggestions.add('   - 確保麥克風靈敏度足夠');
+      suggestions.add(l10n?.suggestionManyMissed(missedNotes) ?? '❌ 漏音較多 ($missedNotes個),建議:');
+      suggestions.add(l10n?.suggestionCheckKeyPress ?? '   - 檢查手指是否完全按下琴鍵');
+      suggestions.add(l10n?.suggestionRetryQuietEnvironment ?? '   - 在安靜環境下重新錄音');
+      suggestions.add(l10n?.suggestionCheckMicSensitivity ?? '   - 確保麥克風靈敏度足夠');
     } else if (missedNotes > totalNotes * 0.1) {
-      suggestions.add('⚠️ 有少量漏音 ($missedNotes個),請檢查按鍵力度');
+      suggestions.add(l10n?.suggestionSomeMissed(missedNotes) ?? '⚠️ 有少量漏音 ($missedNotes個),請檢查按鍵力度');
     }
 
     // 節奏建議
     if (rhythmScore < 60) {
-      suggestions.add('⏱️ 節奏不穩定,建議使用節拍器練習');
+      suggestions.add(l10n?.suggestionRhythmUnstable ?? '⏱️ 節奏不穩定,建議使用節拍器練習');
     } else if (rhythmScore < 80) {
-      suggestions.add('🎼 節奏基本穩定,可以嘗試稍微提高速度');
+      suggestions.add(l10n?.suggestionRhythmBasic ?? '🎼 節奏基本穩定,可以嘗試稍微提高速度');
     } else {
-      suggestions.add('✨ 節奏掌握很好!');
+      suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
     }
 
     if (earlyNotes > lateNotes * 2) {
-      suggestions.add('⏩ 有搶拍傾向,可以放鬆一點,不要太急');
+      suggestions.add(l10n?.suggestionTendencyRushing ?? '⏩ 有搶拍傾向,可以放鬆一點,不要太急');
     } else if (lateNotes > earlyNotes * 2) {
-      suggestions.add('⏸️ 有拖拍傾向,可能需要加強節奏訓練');
+      suggestions.add(l10n?.suggestionTendencyDragging ?? '⏸️ 有拖拍傾向,可能需要加強節奏訓練');
     }
 
     return suggestions;

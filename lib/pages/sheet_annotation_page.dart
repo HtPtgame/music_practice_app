@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import '../models/sheet_annotation.dart';
 import '../widgets/annotatable_image_viewer.dart';
 import '../utils/app_colors.dart';
@@ -47,20 +48,21 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   }
 
   Future<void> _deleteSelectedSheets() async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('確認刪除'),
-        content: Text('確定要刪除選中的 ${_selectedIndices.length} 個譜面嗎？'),
+        title: Text(l10n?.sheetAnnotationConfirmDelete ?? '確認刪除'),
+        content: Text('${l10n?.sheetAnnotationConfirmDeleteMultiple ?? '確定要刪除選中的'} ${_selectedIndices.length} ${l10n?.sheetAnnotationDeletedSuffix ?? '個譜面'}？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n?.sheetAnnotationCancel ?? '取消'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('刪除'),
+            child: Text(l10n?.sheetAnnotationDelete ?? '刪除'),
           ),
         ],
       ),
@@ -89,14 +91,16 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
       });
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已刪除 ${indicesToDelete.length} 個譜面')),
+          SnackBar(content: Text('${l10n?.sheetAnnotationDeletedMultiple ?? '已刪除'} ${indicesToDelete.length} ${l10n?.sheetAnnotationDeletedSuffix ?? '個譜面'}')),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('刪除失敗: $e')),
+          SnackBar(content: Text('${l10n?.sheetAnnotationDeleteFailed ?? '刪除失敗'}: $e')),
         );
       }
     }
@@ -123,15 +127,16 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inDays == 0) {
-      return '今天 ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      return '${l10n?.sheetAnnotationToday ?? '今天'} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
-      return '昨天';
+      return l10n?.sheetAnnotationYesterday ?? '昨天';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} 天前';
+      return '${difference.inDays} ${l10n?.sheetAnnotationDaysAgo ?? '天前'}';
     } else {
       return '${dateTime.month}/${dateTime.day}';
     }
@@ -178,34 +183,37 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
       await _saveSheets();
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已匯入譜面: ${file.name}')),
+          SnackBar(content: Text('${l10n?.sheetAnnotationImported ?? '已匯入譜面'}: ${file.name}')),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('匯入失敗: $e')),
+          SnackBar(content: Text('${l10n?.sheetAnnotationImportFailed ?? '匯入失敗'}: $e')),
         );
       }
     }
   }
 
   Future<void> _deleteSheet(AnnotatedSheet sheet) async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('確認刪除'),
-        content: Text('確定要刪除「${sheet.fileName}」嗎？'),
+        title: Text(l10n?.sheetAnnotationConfirmDelete ?? '確認刪除'),
+        content: Text(l10n?.sheetAnnotationConfirmDeleteMessage.replaceAll('{name}', sheet.fileName) ?? '確定要刪除「${sheet.fileName}」嗎？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n?.sheetAnnotationCancel ?? '取消'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('刪除'),
+            child: Text(l10n?.sheetAnnotationDelete ?? '刪除'),
           ),
         ],
       ),
@@ -227,14 +235,16 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
       await _saveSheets();
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已刪除譜面')),
+          SnackBar(content: Text(l10n?.sheetAnnotationDeleted ?? '已刪除譜面')),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('刪除失敗: $e')),
+          SnackBar(content: Text('${l10n?.sheetAnnotationDeleteFailed ?? '刪除失敗'}: $e')),
         );
       }
     }
@@ -262,16 +272,21 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       key: const ValueKey('sheet_annotation_page'),
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(
-          _isEditMode ? '選擇要刪除的譜面' : '電子譜',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.dynamicTextDark,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _isEditMode ? (l10n?.sheetAnnotationSelectToDelete ?? '選擇要刪除的譜面') : (l10n?.sheetAnnotationTitle ?? '電子譜'),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.dynamicTextDark,
+            ),
           ),
         ),
         backgroundColor: AppColors.dynamicBackground,
@@ -284,18 +299,21 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
             IconButton(
               onPressed: () => context.go('/notes'),
               icon: const Icon(Icons.library_music),
-              tooltip: '樂曲目錄',
+              tooltip: l10n?.sheetAnnotationMusicLibrary ?? '樂曲目錄',
               color: AppColors.dynamicPrimary,
             ),
           if (_sheets.isNotEmpty)
             TextButton(
               onPressed: _toggleEditMode,
-              child: Text(
-                _isEditMode ? '取消' : '編輯',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
-                  fontWeight: FontWeight.bold,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _isEditMode ? (l10n?.sheetAnnotationCancel ?? '取消') : (l10n?.sheetAnnotationEdit ?? '編輯'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -303,7 +321,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
             IconButton(
               onPressed: _deleteSelectedSheets,
               icon: const Icon(Icons.delete, color: Colors.red),
-              tooltip: '刪除選中項',
+              tooltip: l10n?.sheetAnnotationDeleteSelected ?? '刪除選中項',
             ),
         ],
       ),
@@ -321,7 +339,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        '尚無譜面',
+                        l10n?.sheetAnnotationEmpty ?? '尚無譜面',
                         style: TextStyle(
                           fontSize: 18,
                           color: Colors.grey[600],
@@ -329,7 +347,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '點擊右下角 + 按鈕匯入譜面',
+                        l10n?.sheetAnnotationEmptyHint ?? '點擊右下角 + 按鈕匯入譜面',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[500],
@@ -472,7 +490,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  '${sheet.markers.length} 個標記',
+                                                  '${sheet.markers.length} ${l10n?.sheetAnnotationMarkersCount ?? '個標記'}',
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: AppColors
@@ -493,7 +511,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            isPdf ? 'PDF' : '圖片',
+                                            isPdf ? (l10n?.sheetAnnotationTypePdf ?? 'PDF') : (l10n?.sheetAnnotationTypeImage ?? '圖片'),
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey[600],
@@ -503,7 +521,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        '更新於 ${_formatDateTime(sheet.updatedAt)}',
+                                        '${l10n?.sheetAnnotationUpdatedAt ?? '更新於'} ${_formatDateTime(sheet.updatedAt)}',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: Colors.grey[500],
@@ -520,7 +538,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                       color: Colors.red[400],
                                     ),
                                     onPressed: () => _deleteSheet(sheet),
-                                    tooltip: '刪除',
+                                    tooltip: l10n?.sheetAnnotationDelete ?? '刪除',
                                   ),
                               ],
                             ),
@@ -576,6 +594,8 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5), // 柔和的淺灰色背景
       appBar: AppBar(
@@ -632,7 +652,7 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'PDF 檢視功能開發中',
+                    l10n?.sheetAnnotationPdfViewerInDev ?? 'PDF 檢視功能開發中',
                     style: TextStyle(
                       color: AppColors.dynamicTextDark,
                       fontSize: 18,
@@ -641,7 +661,7 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '請先使用圖片格式',
+                    l10n?.sheetAnnotationPdfViewerHint ?? '請先使用圖片格式',
                     style: TextStyle(
                       color: AppColors.dynamicTextLight,
                       fontSize: 14,

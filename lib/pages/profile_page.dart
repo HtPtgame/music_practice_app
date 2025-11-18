@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// 個人資料頁面
 class ProfilePage extends StatefulWidget {
@@ -13,23 +14,24 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final user = authService.currentUser;
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('個人資料')),
+        appBar: AppBar(title: Text(l10n?.profileTitle ?? '個人資料')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.person_outline, size: 100, color: Colors.grey),
               const SizedBox(height: 24),
-              const Text('請先登入',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(l10n?.profilePleaseLogin ?? '請先登入',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => context.push('/login'),
-                child: const Text('前往登入'),
+                child: Text(l10n?.profileGoToLogin ?? '前往登入'),
               ),
             ],
           ),
@@ -39,12 +41,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('個人資料'),
+        title: Text(l10n?.profileTitle ?? '個人資料'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => _showEditProfileDialog(),
-            tooltip: '編輯資料',
+            tooltip: l10n?.profileEdit ?? '編輯資料',
           ),
         ],
       ),
@@ -77,29 +79,29 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           ListTile(
             leading: const Icon(Icons.email),
-            title: const Text('Email'),
+            title: Text(l10n?.profileEmail ?? 'Email'),
             subtitle: Text(user.email),
           ),
           ListTile(
             leading: const Icon(Icons.calendar_today),
-            title: const Text('註冊日期'),
+            title: Text(l10n?.profileRegistrationDate ?? '註冊日期'),
             subtitle: Text(
                 '${user.createdAt.year}/${user.createdAt.month}/${user.createdAt.day}'),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.lock_outline),
-            title: const Text('變更密碼'),
+            title: Text(l10n?.profileChangePassword ?? '變更密碼'),
             onTap: () => _showChangePasswordDialog(),
           ),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.blue),
-            title: const Text('登出', style: TextStyle(color: Colors.blue)),
+            title: Text(l10n?.profileLogout ?? '登出', style: const TextStyle(color: Colors.blue)),
             onTap: () => _handleLogout(),
           ),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text('刪除帳號', style: TextStyle(color: Colors.red)),
+            title: Text(l10n?.profileDeleteAccount ?? '刪除帳號', style: const TextStyle(color: Colors.red)),
             onTap: () => _handleDeleteAccount(),
           ),
         ],
@@ -108,24 +110,25 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showEditProfileDialog() {
+    final l10n = AppLocalizations.of(context);
     final user = authService.currentUser!;
     final controller = TextEditingController(text: user.displayName);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('編輯個人資料'),
+        title: Text(l10n?.profileEditProfile ?? '編輯個人資料'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: '顯示名稱',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n?.profileDisplayName ?? '顯示名稱',
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n?.cancel ?? '取消'),
           ),
           TextButton(
             onPressed: () async {
@@ -135,11 +138,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 Navigator.pop(context);
                 setState(() {});
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('資料已更新')),
+                  SnackBar(content: Text(l10n?.profileDataUpdated ?? '資料已更新')),
                 );
               }
             },
-            child: const Text('儲存'),
+            child: Text(l10n?.save ?? '儲存'),
           ),
         ],
       ),
@@ -147,6 +150,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showChangePasswordDialog() {
+    final l10n = AppLocalizations.of(context);
     final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -154,34 +158,34 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('變更密碼'),
+        title: Text(l10n?.profileChangePassword ?? '變更密碼'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: oldPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: '舊密碼',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n?.profileOldPassword ?? '舊密碼',
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: newPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: '新密碼',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n?.profileNewPassword ?? '新密碼',
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: confirmPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: '確認新密碼',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n?.profileConfirmNewPassword ?? '確認新密碼',
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -189,14 +193,14 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n?.cancel ?? '取消'),
           ),
           TextButton(
             onPressed: () async {
               if (newPasswordController.text !=
                   confirmPasswordController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('新密碼不一致')),
+                  SnackBar(content: Text(l10n?.profilePasswordMismatch ?? '新密碼不一致')),
                 );
                 return;
               }
@@ -208,18 +212,18 @@ class _ProfilePageState extends State<ProfilePage> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('密碼已變更')),
+                    SnackBar(content: Text(l10n?.profilePasswordChanged ?? '密碼已變更')),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('變更失敗: $e')),
+                    SnackBar(content: Text('${l10n?.profileChangeFailed ?? '變更失敗'}: $e')),
                   );
                 }
               }
             },
-            child: const Text('確認'),
+            child: Text(l10n?.confirm ?? '確認'),
           ),
         ],
       ),
@@ -227,15 +231,16 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _handleLogout() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('確認登出'),
-        content: const Text('您確定要登出嗎？'),
+        title: Text(l10n?.profileLogoutTitle ?? '確認登出'),
+        content: Text(l10n?.profileLogoutMessage ?? '您確定要登出嗎？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n?.cancel ?? '取消'),
           ),
           TextButton(
             onPressed: () async {
@@ -244,11 +249,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 Navigator.pop(context);
                 context.go('/');
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已登出')),
+                  SnackBar(content: Text(l10n?.profileLoggedOut ?? '已登出')),
                 );
               }
             },
-            child: const Text('確認'),
+            child: Text(l10n?.confirm ?? '確認'),
           ),
         ],
       ),
@@ -256,35 +261,36 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _handleDeleteAccount() {
+    final l10n = AppLocalizations.of(context);
     final passwordController = TextEditingController();
     final isGoogleUser = authService.isGoogleSignIn();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('刪除帳號'),
+        title: Text(l10n?.profileDeleteTitle ?? '刪除帳號'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '⚠️ 此操作無法復原！\n所有資料將被永久刪除。',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            Text(
+              l10n?.profileDeleteWarning ?? '⚠️ 此操作無法復原！\n所有資料將被永久刪除。',
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             if (isGoogleUser)
-              const Text(
-                '您使用 Google 帳號登入。\n點擊「確認刪除」後需要重新登入 Google 以確認身份。',
-                style: TextStyle(fontSize: 14),
+              Text(
+                l10n?.profileDeleteGoogleHint ?? '您使用 Google 帳號登入。\n點擊「確認刪除」後需要重新登入 Google 以確認身份。',
+                style: const TextStyle(fontSize: 14),
               )
             else
               TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: '請輸入密碼確認',
-                  border: OutlineInputBorder(),
-                  helperText: '需要輸入您的帳號密碼',
+                decoration: InputDecoration(
+                  labelText: l10n?.profileDeletePasswordHint ?? '請輸入密碼確認',
+                  border: const OutlineInputBorder(),
+                  helperText: l10n?.profileDeletePasswordLabel ?? '需要輸入您的帳號密碼',
                 ),
               ),
           ],
@@ -292,7 +298,7 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n?.cancel ?? '取消'),
           ),
           TextButton(
             onPressed: () async {
@@ -310,8 +316,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     if (mounted) {
                       context.go('/');
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('帳號已刪除'),
+                        SnackBar(
+                          content: Text(l10n?.profileAccountDeleted ?? '帳號已刪除'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -324,7 +330,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          '刪除失敗: ${e.toString().replaceFirst("Exception: ", "")}'),
+                          '${l10n?.profileDeleteError ?? '刪除失敗'}: ${e.toString().replaceFirst("Exception: ", "")}'),
                       backgroundColor: Colors.red,
                       duration: const Duration(seconds: 4),
                     ),
@@ -333,7 +339,7 @@ class _ProfilePageState extends State<ProfilePage> {
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('確認刪除'),
+            child: Text(l10n?.profileDeleteButton ?? '確認刪除'),
           ),
         ],
       ),

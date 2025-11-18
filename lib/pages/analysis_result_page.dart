@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
 import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// Week 4 Phase 1: 演奏分析結果頁面
 ///
@@ -26,9 +27,15 @@ class AnalysisResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('演奏分析報告', style: TextStyle(color: Colors.white)),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(l10n?.analysisResultTitle ?? '演奏分析報告', 
+              style: const TextStyle(color: Colors.white)),
+        ),
         backgroundColor: AppColors.dynamicPrimary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -39,25 +46,25 @@ class AnalysisResultPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. 總分卡片
-              _buildScoreCard(),
+              _buildScoreCard(l10n),
               const SizedBox(height: 16),
 
               // 2. 統計數據
-              _buildStatisticsCard(),
+              _buildStatisticsCard(l10n),
               const SizedBox(height: 16),
 
               // 3. 錯誤詳情
               if (report.errors.isNotEmpty) ...[
-                _buildErrorsCard(),
+                _buildErrorsCard(l10n),
                 const SizedBox(height: 16),
               ],
 
               // 4. 練習建議
-              _buildSuggestionCard(),
+              _buildSuggestionCard(l10n, context),
               const SizedBox(height: 16),
 
               // 5. 操作按鈕
-              _buildActionButtons(context),
+              _buildActionButtons(context, l10n),
 
               // 6. 底部安全區域 padding (避免被系統導航欄遮擋)
               SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
@@ -69,7 +76,7 @@ class AnalysisResultPage extends StatelessWidget {
   }
 
   /// 總分卡片
-  Widget _buildScoreCard() {
+  Widget _buildScoreCard(AppLocalizations? l10n) {
     return Card(
       elevation: 4,
       child: Padding(
@@ -77,7 +84,7 @@ class AnalysisResultPage extends StatelessWidget {
         child: Column(
           children: [
             // 評級徽章
-            _buildGradeBadge(),
+            _buildGradeBadge(l10n),
             const SizedBox(height: 16),
 
             // 總分
@@ -95,12 +102,12 @@ class AnalysisResultPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildScoreItem(
-                  '準確率',
+                  l10n?.analysisResultAccuracyLabel ?? '準確率',
                   '${(report.accuracy * 100).toStringAsFixed(1)}%',
                   Icons.check_circle,
                 ),
                 _buildScoreItem(
-                  '節奏',
+                  l10n?.analysisResultRhythmLabel ?? '節奏',
                   report.rhythmScore.toStringAsFixed(1),
                   Icons.music_note,
                 ),
@@ -113,7 +120,7 @@ class AnalysisResultPage extends StatelessWidget {
   }
 
   /// 評級徽章
-  Widget _buildGradeBadge() {
+  Widget _buildGradeBadge(AppLocalizations? l10n) {
     return Container(
       width: 80,
       height: 80,
@@ -140,8 +147,8 @@ class AnalysisResultPage extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-            const Text(
-              '級',
+            Text(
+              l10n?.analysisResultGrade ?? '級',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.white,
@@ -179,7 +186,7 @@ class AnalysisResultPage extends StatelessWidget {
   }
 
   /// 統計數據卡片
-  Widget _buildStatisticsCard() {
+  Widget _buildStatisticsCard(AppLocalizations? l10n) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -187,10 +194,10 @@ class AnalysisResultPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
+            Center(
               child: Text(
-                '⭐ 統計數據 ⭐',
-                style: TextStyle(
+                '⭐ ${l10n?.analysisResultStatistics ?? '統計數據'} ⭐',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -200,27 +207,27 @@ class AnalysisResultPage extends StatelessWidget {
             const Divider(height: 20, thickness: 1),
             const SizedBox(height: 4),
             _buildStatRow(
-              '✅ 正確',
+              '✅ ${l10n?.analysisResultCorrect ?? '正確'}',
               '${report.correctNotes}/${report.totalNotes}',
               Colors.green[700]!,
             ),
             _buildStatRow(
-              '❌ 漏音',
+              '❌ ${l10n?.analysisResultMissed ?? '漏音'}',
               '${report.missedNotes}',
               Colors.red[700]!,
             ),
             _buildStatRow(
-              '🔴 錯音',
+              '🔴 ${l10n?.analysisResultWrong ?? '錯音'}',
               '${report.wrongNotes}',
               Colors.red[700]!,
             ),
             _buildStatRow(
-              '⏪ 搶拍',
+              '⏪ ${l10n?.analysisResultEarly ?? '搶拍'}',
               '${report.earlyNotes}',
               Colors.blue[700]!,
             ),
             _buildStatRow(
-              '⏩ 拖拍',
+              '⏩ ${l10n?.analysisResultLate ?? '拖拍'}',
               '${report.lateNotes}',
               Colors.blue[700]!,
             ),
@@ -258,7 +265,7 @@ class AnalysisResultPage extends StatelessWidget {
   }
 
   /// 錯誤詳情卡片
-  Widget _buildErrorsCard() {
+  Widget _buildErrorsCard(AppLocalizations? l10n) {
     // 限制顯示錯誤數量
     final displayErrors = report.errors.take(20).toList();
     final hasMore = report.errors.length > 20;
@@ -273,16 +280,16 @@ class AnalysisResultPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '⚠️  錯誤詳情',
-                  style: TextStyle(
+                Text(
+                  '⚠️  ${l10n?.analysisResultErrorDetails ?? '錯誤詳情'}',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (hasMore)
                   Text(
-                    '(顯示前 20 個,共 ${report.errors.length} 個)',
+                    '${l10n?.analysisResultShowingFirst ?? '(顯示前 20 個,共'} ${report.errors.length} ${l10n?.analysisResultShowingUnit ?? '個)'}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -333,7 +340,7 @@ class AnalysisResultPage extends StatelessWidget {
   }
 
   /// 練習建議卡片
-  Widget _buildSuggestionCard() {
+  Widget _buildSuggestionCard(AppLocalizations? l10n, BuildContext context) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -346,7 +353,7 @@ class AnalysisResultPage extends StatelessWidget {
                 Icon(Icons.lightbulb, color: Colors.orange[700]),
                 const SizedBox(width: 8),
                 Text(
-                  '練習建議',
+                  l10n?.analysisResultSuggestions ?? '練習建議',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -357,7 +364,7 @@ class AnalysisResultPage extends StatelessWidget {
             const SizedBox(height: 12),
             const Divider(height: 20, thickness: 1),
             const SizedBox(height: 4),
-            ...report.generateSuggestions().map((suggestion) => Padding(
+            ...report.generateSuggestions(context).map((suggestion) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     suggestion,
@@ -374,14 +381,17 @@ class AnalysisResultPage extends StatelessWidget {
   }
 
   /// 操作按鈕
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, AppLocalizations? l10n) {
     return Row(
       children: [
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.refresh),
-            label: const Text('重新練習'),
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(l10n?.analysisResultRetry ?? '重新練習'),
+            ),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
@@ -393,11 +403,14 @@ class AnalysisResultPage extends StatelessWidget {
             onPressed: () {
               // TODO: 導航到樂譜頁面
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('樂譜功能開發中...')),
+                SnackBar(content: Text(l10n?.analysisResultScoreInDevelopment ?? '樂譜功能開發中...')),
               );
             },
             icon: const Icon(Icons.music_note),
-            label: const Text('查看樂譜'),
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(l10n?.analysisResultViewScore ?? '查看樂譜'),
+            ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),

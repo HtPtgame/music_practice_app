@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
 import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -237,6 +238,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
   // 暫停計時並自動保存
   Future<void> _pauseTimer() async {
+    final l10n = AppLocalizations.of(context);
     _timer?.cancel();
 
     final sessionSeconds = _elapsedSeconds - _sessionStartSeconds;
@@ -262,7 +264,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
+                l10n?.timerRecordedMessage.replaceAll('{session}', _formatTime(sessionSeconds)).replaceAll('{total}', _formatTime(_elapsedSeconds)) ?? '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
             backgroundColor: AppColors.dynamicPrimary,
             duration: const Duration(seconds: 2),
           ),
@@ -320,6 +322,8 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Card(
       color: AppColors.dynamicCard,
       elevation: 4,
@@ -344,19 +348,27 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '練習計時',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.dynamicTextDark,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          l10n?.timerCardTitle ?? '練習計時',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dynamicTextDark,
+                          ),
                         ),
                       ),
-                      Text(
-                        '今日累計時長（隔日自動重置）',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.dynamicTextLight,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          l10n?.timerCardSubtitle ?? '今日累計時長（隔日自動重置）',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.dynamicTextLight,
+                          ),
                         ),
                       ),
                     ],
@@ -392,7 +404,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                         color: _isRunning
                             ? Colors.orange
                             : AppColors.dynamicPrimary,
-                        tooltip: _isRunning ? '暫停並保存' : '開始計時',
+                        tooltip: _isRunning ? (l10n?.timerPauseAndSave ?? '暫停並保存') : (l10n?.timerStartTimer ?? '開始計時'),
                       ),
                     ],
                   ),
@@ -419,20 +431,26 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '本週練習時長',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.dynamicTextDark,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          l10n?.timerWeeklyPractice ?? '本週練習時長',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dynamicTextDark,
+                          ),
                         ),
                       ),
-                      Text(
-                        _formatWeekTotal(),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.dynamicPrimary,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _formatWeekTotal(),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dynamicPrimary,
+                          ),
                         ),
                       ),
                     ],
@@ -445,13 +463,13 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildStatItem(
-                          '本週平均', _getWeekAverage(), Icons.trending_up),
+                          l10n?.timerTrendingUp ?? '本週平均', _getWeekAverage(), Icons.trending_up),
                       Container(
                           width: 1,
                           height: 16,
                           color: AppColors.dynamicTextLight.withOpacity(0.3)),
                       _buildStatItem(
-                          '本月累計', _getMonthTotal(), Icons.calendar_month),
+                          l10n?.timerCalendarMonth ?? '本月累計', _getMonthTotal(), Icons.calendar_month),
                     ],
                   ),
 
@@ -504,6 +522,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
   // 格式化本週總時長
   String _formatWeekTotal() {
+    final l10n = AppLocalizations.of(context);
     final weekDates = _getWeekDates();
     int totalSeconds = 0;
 
@@ -518,10 +537,14 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
     final hours = totalSeconds ~/ 3600;
     final minutes = (totalSeconds % 3600) ~/ 60;
 
+    final hourUnit = l10n?.timerHourUnit ?? 'h';
+    final minuteUnit = l10n?.timerMinuteUnit ?? 'min';
+    final totalText = l10n?.timerWeekTotal ?? '共';
+
     if (hours > 0) {
-      return '共 ${hours}h ${minutes}min';
+      return '$totalText $hours$hourUnit $minutes$minuteUnit';
     } else {
-      return '共 ${minutes}min';
+      return '$totalText $minutes$minuteUnit';
     }
   }
 
@@ -567,6 +590,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
   // 計算本月總練習時長
   String _getMonthTotal() {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
@@ -586,10 +610,13 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
 
+    final hourUnit = l10n?.timerHourUnit ?? 'h';
+    final minuteUnit = l10n?.timerMinuteUnit ?? 'min';
+
     if (hours > 0) {
-      return '${hours}h ${minutes}min';
+      return '$hours$hourUnit $minutes$minuteUnit';
     } else {
-      return '${minutes}min';
+      return '$minutes$minuteUnit';
     }
   }
 
