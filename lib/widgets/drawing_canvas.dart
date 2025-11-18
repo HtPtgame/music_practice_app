@@ -55,7 +55,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   void initState() {
     super.initState();
     _drawingData = widget.initialDrawing;
-    _initializeTexturePool();
+    // 🔥 暫時禁用紋理池，統一使用確定性即時渲染
+    // _initializeTexturePool();
 
     // 如果有舊紀錄，建立背景快取並保存到歷史
     if (_drawingData.strokes.isNotEmpty) {
@@ -473,11 +474,13 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   /// �🎨 將單一筆劃繪製到 Canvas
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
-    // ✨ 使用和即時繪製完全相同的渲染路徑
-    // 關鍵：創建臨時 Painter 使用紋理池，確保視覺一致性
+    // ✨ 快取重建時不使用紋理池！
+    // 原因：紋理池是為當前顏色/大小建立的，筆劃可能有不同的顏色/大小
+    // 解決方案：使用確定性即時渲染，確保視覺一致性
     
     // 🐛 調試：記錄渲染路徑
-    print('🎨 快取重建: isPoolReady=$_isPoolReady, texturePool=${_texturePool != null}');
+    print('🎨 快取重建: stroke.color=${stroke.color}, stroke.width=${stroke.strokeWidth}');
+    print('   當前紋理池: color=$_selectedColor, width=$_strokeWidth, ready=$_isPoolReady');
     
     final painter = _DrawingPainter(
       strokes: [],
@@ -485,12 +488,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       currentColor: stroke.color,
       currentStrokeWidth: stroke.strokeWidth,
       isErasing: false,
-      texturePool: _texturePool,
-      isPoolReady: _isPoolReady,
+      texturePool: null,  // 🔥 關鍵：不傳入紋理池，強制使用即時渲染
+      isPoolReady: false, // 🔥 關鍵：設為 false，強制使用即時渲染
       cachedBackground: null,
     );
     
-    // 使用 Painter 的渲染方法，確保和即時繪製路徑一致
+    // 使用 Painter 的渲染方法，但會走即時渲染路徑（_drawFullStampAtPoint）
     painter._drawFullTextureBrush(
       canvas,
       stroke.points,
