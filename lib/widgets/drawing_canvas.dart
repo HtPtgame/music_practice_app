@@ -475,6 +475,10 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
     // ✨ 使用和即時繪製完全相同的渲染路徑
     // 關鍵：創建臨時 Painter 使用紋理池，確保視覺一致性
+    
+    // 🐛 調試：記錄渲染路徑
+    print('🎨 快取重建: isPoolReady=$_isPoolReady, texturePool=${_texturePool != null}');
+    
     final painter = _DrawingPainter(
       strokes: [],
       currentStroke: [],
@@ -985,8 +989,13 @@ class _DrawingPainter extends CustomPainter {
     for (int i = 0; i < points.length; i += pointStep) {
       // 🚀 使用紋理池優化渲染
       if (isPoolReady && texturePool != null) {
+        // 🐛 調試：使用紋理池
+        if (i == 0) print('  → 使用紋理池渲染');
         _drawStampFromPool(canvas, points[i], strokeWidth, i);
       } else {
+        // 🐛 調試：降級方案
+        if (i == 0) print('  → 降級方案: useSkipping=$useSkipping, isPoolReady=$isPoolReady');
+        
         // 降級方案：使用簡化渲染（當前筆劃）或完整渲染（已完成筆劃）
         if (!useSkipping) {
           // 當前筆劃：使用快速簡化版本
