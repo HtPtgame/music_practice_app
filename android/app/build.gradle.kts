@@ -27,10 +27,13 @@ android {
         applicationId = "com.example.music_practice_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 24
+        minSdk = 21  // 降低至 Android 5.0 以支援更多設備
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // 支援多語言
+        resConfigs("zh-rTW", "zh-rCN", "en")
         
         // 【FFmpeg 修正 1/2】強制包含特定的原生架構
         ndk {
@@ -47,9 +50,39 @@ android {
 
     buildTypes {
         release {
+            // 啟用代碼混淆和資源壓縮
+            isMinifyEnabled = true
+            isShrinkResources = true
+            
+            // 使用 ProGuard 規則
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+        
+        debug {
+            // Debug 版本配置
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-DEBUG"
+        }
+    }
+    
+    // 優化 APK 大小
+    bundle {
+        language {
+            enableSplit = true
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
         }
     }
 }

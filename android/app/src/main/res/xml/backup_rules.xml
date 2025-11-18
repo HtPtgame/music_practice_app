@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- 排除敏感數據 -->
+    <exclude domain="sharedpref" path="FlutterSecureStorage"/>
+    <exclude domain="database" path="databases/"/>
+    
+    <!-- 包含應用數據 -->
+    <include domain="file" path="."/>
+    <include domain="sharedpref" path="."/>
+</full-backup-content>

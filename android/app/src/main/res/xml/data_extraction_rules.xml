@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- 排除敏感數據 -->
+        <exclude domain="sharedpref" path="FlutterSecureStorage"/>
+        <exclude domain="database" path="databases/"/>
+        
+        <!-- 包含應用數據 -->
+        <include domain="file" path="."/>
+        <include domain="sharedpref" path="."/>
+    </cloud-backup>
+    
+    <device-transfer>
+        <!-- 設備轉移時的規則 -->
+        <include domain="file" path="."/>
+        <include domain="sharedpref" path="."/>
+    </device-transfer>
+</data-extraction-rules>
