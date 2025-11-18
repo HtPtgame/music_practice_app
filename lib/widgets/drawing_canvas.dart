@@ -50,6 +50,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   final List<List<DrawingStroke>> _history = [];
   final List<ui.Image?> _cacheHistory = [];
   int _historyIndex = -1;
+  
+  // 🗑️ 已刪除的筆劃索引（用於橡皮擦零重算）
+  final Set<int> _deletedStrokeIndices = {};
 
   @override
   void initState() {
@@ -159,35 +162,35 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
     if (_currentStroke.isNotEmpty) {
       if (_isEraser) {
-        // 橡皮擦：固定大小25.0，碰到整條刪除
+        // 橡皮擦：固定大小25.0，標記刪除（零重算）
         const eraserRadius = 25.0;
-        final beforeCount = _drawingData.strokes.length;
+        bool hasDeleted = false;
         
-        setState(() {
-          _drawingData.strokes.removeWhere((stroke) {
-            return _currentStroke.any((eraserPoint) {
-              return stroke.points.any((strokePoint) {
-                final distance = (eraserPoint - strokePoint).distance;
-                final threshold = eraserRadius + (stroke.strokeWidth / 2);
-                return distance < threshold;
-              });
+        // 找出需要刪除的筆劃索引
+        for (int i = 0; i < _drawingData.strokes.length; i++) {
+          if (_deletedStrokeIndices.contains(i)) continue; // 已刪除的跳過
+          
+          final stroke = _drawingData.strokes[i];
+          final shouldDelete = _currentStroke.any((eraserPoint) {
+            return stroke.points.any((strokePoint) {
+              final distance = (eraserPoint - strokePoint).distance;
+              final threshold = eraserRadius + (stroke.strokeWidth / 2);
+              return distance < threshold;
             });
           });
+          
+          if (shouldDelete) {
+            _deletedStrokeIndices.add(i);
+            hasDeleted = true;
+          }
+        }
+        
+        setState(() {
           _currentStroke = [];
         });
-
-        // 如果有刪除筆劃，清除快取讓 Painter 直接渲染（不重建）
-        if (_drawingData.strokes.length < beforeCount) {
-          // 清除快取（但不 dispose，可能在歷史中）
-          final oldCache = _cachedBackground;
-          final isInHistory = _cacheHistory.contains(oldCache);
-          if (oldCache != null && !isInHistory) {
-            oldCache.dispose();
-          }
-          _cachedBackground = null;
-          _cachedStrokeCount = 0;
-          
-          // 直接保存歷史（不重建快取，讓 Painter 持續即時渲染）
+        
+        // 如果有刪除，保存歷史（快取不變，只是標記了刪除）
+        if (hasDeleted) {
           _saveToHistory();
         }
       } else {
@@ -218,6 +221,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         _historyIndex--;
         _drawingData.strokes.clear();
         _drawingData.strokes.addAll(List.from(_history[_historyIndex]));
+        
+        // 清除刪除標記（Undo 回到之前狀態時重置）
+        _deletedStrokeIndices.clear();
         
         // 直接使用歷史快取，零運算！
         _cachedBackground = _cacheHistory[_historyIndex];
@@ -428,6 +434,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       // 🎨 只繪製新增的點
       final painter = _DrawingPainter(
         strokes: [],
+        deletedIndices: {}, // 增量快取不需考慮刪除
         currentStroke: _currentStroke.sublist(_currentStrokeCachedPoints),
         currentColor: _selectedColor,
         currentStrokeWidth: _strokeWidth,
@@ -459,10 +466,11 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     }
   }
 
-  /// �🎨 將單一筆劃繪製到 Canvas
+  /// 將單一筆劃繪製到 Canvas
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
     final painter = _DrawingPainter(
-      strokes: [stroke], // 只繪製這一條
+      strokes: [stroke],
+      deletedIndices: {}, // 單個筆劃渲染不需考慮刪除
       currentStroke: [],
       currentColor: stroke.color,
       currentStrokeWidth: stroke.strokeWidth,
@@ -508,18 +516,18 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 child: CustomPaint(
                   painter: _DrawingPainter(
                     strokes: _drawingData.strokes,
+                    deletedIndices: _deletedStrokeIndices, // 傳入已刪除索引
                     currentStroke: _currentStroke,
                     currentColor: _isEraser
                         ? Colors.grey.withOpacity(0.3)
                         : _selectedColor,
-                    currentStrokeWidth: _strokeWidth, // 橡皮擦粗細跟隨畫筆
+                    currentStrokeWidth: _strokeWidth,
                     isErasing: _isEraser,
                     texturePool: _texturePool,
                     isPoolReady: _isPoolReady,
-                    cachedBackground: _cachedBackground, // 🚀 傳入已完成筆劃快取
-                    currentStrokeCache: _currentStrokeCache, // 🎯 傳入當前筆劃快取
-                    currentStrokeCachedPoints:
-                        _currentStrokeCachedPoints, // 🎯 已快取的點數
+                    cachedBackground: _cachedBackground,
+                    currentStrokeCache: _currentStrokeCache,
+                    currentStrokeCachedPoints: _currentStrokeCachedPoints,
                   ),
                   child: Container(),
                 ),
@@ -682,41 +690,45 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
 class _DrawingPainter extends CustomPainter {
   final List<DrawingStroke> strokes;
+  final Set<int> deletedIndices; // 已刪除的筆劃索引
   final List<Offset> currentStroke;
   final Color currentColor;
   final double currentStrokeWidth;
   final bool isErasing;
   final BrushTexturePool? texturePool;
   final bool isPoolReady;
-  final ui.Image? cachedBackground; // 🚀 已完成筆劃的快取
-  final ui.Image? currentStrokeCache; // 🎯 當前筆劃的快取
-  final int currentStrokeCachedPoints; // 🎯 當前筆劃已快取的點數
+  final ui.Image? cachedBackground;
+  final ui.Image? currentStrokeCache;
+  final int currentStrokeCachedPoints;
 
   // Paint 緩存
   final Paint _paintCache = Paint()..style = PaintingStyle.fill;
 
   _DrawingPainter({
     required this.strokes,
+    required this.deletedIndices,
     required this.currentStroke,
     required this.currentColor,
     required this.currentStrokeWidth,
     this.isErasing = false,
     this.texturePool,
     this.isPoolReady = false,
-    this.cachedBackground, // 🚀 傳入已完成筆劃快取
-    this.currentStrokeCache, // 🎯 傳入當前筆劃快取
-    this.currentStrokeCachedPoints = 0, // 🎯 傳入已快取的點數
+    this.cachedBackground,
+    this.currentStrokeCache,
+    this.currentStrokeCachedPoints = 0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 🚀 優先使用快取背景（已完成的筆劃）
+    // 優先使用快取背景（已完成的筆劃）
     if (cachedBackground != null) {
       // 直接繪製快取的背景圖片
       canvas.drawImage(cachedBackground!, Offset.zero, Paint());
     } else {
-      // 沒有快取時，渲染所有已完成的筆劃
-      for (final stroke in strokes) {
+      // 沒有快取時，渲染所有已完成的筆劃（跳過已刪除的）
+      for (int i = 0; i < strokes.length; i++) {
+        if (deletedIndices.contains(i)) continue; // 跳過已刪除的筆劃
+        final stroke = strokes[i];
         _drawFullTextureBrush(
             canvas, stroke.points, stroke.color, stroke.strokeWidth,
             useSkipping: true);
