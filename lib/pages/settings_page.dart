@@ -788,22 +788,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         onTap: () async {
                           Navigator.pop(context);
                           
-                          // 使用 LanguageManager 切換語言
-                          await LanguageManager.instance.setLocale(languageCode);
                           await _settingsService.setSelectedLanguage(languageCode);
+                          await LanguageManager.instance.setLocale(languageCode);
                           
+                          // 使用 updateSetting 只更新單一設定項，不會影響其他設定
                           if (authService.isAuthenticated) {
-                            await _syncService.syncSettings({
-                              'selectedLanguage': languageCode,
-                            });
+                            await _syncService.updateSetting('selectedLanguage', languageCode);
                           }
 
                           if (mounted) {
                             setState(() {
                               _selectedLanguage = languageCode;
                             });
-
-                            _showSuccessMessage('${l10n.settingsLanguageTitle}: ${l10n.successUpdated}');
                           }
                         },
                       );
@@ -830,13 +826,14 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showThemeDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
           title: Text(
-            '選擇主題',
+            l10n?.themeSelectTitle ?? '選擇主題',
             style: TextStyle(
               color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
@@ -845,18 +842,18 @@ class _SettingsPageState extends State<SettingsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildThemeOption('晨曦', 'default', const Color(0xFFCFAB8D)),
-              _buildThemeOption('海洋', 'ocean', const Color(0xFF7FADCC)),
-              _buildThemeOption('森林', 'forest', const Color(0xFF96A78D)),
-              _buildThemeOption('夕陽', 'sunset', const Color(0xFFF6A85B)),
-              _buildThemeOption('櫻雪', 'lavender', const Color(0xFFE6B7BC)),
+              _buildThemeOption(l10n?.themeDawn ?? '晨曦', 'default', const Color(0xFFCFAB8D)),
+              _buildThemeOption(l10n?.themeOcean ?? '海洋', 'ocean', const Color(0xFF7FADCC)),
+              _buildThemeOption(l10n?.themeForest ?? '森林', 'forest', const Color(0xFF96A78D)),
+              _buildThemeOption(l10n?.themeSunset ?? '夕陽', 'sunset', const Color(0xFFF6A85B)),
+              _buildThemeOption(l10n?.themeLavender ?? '櫻雪', 'lavender', const Color(0xFFE6B7BC)),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                '關閉',
+                l10n?.themeClose ?? '關閉',
                 style: TextStyle(color: AppColors.dynamicPrimary),
               ),
             ),
@@ -952,13 +949,14 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showAboutDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
           title: Text(
-            '關於音樂練習應用程式',
+            l10n?.aboutAppTitle ?? '關於音樂練習應用程式',
             style: TextStyle(
               color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
@@ -969,18 +967,37 @@ class _SettingsPageState extends State<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '版本：1.0.0',
-                style: TextStyle(color: AppColors.dynamicTextDark),
+                '${l10n?.aboutAppVersion ?? '版本'}：1.0.0',
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontSize: 14,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                '這是一個音樂練習應用程式，提供MIDI播放、錄音練習和音樂庫管理功能。',
-                style: TextStyle(color: AppColors.dynamicTextDark),
+                l10n?.aboutAppDescription ?? '這是一個音樂練習應用程式，提供MIDI播放、錄音練習和音樂庫管理功能。',
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                '開發團隊：Music Practice Team',
-                style: TextStyle(color: AppColors.dynamicTextLight),
+                l10n?.aboutAppFeatures ?? '',
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontSize: 13,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n?.aboutAppTeam ?? '開發團隊：Music Practice Team',
+                style: TextStyle(
+                  color: AppColors.dynamicTextLight,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -988,7 +1005,7 @@ class _SettingsPageState extends State<SettingsPage> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                '確定',
+                l10n?.aboutAppConfirm ?? '確定',
                 style: TextStyle(color: AppColors.dynamicPrimary),
               ),
             ),

@@ -254,6 +254,90 @@ class AppLocalizations {
   String get settingsPrivacy => '隱私政策';
   String get settingsTerms => '使用條款';
   
+  // 主題選擇
+  String get themeSelectTitle => '選擇主題';
+  String get themeClose => '關閉';
+  String get themeDawn => '晨曦';
+  String get themeOcean => '海洋';
+  String get themeForest => '森林';
+  String get themeSunset => '夕陽';
+  String get themeLavender => '櫻雪';
+  
+  // 關於 App 對話框
+  String get aboutAppTitle => '關於音樂練習應用程式';
+  String get aboutAppVersion => '版本';
+  String get aboutAppDescription => '這是一個音樂練習應用程式，提供智能音樂分析、MIDI 播放、錄音練習、曲目管理和打卡激勵系統。幫助您在音樂學習之路上持續進步！';
+  String get aboutAppFeatures => '主要功能：\n• AI 音準與節奏分析\n• MIDI 播放與練習\n• 錄音與回放\n• 打卡系統與動物圖鑑\n• 多主題切換';
+  String get aboutAppTeam => '開發團隊：Music Practice Team';
+  String get aboutAppConfirm => '確定';
+  
+  // 上傳 MIDI 頁面
+  String get uploadMidiTitle => '從本機上傳 MIDI';
+  String get uploadMidiSelectFile => '請選擇要上傳的 MIDI 檔案';
+  String get uploadMidiSupportedFormats => '支援格式：.mid, .midi';
+  String get uploadMidiSupportedFormatsWeb => '支援格式：.mid, .midi (Web版本使用記憶體載入)';
+  String get uploadMidiFileSize => '檔案大小';
+  String get uploadMidiPlatform => '平台';
+  String get uploadMidiPlatformLocal => '本機儲存';
+  String get uploadMidiReselect => '重新選擇';
+  String get uploadMidiSaveToLibrary => '儲存到樂庫';
+  String get uploadMidiNoFileSelected => '尚未選擇檔案';
+  String get uploadMidiSuccess => 'MIDI檔案已成功儲存到樂庫！';
+  
+  // 動物圖鑑
+  String get animalCat => '可愛貓咪';
+  String get animalDog => '忠誠小狗';
+  String get animalFox => '聰明狐狸';
+  String get animalPanda => '萌萌熊貓';
+  String get animalRabbit => '活潑兔子';
+  String get animalBear => '可愛熊熊';
+  String get animalDeer => '優雅小鹿';
+  String get animalPenguin => '企鵝寶寶';
+  String get animalKoala => '無尾熊';
+  String get animalRaccoon => '浣熊小可愛';
+  String get animalSquirrel => '松鼠';
+  String get animalHedgehog => '刺蝟';
+  String get animalSeal => '海豹';
+  String get animalSheep => '綿羊';
+  String get animalLion => '獅子王';
+  String get animalKangaroo => '袋鼠';
+  String get animalSloth => '樹懶';
+  String get animalGuineaPig => '天竺鼠';
+  String get animalPrairieDog => '土撥鼠';
+  String get animalQuokka => '短尾矮袋鼠';
+  String get animalFairy => '小精靈';
+  String get animalTaiwanBear => '台灣黑熊';
+  String get animalUnknown => '???';
+  String get animalStatusLocked => '狀態：未解鎖';
+  String get animalStatusUnlocked => '狀態：已解鎖';
+  String get animalUnlockCondition => '解鎖條件';
+  String get animalCheckInDays => '打卡 %d 天';
+  String get animalCurrentProgress => '目前進度';
+  String get animalProgressDays => '%d / %d 天';
+  String get animalUnlockDate => '取得日期';
+  String get animalDetailClose => 'Close';
+  
+  // 動物解鎖動畫
+  String get animalUnlockCongrats => '🎉 恭喜獲得 🎉';
+  String get animalUnlockCheckInDays => '打卡 %d 天解鎖';
+  String get animalUnlockGreat => '太好了！';
+  
+  // 計時器警告
+  String get timerRunningTitle => '計時器運行中';
+  String get timerRunningMessage => '練習計時器正在運行中。\n\n切換頁面將自動暫停計時並保存當前記錄。\n\n確定要離開此頁面嗎？';
+  String get timerStayOnPage => '留在此頁';
+  String get timerLeavePage => '確定離開';
+  
+  // 錯誤類型
+  String get errorTypeMissedNote => '漏音';
+  String get errorTypeWrongNote => '錯音';
+  String get errorTypeEarlyTiming => '節奏偏差';
+  String get errorTypeLateTiming => '節奏偏差';
+  String get errorMessageMissedNote => '漏音: %s 在 %s秒';
+  String get errorMessageTimingOffset => '節奏偏差: %s %s %sms (Onset)';
+  String get errorTimingEarly => '早了';
+  String get errorTimingLate => '晚了';
+  
   // ========== 登入頁面 ==========
   String get loginTitle => '登入';
   String get loginEmail => '電子郵件';
@@ -433,6 +517,10 @@ class AppLocalizations {
   String get practiceAnalysisFailed => '分析失敗';
   String get practiceSelectingInstruction => '點擊選擇想要練習的樂譜';
   String get practiceAnalysisDescription => '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議';
+  String practiceFileSavedDownloads(String fileName, String analysis) => '檔案已儲存到「下載」資料夾:\n$fileName\n\n$analysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
+  String practiceFileSavedLocation(String path, String fileName, String analysis) => 'MIDI 檔案位置:\n$path\n\n$analysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
+  String get practiceFileOpenSuccess => '\n\n✅ 已嘗試開啟檔案管理器';
+  String get practiceFileOpenFailed => '\n\n⚠️ 無法自動開啟，請手動搜索檔案';
   
   // ========== 練習建議文字 ==========
   String get suggestionRandomPlaying => '🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:';
@@ -478,6 +566,39 @@ class AppLocalizations {
   String get errorFileNotFound => '找不到檔案';
   String get errorPermissionDenied => '權限被拒絕';
   String get errorInvalidFormat => '格式不正確';
+  
+  // 練習頁面錯誤
+  String get errorMicPermission => '需要麥克風權限才能錄音，請在設定中手動授權';
+  String errorRecordingStart(String error) => '錄音啟動失敗: $error\n\n請確保：\n1. 已授權麥克風權限\n2. 沒有其他應用程式使用麥克風';
+  String errorRecordingFileSize(int size) => '錄音完成！檔案大小：${(size / 1024).toStringAsFixed(1)} KB';
+  String errorRecordingFileTooSmall(int size) => '錄音檔案太小（$size bytes），可能是音訊捕獲問題';
+  String errorRecordingFileCheck(String error) => '錄音檔案檢查失敗: $error';
+  String errorRecordingStop(String error) => '停止錄音失敗: $error\n\n請嘗試重新錄音';
+  String get errorRecordingFileNotFound => '未找到錄音檔案，請重新錄音';
+  String get errorRecordingFileEmpty => '錄音檔案為空，無法撥放';
+  String errorPlaybackFailed(String error) => '撥放失敗: $error';
+  String get errorRecordFirst => '請先錄音再進行轉換';
+  String get errorConvertMidiFirst => '請先轉換 MIDI 檔案';
+  String errorFileAccess(String error) => '檔案存取失敗: $error';
+  String errorAnalysisFailed(String error) => '分析失敗: $error';
+  
+  // 上傳頁面錯誤
+  String errorFileSelection(String error) => '選擇檔案時發生錯誤: $error';
+  String get errorFileReadFailed => '錯誤：無法讀取檔案內容，請重新選擇檔案。';
+  
+  // 圖片標註錯誤
+  String get errorDrawingColorLabel => '顏色 ';
+  String get errorDrawingSizeLabel => '大小 ';
+  String get annotationSelectStar => '選擇星星圖標:';
+  String get annotationMarkerColor => '標記顏色:';
+  String get annotationDelete => '刪除';
+  String get annotationCancel => '取消';
+  String get annotationConfirm => '確定';
+  String get annotationInputRequired => '請輸入筆記內容';
+  String get annotationAddMarker => '新增標記';
+  String get annotationEditMarker => '編輯標記';
+  String get annotationNoteLabel => '筆記內容';
+  String get annotationNoteHint => '輸入您的筆記...';
   
   // ========== 樂譜目錄頁面 ==========
   String get notePageTitle => '樂譜目錄';
@@ -982,6 +1103,160 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsTerms => 'Terms of Service';
 
+  // Theme Selection
+  @override
+  String get themeSelectTitle => 'Select Theme';
+  @override
+  String get themeClose => 'Close';
+  @override
+  String get themeDawn => 'Dawn';
+  @override
+  String get themeOcean => 'Ocean';
+  @override
+  String get themeForest => 'Forest';
+  @override
+  String get themeSunset => 'Sunset';
+  @override
+  String get themeLavender => 'Lavender';
+  
+  // About App Dialog
+  @override
+  String get aboutAppTitle => 'About Music Practice App';
+  @override
+  String get aboutAppVersion => 'Version';
+  @override
+  String get aboutAppDescription => 'A music practice app with intelligent analysis, MIDI playback, recording, sheet management, and check-in rewards. Help you improve in your musical journey!';
+  @override
+  String get aboutAppFeatures => 'Key Features:\n• AI pitch & rhythm analysis\n• MIDI playback & practice\n• Recording & playback\n• Check-in system & animal collection\n• Multiple themes';
+  @override
+  String get aboutAppTeam => 'Development Team: Music Practice Team';
+  @override
+  String get aboutAppConfirm => 'OK';
+  
+  // Upload MIDI Page
+  @override
+  String get uploadMidiTitle => 'Upload MIDI from Device';
+  @override
+  String get uploadMidiSelectFile => 'Please select a MIDI file to upload';
+  @override
+  String get uploadMidiSupportedFormats => 'Supported formats: .mid, .midi';
+  @override
+  String get uploadMidiSupportedFormatsWeb => 'Supported formats: .mid, .midi (Web version uses memory loading)';
+  @override
+  String get uploadMidiFileSize => 'File Size';
+  @override
+  String get uploadMidiPlatform => 'Platform';
+  @override
+  String get uploadMidiPlatformLocal => 'Local Storage';
+  @override
+  String get uploadMidiReselect => 'Reselect';
+  @override
+  String get uploadMidiSaveToLibrary => 'Save to Library';
+  @override
+  String get uploadMidiNoFileSelected => 'No file selected';
+  @override
+  String get uploadMidiSuccess => 'MIDI file saved to library successfully!';
+  
+  // Animal Collection
+  @override
+  String get animalCat => 'Cute Cat';
+  @override
+  String get animalDog => 'Loyal Dog';
+  @override
+  String get animalFox => 'Smart Fox';
+  @override
+  String get animalPanda => 'Cute Panda';
+  @override
+  String get animalRabbit => 'Lively Rabbit';
+  @override
+  String get animalBear => 'Adorable Bear';
+  @override
+  String get animalDeer => 'Elegant Deer';
+  @override
+  String get animalPenguin => 'Baby Penguin';
+  @override
+  String get animalKoala => 'Koala';
+  @override
+  String get animalRaccoon => 'Cute Raccoon';
+  @override
+  String get animalSquirrel => 'Squirrel';
+  @override
+  String get animalHedgehog => 'Hedgehog';
+  @override
+  String get animalSeal => 'Seal';
+  @override
+  String get animalSheep => 'Sheep';
+  @override
+  String get animalLion => 'Lion King';
+  @override
+  String get animalKangaroo => 'Kangaroo';
+  @override
+  String get animalSloth => 'Sloth';
+  @override
+  String get animalGuineaPig => 'Guinea Pig';
+  @override
+  String get animalPrairieDog => 'Prairie Dog';
+  @override
+  String get animalQuokka => 'Quokka';
+  @override
+  String get animalFairy => 'Fairy';
+  @override
+  String get animalTaiwanBear => 'Taiwan Black Bear';
+  @override
+  String get animalUnknown => '???';
+  @override
+  String get animalStatusLocked => 'Status: Locked';
+  @override
+  String get animalStatusUnlocked => 'Status: Unlocked';
+  @override
+  String get animalUnlockCondition => 'Unlock Condition';
+  @override
+  String get animalCheckInDays => 'Check in %d days';
+  @override
+  String get animalCurrentProgress => 'Current Progress';
+  @override
+  String get animalProgressDays => '%d / %d days';
+  @override
+  String get animalUnlockDate => 'Unlock Date';
+  @override
+  String get animalDetailClose => 'Close';
+  
+  // Animal Unlock Animation
+  @override
+  String get animalUnlockCongrats => '🎉 Congratulations 🎉';
+  @override
+  String get animalUnlockCheckInDays => 'Unlocked by %d days check-in';
+  @override
+  String get animalUnlockGreat => 'Awesome!';
+  
+  // Timer Warning
+  @override
+  String get timerRunningTitle => 'Timer Running';
+  @override
+  String get timerRunningMessage => 'Practice timer is currently running.\n\nSwitching pages will automatically pause the timer and save current record.\n\nAre you sure you want to leave this page?';
+  @override
+  String get timerStayOnPage => 'Stay Here';
+  @override
+  String get timerLeavePage => 'Leave';
+  
+  // Error Types
+  @override
+  String get errorTypeMissedNote => 'Missed Note';
+  @override
+  String get errorTypeWrongNote => 'Wrong Note';
+  @override
+  String get errorTypeEarlyTiming => 'Timing Deviation';
+  @override
+  String get errorTypeLateTiming => 'Timing Deviation';
+  @override
+  String get errorMessageMissedNote => 'Missed Note: %s at %ss';
+  @override
+  String get errorMessageTimingOffset => 'Timing Deviation: %s %s %sms (Onset)';
+  @override
+  String get errorTimingEarly => 'early';
+  @override
+  String get errorTimingLate => 'late';
+
   @override
   String get loginTitle => 'Login';
   @override
@@ -1320,6 +1595,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get practiceSelectingInstruction => 'Tap to select a sheet to practice';
   @override
   String get practiceAnalysisDescription => 'Use spectral analysis technology to verify your performance\nCompare pitch, rhythm, and provide ratings and suggestions';
+  @override
+  String practiceFileSavedDownloads(String fileName, String analysis) => 'File saved to Downloads folder:\n$fileName\n\n$analysis\n\n🔍 Search for "$fileName" in file manager to find it';
+  @override
+  String practiceFileSavedLocation(String path, String fileName, String analysis) => 'MIDI file location:\n$path\n\n$analysis\n\n🔍 Search for "$fileName" in file manager to find it';
+  @override
+  String get practiceFileOpenSuccess => '\n\n✅ Attempted to open file manager';
+  @override
+  String get practiceFileOpenFailed => '\n\n⚠️ Cannot open automatically, please search manually';
 
   @override
   String get suggestionRandomPlaying => '🚨 System detected possible random playing or wrong track, please confirm:';
@@ -1401,6 +1684,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorPermissionDenied => 'Permission denied';
   @override
   String get errorInvalidFormat => 'Invalid format';
+  
+  @override
+  String get errorMicPermission => 'Microphone permission required for recording. Please grant permission in settings';
+  @override
+  String errorRecordingStart(String error) => 'Recording failed to start: $error\n\nPlease ensure:\n1. Microphone permission is granted\n2. No other app is using the microphone';
+  @override
+  String errorRecordingFileSize(int size) => 'Recording complete! File size: ${(size / 1024).toStringAsFixed(1)} KB';
+  @override
+  String errorRecordingFileTooSmall(int size) => 'Recording file too small ($size bytes), possible audio capture issue';
+  @override
+  String errorRecordingFileCheck(String error) => 'Recording file check failed: $error';
+  @override
+  String errorRecordingStop(String error) => 'Failed to stop recording: $error\n\nPlease try recording again';
+  @override
+  String get errorRecordingFileNotFound => 'Recording file not found, please record again';
+  @override
+  String get errorRecordingFileEmpty => 'Recording file is empty, cannot play';
+  @override
+  String errorPlaybackFailed(String error) => 'Playback failed: $error';
+  @override
+  String get errorRecordFirst => 'Please record first before converting';
+  @override
+  String get errorConvertMidiFirst => 'Please convert MIDI file first';
+  @override
+  String errorFileAccess(String error) => 'File access failed: $error';
+  @override
+  String errorAnalysisFailed(String error) => 'Analysis failed: $error';
+  
+  @override
+  String errorFileSelection(String error) => 'Error selecting file: $error';
+  @override
+  String get errorFileReadFailed => 'Error: Unable to read file content, please select again.';
+  
+  @override
+  String get errorDrawingColorLabel => 'Color ';
+  @override
+  String get errorDrawingSizeLabel => 'Size ';
+  @override
+  String get annotationSelectStar => 'Select star icon:';
+  @override
+  String get annotationMarkerColor => 'Marker color:';
+  @override
+  String get annotationDelete => 'Delete';
+  @override
+  String get annotationCancel => 'Cancel';
+  @override
+  String get annotationConfirm => 'Confirm';
+  @override
+  String get annotationInputRequired => 'Please enter note content';
+  @override
+  String get annotationAddMarker => 'Add Marker';
+  @override
+  String get annotationEditMarker => 'Edit Marker';
+  @override
+  String get annotationNoteLabel => 'Note Content';
+  @override
+  String get annotationNoteHint => 'Enter your note...';
 
   @override
   String get notePageTitle => 'Music Sheets';

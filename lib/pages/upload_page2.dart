@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'; // 用於檢測平台
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 // 導入 Uint8List
 import 'package:music_practice_app/pages/library_page.dart'; // <<== 確保這一行存在且正確導入 MidiFileManager
 
@@ -52,7 +53,7 @@ class _UploadPage2State extends State<UploadPage2> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('選擇檔案時發生錯誤: $e'),
+            content: Text(AppLocalizations.of(context)!.errorFileSelection(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -70,12 +71,13 @@ class _UploadPage2State extends State<UploadPage2> {
           _pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty;
 
       if (isValidFile) {
+        final l10n = AppLocalizations.of(context);
         MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('MIDI檔案已成功儲存到樂庫！'),
+          SnackBar(
+            content: Text(l10n?.uploadMidiSuccess ?? 'MIDI檔案已成功儲存到樂庫！'),
             backgroundColor: Colors.green,
-            duration: Duration(milliseconds: 800),
+            duration: const Duration(milliseconds: 800),
           ),
         );
         if (mounted) {
@@ -83,8 +85,8 @@ class _UploadPage2State extends State<UploadPage2> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('錯誤：無法讀取檔案內容，請重新選擇檔案。'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorFileReadFailed),
             backgroundColor: Colors.red,
           ),
         );
@@ -94,11 +96,12 @@ class _UploadPage2State extends State<UploadPage2> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: const Text('從本機上傳 MIDI',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n?.uploadMidiTitle ?? '從本機上傳 MIDI',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/library'),
@@ -111,7 +114,7 @@ class _UploadPage2State extends State<UploadPage2> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '請選擇要上傳的 MIDI 檔案',
+                l10n?.uploadMidiSelectFile ?? '請選擇要上傳的 MIDI 檔案',
                 style: TextStyle(
                   color: AppColors.dynamicTextDark,
                   fontSize: 20,
@@ -120,7 +123,7 @@ class _UploadPage2State extends State<UploadPage2> {
               ),
               const SizedBox(height: 8),
               Text(
-                kIsWeb ? '支援格式：.mid, .midi (Web版本使用記憶體載入)' : '支援格式：.mid, .midi',
+                kIsWeb ? (l10n?.uploadMidiSupportedFormatsWeb ?? '支援格式：.mid, .midi (Web版本使用記憶體載入)') : (l10n?.uploadMidiSupportedFormats ?? '支援格式：.mid, .midi'),
                 style: TextStyle(
                   color: AppColors.dynamicTextLight,
                   fontSize: 14,
@@ -149,7 +152,7 @@ class _UploadPage2State extends State<UploadPage2> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        _pickedFile != null ? _pickedFile!.name : '尚未選擇檔案',
+                        _pickedFile != null ? _pickedFile!.name : (l10n?.uploadMidiNoFileSelected ?? '尚未選擇檔案'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -162,7 +165,7 @@ class _UploadPage2State extends State<UploadPage2> {
                       if (_pickedFile != null) ...[
                         const SizedBox(height: 8),
                         Text(
-                          '檔案大小: ${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB',
+                          '${l10n?.uploadMidiFileSize ?? '檔案大小'}: ${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.dynamicTextLight,
@@ -171,8 +174,8 @@ class _UploadPage2State extends State<UploadPage2> {
                         const SizedBox(height: 4),
                         Text(
                           kIsWeb
-                              ? '平台: Web (使用記憶體載入)'
-                              : '平台: ${_pickedFile!.path != null ? "本機儲存" : "記憶體載入"}',
+                              ? '${l10n?.uploadMidiPlatform ?? '平台'}: Web (使用記憶體載入)'
+                              : '${l10n?.uploadMidiPlatform ?? '平台'}: ${_pickedFile!.path != null ? (l10n?.uploadMidiPlatformLocal ?? "本機儲存") : "記憶體載入"}',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.dynamicTextLight,
@@ -191,10 +194,10 @@ class _UploadPage2State extends State<UploadPage2> {
                               )
                             : const Icon(Icons.folder_open),
                         label: Text(_isLoading
-                            ? '選擇中...'
+                            ? (l10n?.loading ?? '選擇中...')
                             : _pickedFile != null
-                                ? '重新選擇'
-                                : '選擇檔案'),
+                                ? (l10n?.uploadMidiReselect ?? '重新選擇')
+                                : (l10n?.uploadLocalMidi ?? '選擇檔案')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.dynamicPrimary,
                           foregroundColor: Colors.white,
@@ -221,8 +224,8 @@ class _UploadPage2State extends State<UploadPage2> {
                       ElevatedButton.icon(
                         onPressed: _saveToLibrary, // 儲存到樂庫
                         icon: const Icon(Icons.save, size: 28),
-                        label: const Text('儲存到樂庫',
-                            style: TextStyle(
+                        label: Text(l10n?.uploadMidiSaveToLibrary ?? '儲存到樂庫',
+                            style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,

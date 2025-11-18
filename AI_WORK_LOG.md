@@ -10,6 +10,274 @@
 
 ## 📅 最新更新 (2025/11/18)
 
+### 🌐 國際化系統完善與 UI/UX 優化
+
+**日期**: 2025-11-18  
+**重要性**: ⭐⭐⭐ 功能完善  
+**影響範圍**: 用戶體驗、多語言支援、雲端數據同步
+
+#### 優化摘要
+
+完成 8 項 UI/國際化改進 + 2 個核心問題修正，全面提升用戶體驗和數據可靠性。
+
+---
+
+#### 第一輪優化（8項功能改進）
+
+**1. 上傳頁面國際化** ⭐⭐
+- **問題**: 「尚未選擇檔案」和「MIDI檔案已成功儲存到樂庫！」硬編碼中文
+- **解決**: 新增國際化 key
+  ```dart
+  String get uploadMidiNoFileSelected => '尚未選擇檔案'; // No file selected
+  String get uploadMidiSuccess => 'MIDI檔案已成功儲存到樂庫！'; // MIDI file saved successfully
+  ```
+- **修改**: `lib/pages/upload_page2.dart`
+  - 第 154 行：使用 `uploadMidiNoFileSelected`
+  - 第 77 行：使用 `uploadMidiSuccess`（移除 const）
+
+**2. 播放錄音按鈕整合** ⭐⭐
+- **問題**: 「播放錄音」和「停止播放」兩個獨立按鈕佔用空間
+- **解決**: 整合為單一動態按鈕
+  ```dart
+  ElevatedButton.icon(
+    onPressed: () => isPlaying ? _stopPlayback() : _playRecording(),
+    icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+    label: Text(isPlaying ? l10n.practiceStopPlayback : l10n.practicePlayRecording),
+  )
+  ```
+- **修改**: `lib/pages/practice_page.dart` (第 2607 行)
+
+**3. 錄音按鈕佈局優化** ⭐
+- **問題**: 錄音按鈕和狀態顯示器左右排列，小螢幕上擁擠
+- **解決**: 改為上下排列
+  ```dart
+  Column(  // 原為 Row
+    children: [
+      Text(statusText),      // 狀態在上
+      SizedBox(height: 12),
+      ElevatedButton(...),   // 按鈕在下
+    ],
+  )
+  ```
+- **修改**: `lib/pages/practice_page.dart` (第 2520 行)
+
+**4. 標記對話框國際化** ⭐⭐
+- **問題**: 「新增標記」、「編輯標記」、TextField 的 label/hint 硬編碼
+- **解決**: 新增 4 組國際化文字
+  ```dart
+  String get annotationAddMarker => '新增標記';     // Add Marker
+  String get annotationEditMarker => '編輯標記';    // Edit Marker
+  String get annotationNoteLabel => '筆記內容';     // Note Content
+  String get annotationNoteHint => '輸入筆記...';   // Enter note...
+  ```
+- **修改**: `lib/widgets/annotatable_image_viewer.dart`
+  - 第 68 行：對話框標題
+  - 第 73 行：TextField label/hint
+
+**5. 語言切換通知優化** ⭐⭐⭐
+- **問題**: 中文切換成英文時，通知仍顯示中文
+- **原因**: 100ms 延遲不足以等待 widget 重建
+- **解決**: 使用 Flutter 生命週期鉤子
+  ```dart
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        final newL10n = AppLocalizations.of(context);  // 獲取新語言
+        _showSuccessMessage('${newL10n?.settingsLanguageTitle}: ${newL10n?.successUpdated}');
+      }
+    });
+  });
+  ```
+- **修改**: `lib/pages/settings_page.dart` (第 800-813 行)
+
+**6. 節拍器文字自動縮小** ⭐
+- **問題**: 英文 "Metronome" 過長，底部導航欄顯示不完整
+- **解決**: 設定 BottomNavigationBar 字體大小
+  ```dart
+  BottomNavigationBar(
+    selectedFontSize: 12,    // 選中字體大小
+    unselectedFontSize: 12,  // 未選中字體大小
+  )
+  ```
+- **修改**: `lib/widgets/main_shell.dart` (第 36-37 行)
+
+**7. 全面翻譯檢查** ⭐⭐⭐
+- **方法**: 系統性檢查所有頁面和組件
+- **新增 key**: 6 組國際化文字（中英文）
+- **驗證**: 所有硬編碼中文已國際化
+
+**8. 上傳頁面 const 移除**
+- **問題**: `SnackBar(content: Text(...))` 使用 const 阻止 l10n 動態計算
+- **解決**: 移除 const 關鍵字
+- **修改**: `lib/pages/upload_page2.dart` (第 77 行)
+
+---
+
+#### 第二輪修正（2個核心問題）
+
+**問題回報**: 用戶發現雲端設定啟動時被重置、語言切換通知缺失
+
+**1. 雲端設定同步邏輯修正** ⭐⭐⭐
+- **症狀**: 音量設定等數據在應用啟動時被重置為預設值
+- **根本原因**:
+  ```dart
+  // ❌ 舊邏輯：使用 ?? 預設值會覆蓋實際設定
+  final masterVolume = (settings['masterVolume'] as num?)?.toDouble() ?? 0.8;
+  await prefs.setDouble('master_volume', masterVolume);
+  
+  // 問題：即使雲端有 settings map，若某個 key 不存在會使用預設值 0.8
+  // 這會覆蓋用戶在雲端儲存的實際設定值
+  ```
+- **解決方案**:
+  ```dart
+  // ✅ 新邏輯：使用 containsKey() 精確檢查
+  if (settings.containsKey('masterVolume')) {
+    await prefs.setDouble('master_volume',
+        (settings['masterVolume'] as num).toDouble());
+  }
+  // 只在雲端確實有該 key 時才寫入本地
+  // 避免預設值覆蓋實際設定
+  ```
+- **修改範圍**: `lib/services/firebase_auth_service.dart` (第 660-690 行)
+  - masterVolume
+  - midiVolume
+  - metronomeVolume
+  - recordingVolume
+  - overallVolume
+  - practiceVolume
+  - recordVolume
+
+**2. 語言切換通知再優化** ⭐⭐
+- **問題**: 第一次修正（100ms 延遲）仍不足
+- **深層原因**: widget 重建需要更多時間完成
+- **最終方案**:
+  ```dart
+  // ✅ 使用 WidgetsBinding 確保 frame 完成後執行
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        final newL10n = AppLocalizations.of(context);
+        _showSuccessMessage(...);
+      }
+    });
+  });
+  ```
+- **技術要點**:
+  - `addPostFrameCallback`: 確保當前 frame 渲染完成
+  - `300ms` 延遲: 給予足夠時間重建 widget
+  - `mounted` 檢查: 避免 widget 已銷毀時訪問
+
+---
+
+#### 技術細節
+
+**國際化系統**:
+- **工具**: AppLocalizations (Flutter intl)
+- **語言**: 中文（預設）、英文
+- **新增 key**: 6 組（uploadMidi×2, annotation×4）
+- **文件**: `lib/l10n/app_localizations.dart`
+
+**數據同步策略**:
+```
+登入同步流程：
+Firestore → _syncCloudDataToLocal → SharedPreferences → UI
+
+同步邏輯（修正後）：
+if (settings.containsKey('key')) {
+  await prefs.setDouble('key', settings['key']);
+}
+// 只同步存在的值，不使用預設值覆蓋
+```
+
+**Widget 生命週期**:
+```dart
+// 語言切換時序：
+1. 用戶選擇新語言
+2. setState(() { _currentLanguage = newLang; })
+3. WidgetsBinding.addPostFrameCallback(...)  // 當前 frame 完成後
+4. Future.delayed(300ms)                     // 等待重建完成
+5. AppLocalizations.of(context)              // 獲取新的 l10n
+6. 顯示通知（新語言）
+```
+
+---
+
+#### 修改文件清單
+
+**新增/修改**:
+1. ✅ `lib/l10n/app_localizations.dart` - 新增 6 組國際化 key
+2. ✅ `lib/pages/upload_page2.dart` - 使用 l10n，移除 const
+3. ✅ `lib/pages/practice_page.dart` - 整合按鈕、改佈局
+4. ✅ `lib/widgets/annotatable_image_viewer.dart` - 標記對話框國際化
+5. ✅ `lib/pages/settings_page.dart` - 語言切換通知優化（兩次修正）
+6. ✅ `lib/widgets/main_shell.dart` - 節拍器字體大小
+7. ✅ `lib/services/firebase_auth_service.dart` - 雲端同步邏輯修正
+
+---
+
+#### 測試驗證
+
+**國際化測試**:
+- [x] 上傳頁面中英文切換正常
+- [x] 標記對話框中英文切換正常
+- [x] 語言切換通知使用新語言顯示
+- [x] 節拍器文字完整顯示
+
+**UI 測試**:
+- [x] 播放錄音按鈕動態切換正常
+- [x] 錄音區塊上下排列不擁擠
+- [x] 底部導航欄文字完整顯示
+
+**數據同步測試**:
+- [x] 新用戶雲端設定正確初始化
+- [x] 舊用戶登入後設定不被覆蓋
+- [x] 音量設定修改後正確同步
+- [x] 重啟應用設定保持不變
+
+---
+
+#### 技術亮點
+
+**1. 精確的數據同步控制**
+- 使用 `containsKey()` 明確檢查每個設定項
+- 避免 `??` 預設值機制的覆蓋風險
+- 確保只同步實際存在的值
+
+**2. Flutter 生命週期掌控**
+- 理解 `WidgetsBinding.addPostFrameCallback` 時機
+- 合理使用 `Future.delayed` 等待重建
+- 使用 `mounted` 防止已銷毀 widget 訪問
+
+**3. 用戶體驗優化**
+- 按鈕整合減少界面元素
+- 佈局調整改善小螢幕體驗
+- 語言切換通知使用新語言（符合直覺）
+
+**4. 向後相容**
+- 新增國際化 key 不影響現有功能
+- 數據同步邏輯優化不需要數據遷移
+- UI 改進保持原有功能完整性
+
+---
+
+#### 經驗總結
+
+**問題診斷**:
+1. **雲端設定重置** → 深入分析同步邏輯 → 發現 `??` 預設值覆蓋問題
+2. **語言切換通知** → 理解 widget 重建時序 → 使用生命週期鉤子解決
+
+**技術決策**:
+1. **為何用 containsKey()？** → 明確區分「key 不存在」和「值為 null」
+2. **為何用 addPostFrameCallback？** → 確保 widget 重建完成後再訪問 context
+3. **為何延遲 300ms？** → 給予足夠時間完成所有 widget 樹的重建
+
+**代碼質量**:
+1. 所有修改都有詳細註解
+2. 使用明確的變數名和邏輯
+3. 保持代碼可讀性和可維護性
+
+---
+
 ### 📦 應用構建與發布配置完成
 
 **日期**: 2025-11-18  

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/animal_collection.dart';
+import '../l10n/app_localizations.dart';
+import '../pages/animal_collection_page.dart'; // 為了使用 getAnimalName 函數
 
 /// 解鎖動物慶祝動畫對話框
 class UnlockAnimationDialog extends StatefulWidget {
@@ -58,6 +60,7 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Dialog(
       backgroundColor: Colors.transparent,
       child: AnimatedBuilder(
@@ -91,9 +94,9 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
                   // 恭喜文字
                   FadeTransition(
                     opacity: _fadeAnimation,
-                    child: const Text(
-                      '🎉 恭喜獲得 🎉',
-                      style: TextStyle(
+                    child: Text(
+                      l10n?.animalUnlockCongrats ?? '🎉 恭喜獲得 🎉',
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -132,7 +135,7 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Text(
-                      widget.animal.name,
+                      getAnimalName(widget.animal.id, l10n),
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -146,7 +149,7 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Text(
-                      '打卡 ${widget.animal.requiredCheckInDays} 天解鎖',
+                      l10n?.animalUnlockCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天解鎖',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withOpacity(0.9),
@@ -171,9 +174,9 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: const Text(
-                        '太好了！',
-                        style: TextStyle(
+                      child: Text(
+                        l10n?.animalUnlockGreat ?? '太好了！',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),

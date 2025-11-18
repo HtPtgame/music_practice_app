@@ -34,6 +34,8 @@ class MainShell extends StatelessWidget {
             showUnselectedLabels: true,
             type: BottomNavigationBarType.fixed,
             elevation: 8,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
             items: [
               BottomNavigationBarItem(
                 icon: RepaintBoundary(
@@ -151,30 +153,29 @@ class MainShell extends StatelessWidget {
 
     // 如果計時器正在運行，彈出警告
     if (timerService.isTimerRunning) {
+      final l10n = AppLocalizations.of(context);
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.blue, size: 28),
-              SizedBox(width: 8),
-              Text('計時器運行中'),
+              const Icon(Icons.info_outline, color: Colors.blue, size: 28),
+              const SizedBox(width: 8),
+              Text(l10n?.timerRunningTitle ?? '計時器運行中'),
             ],
           ),
-          content: const Text(
-            '練習計時器正在運行中。\n\n'
-            '切換頁面將自動暫停計時並保存當前記錄。\n\n'
-            '確定要離開此頁面嗎？',
-            style: TextStyle(fontSize: 15),
+          content: Text(
+            l10n?.timerRunningMessage ?? '練習計時器正在運行中。\n\n切換頁面將自動暫停計時並保存當前記錄。\n\n確定要離開此頁面嗎？',
+            style: const TextStyle(fontSize: 15),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('留在此頁', style: TextStyle(fontSize: 16)),
+              child: Text(l10n?.timerStayOnPage ?? '留在此頁', style: const TextStyle(fontSize: 16)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('確定離開', style: TextStyle(fontSize: 16)),
+              child: Text(l10n?.timerLeavePage ?? '確定離開', style: const TextStyle(fontSize: 16)),
             ),
           ],
         ),

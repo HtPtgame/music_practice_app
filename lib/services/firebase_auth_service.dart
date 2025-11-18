@@ -660,22 +660,61 @@ class FirebaseAuthService extends ChangeNotifier {
 
       // 同步個人化設定
       if (user.settings.isNotEmpty) {
+        // 雲端有設定，使用雲端設定（不使用預設值作為備用）
         final settings = user.settings;
-        await prefs.setDouble('master_volume',
-            (settings['masterVolume'] as num?)?.toDouble() ?? 0.8);
-        await prefs.setDouble(
-            'midi_volume', (settings['midiVolume'] as num?)?.toDouble() ?? 0.7);
-        await prefs.setDouble('recording_volume',
-            (settings['recordingVolume'] as num?)?.toDouble() ?? 0.9);
-        await prefs.setDouble('metronome_volume',
-            (settings['metronomeVolume'] as num?)?.toDouble() ?? 0.6);
-        await prefs.setBool(
-            'sound_enabled', settings['soundEnabled'] as bool? ?? true);
-        await prefs.setBool(
-            'vibration_enabled', settings['vibrationEnabled'] as bool? ?? true);
-        await prefs.setString('selected_language',
-            settings['selectedLanguage'] as String? ?? 'zh_TW');
-        debugPrint('已同步個人化設定到本地');
+        
+        // 只在雲端確實有該設定值時才寫入本地
+        if (settings.containsKey('masterVolume')) {
+          await prefs.setDouble('master_volume',
+              (settings['masterVolume'] as num).toDouble());
+        }
+        if (settings.containsKey('midiVolume')) {
+          await prefs.setDouble(
+              'midi_volume', (settings['midiVolume'] as num).toDouble());
+        }
+        if (settings.containsKey('recordingVolume')) {
+          await prefs.setDouble('recording_volume',
+              (settings['recordingVolume'] as num).toDouble());
+        }
+        if (settings.containsKey('metronomeVolume')) {
+          await prefs.setDouble('metronome_volume',
+              (settings['metronomeVolume'] as num).toDouble());
+        }
+        if (settings.containsKey('soundEnabled')) {
+          await prefs.setBool(
+              'sound_enabled', settings['soundEnabled'] as bool);
+        }
+        if (settings.containsKey('vibrationEnabled')) {
+          await prefs.setBool(
+              'vibration_enabled', settings['vibrationEnabled'] as bool);
+        }
+        if (settings.containsKey('selectedLanguage')) {
+          await prefs.setString('selected_language',
+              settings['selectedLanguage'] as String);
+        }
+        debugPrint('已同步個人化設定到本地（從雲端，僅同步有值的欄位）');
+      } else {
+        // 雲端沒有設定，讀取本地設定（如果有）或使用預設值
+        // 然後將本地設定同步到雲端
+        final localSettings = {
+          'masterVolume': prefs.getDouble('master_volume') ?? 0.8,
+          'midiVolume': prefs.getDouble('midi_volume') ?? 0.7,
+          'recordingVolume': prefs.getDouble('recording_volume') ?? 0.9,
+          'metronomeVolume': prefs.getDouble('metronome_volume') ?? 0.6,
+          'soundEnabled': prefs.getBool('sound_enabled') ?? true,
+          'vibrationEnabled': prefs.getBool('vibration_enabled') ?? true,
+          'selectedLanguage': prefs.getString('selected_language') ?? 'zh_TW',
+        };
+        
+        // 同步本地設定到雲端
+        try {
+          await _firestore.collection('users').doc(user.id).update({
+            'settings': localSettings,
+          });
+          debugPrint('已將本地設定同步到雲端（雲端原本沒有設定）');
+        } catch (e) {
+          debugPrint('同步本地設定到雲端失敗: $e');
+        }
       }
 
       debugPrint('雲端數據已完整同步到本地');

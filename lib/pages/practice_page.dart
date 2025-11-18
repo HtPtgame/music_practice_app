@@ -227,10 +227,10 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('❌ 麥克風權限被拒絕');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('需要麥克風權限才能錄音，請在設定中手動授權'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorMicPermission),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 4),
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
@@ -346,7 +346,7 @@ class _PracticePageState extends State<PracticePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('錄音啟動失敗: $e\n\n請確保：\n1. 已授權麥克風權限\n2. 沒有其他應用程式使用麥克風'),
+          content: Text(AppLocalizations.of(context)!.errorRecordingStart(e.toString())),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 6),
         ),
@@ -532,7 +532,7 @@ class _PracticePageState extends State<PracticePage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content:
-                      Text('錄音完成！檔案大小：${(size / 1024).toStringAsFixed(1)} KB'),
+                      Text(AppLocalizations.of(context)!.errorRecordingFileSize(size)),
                   backgroundColor: Colors.green,
                   duration: const Duration(seconds: 2),
                 ),
@@ -540,7 +540,7 @@ class _PracticePageState extends State<PracticePage> {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('錄音檔案太小（$size bytes），可能是音訊捕獲問題'),
+                  content: Text(AppLocalizations.of(context)!.errorRecordingFileTooSmall(size)),
                   backgroundColor: Colors.orange,
                   duration: const Duration(seconds: 3),
                 ),
@@ -557,7 +557,7 @@ class _PracticePageState extends State<PracticePage> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('錄音檔案檢查失敗: $e'),
+              content: Text(AppLocalizations.of(context)!.errorRecordingFileCheck(e.toString())),
               backgroundColor: Colors.red,
             ),
           );
@@ -582,7 +582,7 @@ class _PracticePageState extends State<PracticePage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('停止錄音失敗: $e\n\n請嘗試重新錄音'),
+          content: Text(AppLocalizations.of(context)!.errorRecordingStop(e.toString())),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 4),
         ),
@@ -655,10 +655,10 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('❌ 沒有找到合適的錄音檔案');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('未找到錄音檔案，請重新錄音'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorRecordingFileNotFound),
             backgroundColor: Colors.orange,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -678,7 +678,7 @@ class _PracticePageState extends State<PracticePage> {
     if (_audioPath == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('未找到錄音檔案'), backgroundColor: Colors.red),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorRecordingFileNotFound), backgroundColor: Colors.red),
       );
       return;
     }
@@ -690,8 +690,8 @@ class _PracticePageState extends State<PracticePage> {
       if (size == 0) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('錄音檔案為空，無法撥放'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.errorRecordingFileEmpty), backgroundColor: Colors.red),
         );
         return;
       }
@@ -728,7 +728,7 @@ class _PracticePageState extends State<PracticePage> {
         isPlaying = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('撥放失敗: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorPlaybackFailed(e.toString())), backgroundColor: Colors.red),
       );
     }
   }
@@ -744,7 +744,7 @@ class _PracticePageState extends State<PracticePage> {
   Future<void> convertToMidi() async {
     if (_audioPath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先錄音再進行轉換'), backgroundColor: Colors.red),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorRecordFirst), backgroundColor: Colors.red),
       );
       return;
     }
@@ -2135,8 +2135,8 @@ class _PracticePageState extends State<PracticePage> {
     if (_midiPath == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('請先轉換 MIDI 檔案'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.errorConvertMidiFirst), backgroundColor: Colors.red),
         );
       }
       return;
@@ -2205,8 +2205,8 @@ class _PracticePageState extends State<PracticePage> {
     if (_midiPath == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('請先轉換 MIDI 檔案'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.errorConvertMidiFirst), backgroundColor: Colors.red),
         );
       }
       return;
@@ -2223,23 +2223,22 @@ class _PracticePageState extends State<PracticePage> {
 
       // 檔案已經儲存在用戶可存取的位置，直接顯示路徑
       final fileName = _midiPath!.split('/').last;
+      final l10n = AppLocalizations.of(context)!;
       String locationMessage;
 
       if (_midiPath!.contains('/Download/')) {
-        locationMessage =
-            '檔案已儲存到「下載」資料夾:\n$fileName\n\n$midiAnalysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
+        locationMessage = l10n.practiceFileSavedDownloads(fileName, midiAnalysis);
       } else {
-        locationMessage =
-            'MIDI 檔案位置:\n$_midiPath\n\n$midiAnalysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
+        locationMessage = l10n.practiceFileSavedLocation(_midiPath!, fileName, midiAnalysis);
       }
 
       // 嘗試開啟檔案管理器到檔案位置
       try {
         final result = await OpenFile.open(_midiPath!);
         if (result.type == ResultType.done) {
-          locationMessage += '\n\n✅ 已嘗試開啟檔案管理器';
+          locationMessage += l10n.practiceFileOpenSuccess;
         } else {
-          locationMessage += '\n\n⚠️ 無法自動開啟，請手動搜索檔案';
+          locationMessage += l10n.practiceFileOpenFailed;
         }
       } catch (openError) {
         debugPrint('開啟檔案失敗: $openError');
@@ -2259,7 +2258,7 @@ class _PracticePageState extends State<PracticePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('檔案存取失敗: $e'),
+            content: Text(AppLocalizations.of(context)!.errorFileAccess(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -2444,17 +2443,30 @@ class _PracticePageState extends State<PracticePage> {
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '${l10n?.practiceSelectFile ?? '正在練習'}: ${getFileNameWithoutExtension()}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.dynamicTextDark,
+                child: Column(
+                  children: [
+                    Text(
+                      l10n?.practiceSelectFile ?? '正在練習',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.dynamicTextDark,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      getFileNameWithoutExtension(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.dynamicPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
@@ -2505,28 +2517,11 @@ class _PracticePageState extends State<PracticePage> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Column(
                         children: [
-                          ElevatedButton.icon(
-                            onPressed:
-                                isRecording ? stopRecording : startRecording,
-                            icon: Icon(isRecording
-                                ? Icons.stop
-                                : Icons.fiber_manual_record),
-                            label: Text(isRecording
-                                ? (l10n?.practiceStopRecord ?? '停止')
-                                : (_audioPath != null ? (l10n?.practiceRecord ?? '重新錄音') : (l10n?.practiceRecord ?? '開始'))),  
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  isRecording ? Colors.grey : Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
+                          // 狀態顯示器
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 isRecording
@@ -2552,26 +2547,28 @@ class _PracticePageState extends State<PracticePage> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 16),
+                          // 錄音按鈕
+                          ElevatedButton.icon(
+                            onPressed:
+                                isRecording ? stopRecording : startRecording,
+                            icon: Icon(isRecording
+                                ? Icons.stop
+                                : Icons.fiber_manual_record),
+                            label: Text(isRecording
+                                ? (l10n?.practiceStopRecord ?? '停止')
+                                : (_audioPath != null ? (l10n?.practiceRecord ?? '重新錄音') : (l10n?.practiceRecord ?? '開始'))),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  isRecording ? Colors.grey : Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
+                            ),
+                          ),
                         ],
                       ),
-                      if (isRecording && _recordingDurationSeconds < 3)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline,
-                                  size: 16, color: Colors.grey[400]),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  '建議錄音至少 3 秒以獲得更好的轉換效果',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey[400]),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+
                     ],
                   ),
                 ),
@@ -2600,28 +2597,21 @@ class _PracticePageState extends State<PracticePage> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: (!isRecording &&
-                                    _audioPath != null &&
-                                    !isPlaying)
-                                ? playRecording
-                                : null,
-                            icon: const Icon(Icons.play_arrow),
-                            label: Text(l10n?.practicePlayback ?? '播放'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                            ),
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: (!isRecording && _audioPath != null)
+                              ? (isPlaying ? stopPlaying : playRecording)
+                              : null,
+                          icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+                          label: Text(isPlaying 
+                              ? (l10n?.practiceStopPlayback ?? '停止播放')
+                              : (l10n?.practicePlayback ?? '播放錄音')),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isPlaying ? Colors.orange : Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                           ),
-                          ElevatedButton.icon(
-                            onPressed: isPlaying ? stopPlaying : null,
-                            icon: const Icon(Icons.stop),
-                            label: Text(l10n?.practiceStopPlayback ?? '停止'),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -2789,7 +2779,7 @@ class _PracticePageState extends State<PracticePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('分析失敗: $e'),
+              content: Text(AppLocalizations.of(context)!.errorAnalysisFailed(e.toString())),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 5)),
         );

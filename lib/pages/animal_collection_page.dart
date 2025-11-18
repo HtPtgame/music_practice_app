@@ -15,6 +15,35 @@ class AnimalCollectionPage extends StatefulWidget {
   State<AnimalCollectionPage> createState() => _AnimalCollectionPageState();
 }
 
+/// 根據動物ID獲取翻譯後的名稱（靜態輔助方法）
+String getAnimalName(String animalId, AppLocalizations? l10n) {
+  switch (animalId) {
+    case 'cat': return l10n?.animalCat ?? '可愛貓咪';
+    case 'dog': return l10n?.animalDog ?? '忠誠小狗';
+    case 'fox': return l10n?.animalFox ?? '聰明狐狸';
+    case 'panda': return l10n?.animalPanda ?? '萌萌熊貓';
+    case 'rabbit': return l10n?.animalRabbit ?? '活潑兔子';
+    case 'bear': return l10n?.animalBear ?? '可愛熊熊';
+    case 'deer': return l10n?.animalDeer ?? '優雅小鹿';
+    case 'penguin': return l10n?.animalPenguin ?? '企鵝寶寶';
+    case 'koala': return l10n?.animalKoala ?? '無尾熊';
+    case 'raccoon': return l10n?.animalRaccoon ?? '浣熊小可愛';
+    case 'squirrel': return l10n?.animalSquirrel ?? '松鼠';
+    case 'hedgehog': return l10n?.animalHedgehog ?? '刺蝟';
+    case 'seal': return l10n?.animalSeal ?? '海豹';
+    case 'sheep': return l10n?.animalSheep ?? '綿羊';
+    case 'lion': return l10n?.animalLion ?? '獅子王';
+    case 'kangaroo': return l10n?.animalKangaroo ?? '袋鼠';
+    case 'sloth': return l10n?.animalSloth ?? '樹懶';
+    case 'guinea_pig': return l10n?.animalGuineaPig ?? '天竺鼠';
+    case 'prairie_dog': return l10n?.animalPrairieDog ?? '土撥鼠';
+    case 'quokka': return l10n?.animalQuokka ?? '短尾矮袋鼠';
+    case 'fairy': return l10n?.animalFairy ?? '小精靈';
+    case 'taiwanbear': return l10n?.animalTaiwanBear ?? '台灣黑熊';
+    default: return '???';
+  }
+}
+
 class _AnimalCollectionPageState extends State<AnimalCollectionPage> {
   late AnimalCollectionService _collectionService;
   final UserDataSyncService _syncService = UserDataSyncService();
@@ -384,7 +413,7 @@ class _AnimalCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                isUnlocked ? animal.name : (l10n?.animalCollectionUnknown ?? '???'),
+                isUnlocked ? getAnimalName(animal.id, l10n) : (l10n?.animalUnknown ?? '???'),
                 style: TextStyle(
                   fontSize: 13, // 縮小字體
                   fontWeight: FontWeight.bold,
@@ -490,7 +519,7 @@ class _AnimalCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                isUnlocked ? animal.name : (l10n?.animalCollectionUnknown ?? '???'),
+                isUnlocked ? getAnimalName(animal.id, l10n) : (l10n?.animalUnknown ?? '???'),
                 style: const TextStyle(fontSize: 20),
               ),
             ),
@@ -511,28 +540,28 @@ class _AnimalCard extends StatelessWidget {
 
             // 詳細資訊
             if (isUnlocked) ...[
-              _buildInfoRow(Icons.verified, '狀態', '已解鎖', Colors.green),
+              _buildInfoRow(Icons.verified, '${l10n?.animalStatusUnlocked ?? '狀態：已解鎖'}', '', Colors.green),
               const SizedBox(height: 12),
               _buildInfoRow(
                   Icons.calendar_today,
-                  '取得日期',
+                  l10n?.animalUnlockDate ?? '取得日期',
                   animal.unlockedAt != null
                       ? _formatDate(animal.unlockedAt!)
                       : '未知',
                   Colors.blue),
               const SizedBox(height: 12),
-              _buildInfoRow(Icons.emoji_events, '解鎖條件',
-                  '打卡 ${animal.requiredCheckInDays} 天', Colors.orange),
+              _buildInfoRow(Icons.emoji_events, l10n?.animalUnlockCondition ?? '解鎖條件',
+                  '${l10n?.animalCheckInDays.replaceFirst('%d', '${animal.requiredCheckInDays}') ?? '打卡 ${animal.requiredCheckInDays} 天'}', Colors.orange),
             ] else ...[
-              _buildInfoRow(Icons.lock, '狀態', '未解鎖', Colors.grey),
+              _buildInfoRow(Icons.lock, '${l10n?.animalStatusLocked ?? '狀態：未解鎖'}', '', Colors.grey),
               const SizedBox(height: 12),
-              _buildInfoRow(Icons.emoji_events, '解鎖條件',
-                  '打卡 ${animal.requiredCheckInDays} 天', Colors.orange),
+              _buildInfoRow(Icons.emoji_events, l10n?.animalUnlockCondition ?? '解鎖條件',
+                  '${l10n?.animalCheckInDays.replaceFirst('%d', '${animal.requiredCheckInDays}') ?? '打卡 ${animal.requiredCheckInDays} 天'}', Colors.orange),
               const SizedBox(height: 12),
               _buildInfoRow(
                   Icons.show_chart,
-                  '目前進度',
-                  '$currentDays / ${animal.requiredCheckInDays} 天',
+                  l10n?.animalCurrentProgress ?? '目前進度',
+                  '${l10n?.animalProgressDays.replaceFirst('%d', '$currentDays').replaceFirst('%d', '${animal.requiredCheckInDays}') ?? '$currentDays / ${animal.requiredCheckInDays} 天'}',
                   Colors.blue),
               const SizedBox(height: 12),
               // 進度條
@@ -563,27 +592,40 @@ class _AnimalCard extends StatelessWidget {
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
+    final hasValue = value.isNotEmpty;
     return Row(
       children: [
         Icon(icon, size: 20, color: color),
         const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
+        if (hasValue) ...[
+          Text(
+            '$label: ',
+            style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ] else ...[
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

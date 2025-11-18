@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../models/sheet_annotation.dart';
 import '../utils/app_colors.dart';
+import '../l10n/app_localizations.dart';
 
 /// 可標註的圖片檢視器
 class AnnotatableImageViewer extends StatefulWidget {
@@ -64,23 +65,25 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(existingMarker == null ? '新增標記' : '編輯標記'),
+          title: Text(existingMarker == null 
+              ? AppLocalizations.of(context)!.annotationAddMarker 
+              : AppLocalizations.of(context)!.annotationEditMarker),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: noteController,
-                  decoration: const InputDecoration(
-                    labelText: '筆記內容',
-                    hintText: '輸入您的筆記...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.annotationNoteLabel,
+                    hintText: AppLocalizations.of(context)!.annotationNoteHint,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 3,
                   autofocus: true,
                 ),
                 const SizedBox(height: 16),
-                const Text('選擇星星圖標:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.annotationSelectStar, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -117,7 +120,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                   }).toList(),
                 ),
                 const SizedBox(height: 16),
-                const Text('標記顏色:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.annotationMarkerColor, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -161,18 +164,18 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                   widget.onMarkersChanged(_markers);
                   Navigator.pop(context);
                 },
-                child: const Text('刪除', style: TextStyle(color: Colors.red)),
+                child: Text(AppLocalizations.of(context)!.annotationDelete, style: const TextStyle(color: Colors.red)),
               ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+              child: Text(AppLocalizations.of(context)!.annotationCancel),
             ),
             ElevatedButton(
               onPressed: () {
                 final note = noteController.text.trim();
                 if (note.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('請輸入筆記內容')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.annotationInputRequired)),
                   );
                   return;
                 }
@@ -207,7 +210,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                 widget.onMarkersChanged(_markers);
                 Navigator.pop(context);
               },
-              child: const Text('確定'),
+              child: Text(AppLocalizations.of(context)!.annotationConfirm),
             ),
           ],
         ),

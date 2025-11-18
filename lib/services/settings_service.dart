@@ -31,8 +31,11 @@ class SettingsService {
   /// 初始化服務
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
+    // 注意：不再在初始化時自動設置預設值
+    // 預設值應該由 getter 的 ?? 運算符提供
+    // 這樣可以避免覆蓋從雲端同步的設定
   }
-
+  
   /// 確保已初始化
   Future<void> _ensureInitialized() async {
     if (_prefs == null) {

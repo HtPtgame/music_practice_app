@@ -129,15 +129,28 @@ class UserDataSyncService extends ChangeNotifier {
     await syncPracticeTime(practiceTime);
   }
 
-  /// 更新設定項目
+  /// 更新設定項目（只更新指定的 key，不影響其他設定）
   Future<void> updateSetting(String key, dynamic value) async {
     final user = _authService.currentUser;
     if (user == null) return;
 
-    final settings = Map<String, dynamic>.from(user.settings);
-    settings[key] = value;
+    _isSyncing = true;
+    notifyListeners();
 
-    await syncSettings(settings);
+    try {
+      // 使用 Firestore 的 Map 欄位更新語法，只更新 settings 中的特定 key
+      // 這樣不會覆蓋 settings 中的其他欄位
+      await _firestore.collection('users').doc(user.id).update({
+        'settings.$key': value,
+      });
+      debugPrint('✅ 成功更新設定: $key = $value');
+    } catch (e) {
+      debugPrint('❌ 更新設定失敗 ($key): $e');
+      rethrow;
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
   }
 
   /// 新增或更新筆記

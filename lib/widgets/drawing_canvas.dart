@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:async';
 import '../models/drawing_data.dart';
+import '../l10n/app_localizations.dart';
 
 class DrawingCanvas extends StatefulWidget {
   final DrawingData initialDrawing;
@@ -564,8 +565,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
               children: [
                 Row(
                   children: [
-                    Text('顏色 ',
-                        style: TextStyle(
+                    Text(AppLocalizations.of(context)!.errorDrawingColorLabel,
+                        style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600)),
                     Expanded(
                         child: Row(
@@ -576,8 +577,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 Divider(height: 12),
                 Row(
                   children: [
-                    Text('大小 ',
-                        style: TextStyle(
+                    Text(AppLocalizations.of(context)!.errorDrawingSizeLabel,
+                        style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600)),
                     Expanded(
                         child: Row(
