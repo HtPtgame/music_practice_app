@@ -55,8 +55,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   void initState() {
     super.initState();
     _drawingData = widget.initialDrawing;
-    // 🔥 暫時禁用紋理池，統一使用確定性即時渲染
-    // _initializeTexturePool();
+    _initializeTexturePool();
 
     // 如果有舊紀錄，建立背景快取並保存到歷史
     if (_drawingData.strokes.isNotEmpty) {
@@ -474,26 +473,20 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   /// �🎨 將單一筆劃繪製到 Canvas
   void _drawStrokeToCanvas(Canvas canvas, DrawingStroke stroke) {
-    // ✨ 快取重建時不使用紋理池！
-    // 原因：紋理池是為當前顏色/大小建立的，筆劃可能有不同的顏色/大小
-    // 解決方案：使用確定性即時渲染，確保視覺一致性
-    
-    // 🐛 調試：記錄渲染路徑
-    print('🎨 快取重建: stroke.color=${stroke.color}, stroke.width=${stroke.strokeWidth}');
-    print('   當前紋理池: color=$_selectedColor, width=$_strokeWidth, ready=$_isPoolReady');
-    
+    // ✨ 使用和即時繪製完全相同的渲染路徑
+    // 關鍵：創建臨時 Painter，但不使用紋理池（確保顏色正確）
     final painter = _DrawingPainter(
       strokes: [],
       currentStroke: [],
       currentColor: stroke.color,
       currentStrokeWidth: stroke.strokeWidth,
       isErasing: false,
-      texturePool: null,  // 🔥 關鍵：不傳入紋理池，強制使用即時渲染
-      isPoolReady: false, // 🔥 關鍵：設為 false，強制使用即時渲染
+      texturePool: null,           // 🔥 不使用紋理池，確保顏色正確
+      isPoolReady: false,          // 🔥 強制使用即時渲染
       cachedBackground: null,
     );
     
-    // 使用 Painter 的渲染方法，但會走即時渲染路徑（_drawFullStampAtPoint）
+    // 使用 Painter 的渲染方法，會調用 _drawFullStampAtPoint（確定性8層渲染）
     painter._drawFullTextureBrush(
       canvas,
       stroke.points,
@@ -992,13 +985,8 @@ class _DrawingPainter extends CustomPainter {
     for (int i = 0; i < points.length; i += pointStep) {
       // 🚀 使用紋理池優化渲染
       if (isPoolReady && texturePool != null) {
-        // 🐛 調試：使用紋理池
-        if (i == 0) print('  → 使用紋理池渲染');
         _drawStampFromPool(canvas, points[i], strokeWidth, i);
       } else {
-        // 🐛 調試：降級方案
-        if (i == 0) print('  → 降級方案: useSkipping=$useSkipping, isPoolReady=$isPoolReady');
-        
         // 降級方案：使用簡化渲染（當前筆劃）或完整渲染（已完成筆劃）
         if (!useSkipping) {
           // 當前筆劃：使用快速簡化版本
