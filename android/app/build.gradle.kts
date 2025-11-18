@@ -27,7 +27,7 @@ android {
         applicationId = "com.example.music_practice_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21  // 降低至 Android 5.0 以支援更多設備
+        minSdk = flutter.minSdkVersion  // 降低至 Android 5.0 以支援更多設備
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -68,7 +68,8 @@ android {
         debug {
             // Debug 版本配置
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
+            // 移除 applicationIdSuffix 以匹配 Firebase 配置
+            // applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
         }
     }

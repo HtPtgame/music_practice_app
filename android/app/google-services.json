@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "927535785315-7o1bk6olroge0m5npsfsncjsau35o29v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.music_practice_app",
+            "certificate_hash": "5eecfd2f560ceaec6471379edc89b85f3ae766f1"
+          }
+        },
+        {
           "client_id": "927535785315-oagd1qsdf3eufe91mhboao9fpgha64j7.apps.googleusercontent.com",
           "client_type": 3
         }

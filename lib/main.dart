@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:music_practice_app/router/app_router.dart';
 import 'package:music_practice_app/utils/theme_manager.dart';
+import 'package:music_practice_app/utils/language_manager.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:music_practice_app/services/settings_service.dart';
 import 'package:music_practice_app/services/auth_service_config.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,6 +22,9 @@ void main() async {
 
   // 初始化設定服務
   await SettingsService().initialize();
+  
+  // 初始化語言管理器
+  await LanguageManager.instance.initialize();
 
   // 初始化認證服務
   await authService.initialize();
@@ -46,6 +52,8 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _initializeTheme();
+    // 監聽語言變化
+    LanguageManager.instance.addListener(_onLanguageChanged);
   }
 
   Future<void> _initializeTheme() async {
@@ -63,10 +71,17 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     ThemeManager.instance.removeListener(_onThemeChanged);
+    LanguageManager.instance.removeListener(_onLanguageChanged);
     super.dispose();
   }
 
   void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+  
+  void _onLanguageChanged() {
     if (mounted) {
       setState(() {});
     }
@@ -89,7 +104,18 @@ class _MyAppState extends State<MyApp> {
     final themeColors = ThemeManager.instance.currentColors;
 
     return MaterialApp.router(
-      title: 'Music Practice App',
+      title: 'Sound Spirit Detective',
+      
+      // 多語言支援
+      locale: LanguageManager.instance.currentLocale,
+      supportedLocales: LanguageManager.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
