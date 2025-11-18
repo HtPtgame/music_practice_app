@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/sheet_annotation.dart';
 import '../utils/app_colors.dart';
 
@@ -57,58 +58,98 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
       text: existingMarker?.note ?? '',
     );
     Color selectedColor = existingMarker?.color ?? Colors.red;
+    String selectedIcon = existingMarker?.iconPath ?? 'assets/star1.svg'; // 預設為星星1
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(existingMarker == null ? '新增標記' : '編輯標記'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: noteController,
-                decoration: const InputDecoration(
-                  labelText: '筆記內容',
-                  hintText: '輸入您的筆記...',
-                  border: OutlineInputBorder(),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: noteController,
+                  decoration: const InputDecoration(
+                    labelText: '筆記內容',
+                    hintText: '輸入您的筆記...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  autofocus: true,
                 ),
-                maxLines: 3,
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              const Text('標記顏色:', style: TextStyle(fontSize: 14)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  Colors.red,
-                  Colors.blue,
-                  Colors.green,
-                  Colors.orange,
-                  Colors.purple,
-                  Colors.pink,
-                ].map((color) {
-                  return GestureDetector(
-                    onTap: () => setDialogState(() => selectedColor = color),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: selectedColor == color
-                              ? Colors.black
+                const SizedBox(height: 16),
+                const Text('選擇星星圖標:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    'assets/star1.svg',
+                    'assets/star2.svg',
+                    'assets/star3.svg',
+                  ].map((iconPath) {
+                    final isSelected = selectedIcon == iconPath;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => selectedIcon = iconPath),
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSelected 
+                              ? AppColors.dynamicPrimary.withOpacity(0.1)
                               : Colors.transparent,
-                          width: 3,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.dynamicPrimary
+                                : Colors.grey.shade300,
+                            width: isSelected ? 3 : 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: SvgPicture.asset(
+                          iconPath,
+                          fit: BoxFit.contain,
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                const Text('標記顏色:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    Colors.amber,        // 金色（適合星星）
+                    Colors.yellow,       // 黃色
+                    Colors.orange,       // 橙色
+                    Colors.red,          // 紅色
+                    Colors.blue,         // 藍色
+                    Colors.purple,       // 紫色
+                  ].map((color) {
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => selectedColor = color),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selectedColor == color
+                                ? Colors.black
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
           actions: [
             if (existingMarker != null)
@@ -148,6 +189,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                         note: note,
                         createdAt: existingMarker.createdAt,
                         color: selectedColor,
+                        iconPath: selectedIcon,
                       );
                     }
                   } else {
@@ -158,6 +200,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                       note: note,
                       createdAt: DateTime.now(),
                       color: selectedColor,
+                      iconPath: selectedIcon,
                     ));
                   }
                 });
@@ -333,19 +376,16 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                                     : displayHeight;
 
                                 return Positioned(
-                                  left: marker.position.dx * contentWidth - 14,
-                                  top: marker.position.dy * contentHeight - 14,
+                                  left: marker.position.dx * contentWidth - 20,
+                                  top: marker.position.dy * contentHeight - 20,
                                   child: GestureDetector(
                                     onTap: () => _showNoteDialog(
                                         marker.position, marker),
                                     child: Container(
-                                      width: 28,
-                                      height: 28,
+                                      width: 40,
+                                      height: 40,
                                       decoration: BoxDecoration(
-                                        color: marker.color,
                                         shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: Colors.white, width: 3),
                                         boxShadow: [
                                           BoxShadow(
                                             color:
@@ -354,19 +394,11 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                                             offset: const Offset(0, 3),
                                             spreadRadius: 1,
                                           ),
-                                          BoxShadow(
-                                            color:
-                                                marker.color.withOpacity(0.4),
-                                            blurRadius: 12,
-                                            offset: const Offset(0, 0),
-                                            spreadRadius: 2,
-                                          ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.edit_note,
-                                        size: 16,
-                                        color: Colors.white,
+                                      child: SvgPicture.asset(
+                                        marker.iconPath,
+                                        fit: BoxFit.contain,
                                       ),
                                     ),
                                   ),

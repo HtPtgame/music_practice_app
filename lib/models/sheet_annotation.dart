@@ -8,6 +8,7 @@ class AnnotationMarker {
   final String note;
   final DateTime createdAt;
   final Color color;
+  final String iconPath; // 星星圖標路徑
 
   AnnotationMarker({
     required this.id,
@@ -15,6 +16,7 @@ class AnnotationMarker {
     required this.note,
     required this.createdAt,
     this.color = Colors.red,
+    this.iconPath = 'assets/star1.svg', // 預設為星星1
   });
 
   Map<String, dynamic> toJson() {
@@ -25,6 +27,7 @@ class AnnotationMarker {
       'note': note,
       'createdAt': createdAt.toIso8601String(),
       'color': color.value,
+      'iconPath': iconPath,
     };
   }
 
@@ -38,6 +41,7 @@ class AnnotationMarker {
       note: json['note'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       color: Color(json['color'] as int),
+      iconPath: json['iconPath'] as String? ?? 'assets/star1.svg', // 向後兼容
     );
   }
 }
