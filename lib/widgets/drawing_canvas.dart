@@ -176,7 +176,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           _currentStroke = [];
         });
 
-        // 如果有刪除筆劃，清除快取讓 Painter 直接渲染
+        // 如果有刪除筆劃，清除快取讓 Painter 直接渲染（不重建）
         if (_drawingData.strokes.length < beforeCount) {
           // 清除快取（但不 dispose，可能在歷史中）
           final oldCache = _cachedBackground;
@@ -187,13 +187,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           _cachedBackground = null;
           _cachedStrokeCount = 0;
           
-          // 延遲重建快取並保存歷史（非阻塞）
-          Future.microtask(() async {
-            if (mounted) {
-              await _rebuildCache();
-              if (mounted) _saveToHistory();
-            }
-          });
+          // 直接保存歷史（不重建快取，讓 Painter 持續即時渲染）
+          _saveToHistory();
         }
       } else {
         final stroke = DrawingStroke(
