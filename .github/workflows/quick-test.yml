@@ -1,0 +1,44 @@
+name: 🧪 快速測試構建
+
+on:
+  # 每次推送到 main/master 分支時執行
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  
+  # Pull Request 時執行
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  # 快速測試 - 只檢查代碼，不構建完整版本
+  test:
+    name: 📊 代碼檢查和測試
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 檢出代碼
+        uses: actions/checkout@v4
+
+      - name: 🐦 設置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.3'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 獲取依賴
+        run: flutter pub get
+
+      - name: 🔍 代碼分析
+        run: flutter analyze
+
+      - name: 🧪 運行測試
+        run: flutter test
+
+      - name: ✅ 測試通過
+        run: echo "所有測試通過！✅"
