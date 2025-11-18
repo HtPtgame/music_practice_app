@@ -185,18 +185,18 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           return;
         }
         
-        // 刪除筆劃並重建快取（一次性完成）
-        setState(() {
-          for (final stroke in toDelete) {
-            _drawingData.strokes.remove(stroke);
-          }
-          _currentStroke = [];
-          _cachedStrokeCount = _drawingData.strokes.length;
-        });
+        // 先刪除筆劃（不觸發重繪）
+        for (final stroke in toDelete) {
+          _drawingData.strokes.remove(stroke);
+        }
+        _currentStroke = [];
         
-        // 重建快取並保存到歷史（只執行一次）
+        // 立即重建快取，完成後一次性更新畫面
         _rebuildCache().then((_) {
           if (mounted) {
+            setState(() {
+              // 快取已更新，觸發重繪
+            });
             _saveToHistory();
           }
         });
