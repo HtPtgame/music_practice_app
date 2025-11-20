@@ -100,163 +100,196 @@ class _PlaybackPageState extends State<PlaybackPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     
+    final primaryColor = AppColors.dynamicPrimary;
+    final backgroundColor = AppColors.dynamicBackground;
+    final cardColor = AppColors.dynamicCard;
+    final textDark = AppColors.dynamicTextDark;
+    final textLight = AppColors.dynamicTextLight;
+
     return Scaffold(
-      backgroundColor: AppColors.dynamicBackground,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            l10n?.playbackTitle ?? '播放 MIDI',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+        title: Text(
+          l10n?.playbackTitle ?? 'MIDI Player',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: textDark,
+            fontSize: 18,
           ),
         ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textDark),
           onPressed: () => context.go('/library'),
         ),
-        backgroundColor: AppColors.dynamicBackground,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? Center(child: CircularProgressIndicator(color: primaryColor))
           : LayoutBuilder(
               builder: (context, constraints) {
                 final screenWidth = constraints.maxWidth;
-                final screenHeight = MediaQuery.of(context).size.height;
 
                 return Center(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.only(
-                      left: screenWidth * 0.05,
-                      right: screenWidth * 0.05,
-                      top: screenHeight * 0.02,
-                      bottom: MediaQuery.of(context).padding.bottom + 100,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Card(
-                          color: AppColors.dynamicCard,
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                        Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(32),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                                spreadRadius: 0,
+                              ),
+                            ],
                           ),
                           child: Padding(
-                            padding: EdgeInsets.all(screenWidth * 0.06),
+                            padding: const EdgeInsets.all(32.0),
                             child: Column(
                               children: [
-                                SizedBox(
-                                  width: screenWidth * 0.7,
-                                  height: screenWidth * 0.7,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.music_note,
-                                        size: screenWidth * 0.2,
-                                        color: AppColors.dynamicPrimary,
+                                // 1. 視覺區域 (專輯封面) - 回歸靜態
+                                Container(
+                                  width: screenWidth * 0.5,
+                                  height: screenWidth * 0.5,
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 200,
+                                    maxWidth: 200,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.music_note_rounded,
+                                      size: 80,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                ),
+                                
+                                const SizedBox(height: 28),
+
+                                // 2. 資訊區域 (歌名)
+                                Text(
+                                  widget.file?.name ?? (l10n?.playbackUnknownFile ?? 'Unknown Track'),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textDark,
+                                    height: 1.2,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                
+                                // 副標題已移除
+
+                                const SizedBox(height: 32),
+
+                                // 3. 進度條區域
+                                Column(
+                                  children: [
+                                    SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 6.0,
+                                        activeTrackColor: primaryColor,
+                                        inactiveTrackColor: primaryColor.withOpacity(0.2),
+                                        thumbColor: primaryColor,
+                                        overlayColor: primaryColor.withOpacity(0.1),
+                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
                                       ),
-                                      SizedBox(height: screenHeight * 0.02),
-                                      Text(
-                                        widget.file?.name ?? (l10n?.playbackUnknownFile ?? '未知檔案'),
-                                        style: TextStyle(
-                                          fontSize: screenWidth * 0.04,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.dynamicTextDark,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                      child: Slider(
+                                        value: _currentPosition,
+                                        max: _totalDuration > 0 ? _totalDuration : 1.0,
+                                        onChanged: null,
                                       ),
-                                      if (widget.file != null) ...[
-                                        SizedBox(height: screenHeight * 0.01),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
                                         Text(
-                                          '${l10n?.playbackFileSize ?? '檔案大小'}: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
+                                          _formatTime(_currentPosition),
                                           style: TextStyle(
-                                            fontSize: screenWidth * 0.03,
-                                            color: AppColors.dynamicTextLight,
+                                            fontSize: 12,
+                                            color: textLight,
+                                            fontWeight: FontWeight.w500
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatTime(_totalDuration),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: textLight,
+                                            fontWeight: FontWeight.w500
                                           ),
                                         ),
                                       ],
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(height: screenHeight * 0.015),
-                                Container(
-                                  height: 2,
-                                  width: screenWidth * 0.7,
-                                  color: Colors.grey[300],
-                                ),
-                                SizedBox(height: screenHeight * 0.04),
-                                Slider(
-                                  value: _currentPosition,
-                                  max: _totalDuration,
-                                  onChanged: null,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        _formatTime(_currentPosition),
-                                        style: TextStyle(
-                                            fontSize: screenWidth * 0.035),
-                                      ),
-                                      Text(
-                                        _formatTime(_totalDuration),
-                                        style: TextStyle(
-                                            fontSize: screenWidth * 0.035),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: screenHeight * 0.04),
+
+                                const SizedBox(height: 32),
+
+                                // 4. 控制按鈕區域
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                   children: [
                                     IconButton(
                                       onPressed: _isLoading ? null : _restart,
-                                      icon: const Icon(Icons.replay),
-                                      iconSize: screenWidth * 0.09,
-                                      color: AppColors.dynamicTextDark,
-                                      tooltip: l10n?.playbackTooltipReplay ?? '重新播放',
+                                      icon: const Icon(Icons.replay_rounded),
+                                      iconSize: 28,
+                                      color: textLight,
+                                      tooltip: l10n?.playbackTooltipReplay ?? 'Replay',
                                     ),
+                                    
                                     Container(
+                                      height: 72,
+                                      width: 72,
                                       decoration: BoxDecoration(
-                                        color: AppColors.dynamicPrimary,
+                                        color: primaryColor,
                                         shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: primaryColor.withOpacity(0.3),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 8),
+                                          )
+                                        ],
                                       ),
                                       child: IconButton(
-                                        onPressed: _isLoading
-                                            ? null
-                                            : _togglePlayPause,
+                                        onPressed: _isLoading ? null : _togglePlayPause,
                                         icon: Icon(
                                           _isPlaying
-                                              ? Icons.pause
-                                              : Icons.play_arrow,
+                                              ? Icons.pause_rounded
+                                              : Icons.play_arrow_rounded,
                                         ),
-                                        iconSize: screenWidth * 0.12,
+                                        iconSize: 36,
                                         color: Colors.white,
                                         tooltip: _isPlaying 
-                                            ? (l10n?.playbackTooltipPause ?? '暫停') 
-                                            : (l10n?.playbackTooltipPlay ?? '播放'),
+                                            ? (l10n?.playbackTooltipPause ?? 'Pause') 
+                                            : (l10n?.playbackTooltipPlay ?? 'Play'),
                                       ),
                                     ),
+
                                     IconButton(
                                       onPressed: _isLoading ? null : _stop,
-                                      icon: const Icon(Icons.stop),
-                                      iconSize: screenWidth * 0.09,
-                                      color: AppColors.dynamicTextDark,
-                                      tooltip: l10n?.playbackTooltipStop ?? '停止',
+                                      icon: const Icon(Icons.stop_rounded),
+                                      iconSize: 28,
+                                      color: textLight,
+                                      tooltip: l10n?.playbackTooltipStop ?? 'Stop',
                                     ),
                                   ],
                                 ),
