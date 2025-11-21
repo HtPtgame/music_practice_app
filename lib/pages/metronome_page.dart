@@ -66,12 +66,12 @@ class _MetronomePageState extends State<MetronomePage>
     );
 
     _pendulumAnimation = Tween<double>(
-      // ✨ 調整：縮小擺動幅度 (從 0.75 改為 0.55)
-      begin: -0.55, 
-      end: 0.55,
+      // 0.52 radians 約等於 30度，對應第二條刻度線位置
+      begin: -0.52, 
+      end: 0.52,
     ).animate(CurvedAnimation(
       parent: _pendulumController,
-      curve: Curves.easeInOutQuad,
+      curve: Curves.easeInOut,
     ));
   }
 
@@ -153,6 +153,7 @@ class _MetronomePageState extends State<MetronomePage>
         _currentBeatNotifier.value = 0;
       });
       _pendulumController.stop();
+      // 歸零回到中間 (0.5)
       _pendulumController.animateTo(0.5, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
@@ -178,7 +179,7 @@ class _MetronomePageState extends State<MetronomePage>
   }
 
   void _changeBPM(int delta) {
-    final newBpm = (_bpm + delta).clamp(30, 200);
+    final newBpm = (_bpm + delta).clamp(30, 200); // 保持上限 200
     if (newBpm == _bpm) return;
 
     setState(() {
@@ -205,10 +206,10 @@ class _MetronomePageState extends State<MetronomePage>
   // --- 音訊生成 ---
   Uint8List _generateBeepSound(bool isAccent) {
     const int sampleRate = 44100;
-    const double duration = 0.08;
+    const double duration = 0.1; // 稍微延長以獲得更平滑的淡出
     final int numSamples = (sampleRate * duration).round();
-    final double frequency = isAccent ? 1200.0 : 800.0; 
-    final double masterGain = 0.8; 
+    final double frequency = isAccent ? 1000.0 : 800.0; 
+    final double masterGain = 0.7; 
 
     final List<int> samples = [];
     samples.addAll('RIFF'.codeUnits);
@@ -225,9 +226,32 @@ class _MetronomePageState extends State<MetronomePage>
     samples.addAll('data'.codeUnits);
     samples.addAll(_int32ToBytes(numSamples * 2));
 
+    // 計算淡入淡出長度（避免 clicking/popping 雜音）
+    const int fadeInSamples = 100;  // 約 2.3ms 淡入
+    const int fadeOutSamples = 300; // 約 6.8ms 淡出
+
     for (int i = 0; i < numSamples; i++) {
       final double t = i / sampleRate;
-      final double envelope = exp(-15 * t); 
+      
+      // 平滑的淡入淡出 envelope
+      double envelope = 1.0;
+      
+      // 淡入（使用 sin 曲線更平滑）
+      if (i < fadeInSamples) {
+        envelope = sin((i / fadeInSamples) * pi / 2);
+      }
+      // 淡出（使用指數衰減）
+      else {
+        envelope = exp(-8 * t);
+      }
+      
+      // 尾部額外的線性淡出（確保結尾完全靜音）
+      if (i > numSamples - fadeOutSamples) {
+        final fadeOutProgress = (numSamples - i) / fadeOutSamples;
+        envelope *= fadeOutProgress;
+      }
+      
+      // 生成純淨的正弦波
       final double sample = masterGain * envelope * sin(2 * pi * frequency * t);
       final int sampleInt = (sample * 32767).round().clamp(-32768, 32767);
       samples.addAll(_int16ToBytes(sampleInt));
@@ -347,13 +371,14 @@ class _MetronomePageState extends State<MetronomePage>
                         ),
                       ),
 
-                      // 擺錘動畫區 (Stack + BottomCenter)
+                      // 擺錘動畫區
                       Expanded(
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             final double availableHeight = constraints.maxHeight;
                             final double radius = availableHeight - 30; 
-                            final double rodLength = radius - 18 - 15;
+                            // 擺桿長度調整
+                            final double rodLength = radius - 24;
 
                             return Stack(
                               alignment: Alignment.bottomCenter,
@@ -362,16 +387,18 @@ class _MetronomePageState extends State<MetronomePage>
                                 Positioned.fill(
                                   child: CustomPaint(
                                     painter: MetronomeScalePainter(
-                                      color: AppColors.dynamicTextLight.withOpacity(0.15), 
+                                      color: AppColors.dynamicTextLight.withOpacity(0.2), 
                                       radius: radius,
-                                      pivotOffset: const Offset(0, -15),
+                                      // 刻度圓心向上位移，以配合軸心圓點的位置
+                                      pivotOffset: const Offset(0, -6), 
                                     ),
                                   ),
                                 ),
                                 
-                                // 2. 擺錘
+                                // 2. 旋轉的擺錘 (僅包含重錘與擺桿)
+                                // ✨ 修正 1：透過 Padding 抬高旋轉軸心，使其對齊下方的靜止圓點中心
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 0),
+                                  padding: const EdgeInsets.only(bottom: 6), // 6px 是圓點半徑 (12/2)
                                   child: AnimatedBuilder(
                                     animation: _pendulumAnimation,
                                     builder: (context, child) {
@@ -379,34 +406,62 @@ class _MetronomePageState extends State<MetronomePage>
                                         transform: Matrix4.identity()
                                           ..setEntry(3, 2, 0.001)
                                           ..rotateZ(_pendulumAnimation.value),
-                                        alignment: Alignment.bottomCenter,
+                                        alignment: Alignment.bottomCenter, // 繞著自己的底部旋轉
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           mainAxisAlignment: MainAxisAlignment.end,
                                           children: [
+                                            // 重錘
                                             Container(
-                                              width: 36,
-                                              height: 36,
+                                              width: 32,
+                                              height: 32,
                                               decoration: BoxDecoration(
                                                 color: AppColors.dynamicPrimary,
                                                 shape: BoxShape.circle,
-                                                boxShadow: [BoxShadow(color: AppColors.dynamicPrimary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0,4))],
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: AppColors.dynamicPrimary.withOpacity(0.5),
+                                                    blurRadius: 10,
+                                                    spreadRadius: 3,
+                                                  ),
+                                                ],
                                               ),
-                                              child: Center(child: Container(width: 12, height: 12, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
                                             ),
+                                            // 擺桿
                                             Container(
-                                              width: 6,
+                                              width: 5,
                                               height: rodLength > 0 ? rodLength : 0,
                                               decoration: BoxDecoration(
-                                                color: AppColors.dynamicPrimary.withOpacity(0.8),
-                                                borderRadius: BorderRadius.circular(4),
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    AppColors.dynamicPrimary,
+                                                    AppColors.dynamicPrimary.withOpacity(0.6),
+                                                  ],
+                                                ),
+                                                borderRadius: BorderRadius.circular(2.5),
                                               ),
                                             ),
-                                            const SizedBox(height: 15),
+                                            // 這裡不需要軸心圓點，因為它要跟著旋轉
                                           ],
                                         ),
                                       );
                                     },
+                                  ),
+                                ),
+
+                                // 3. ✨ 修正 1：靜止的軸心圓點 (放在最上層，不參與旋轉)
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.dynamicTextDark,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.dynamicPrimary,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -434,6 +489,7 @@ class _MetronomePageState extends State<MetronomePage>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Beat Indicators
                       SizedBox(
                         height: 24, 
                         child: ValueListenableBuilder<int>(
@@ -597,24 +653,46 @@ class MetronomeScalePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color..strokeWidth = 2..style = PaintingStyle.stroke;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
     
     final centerX = size.width / 2;
     final centerY = size.height + pivotOffset.dy;
 
-    // ✨ 調整：配合縮小的擺動幅度，縮短刻度弧線的長度
-    // 範圍約 +/- 35度
-    final rect = Rect.fromCircle(center: Offset(centerX, centerY), radius: radius);
-    canvas.drawArc(rect, -125 * pi / 180, 70 * pi / 180, false, paint);
-
-    // ✨ 調整：減少刻度數量 (從 4格 減為 3格)
+    // 繪製扇形刻度線（從左 -30° 到右 +30°）
     for (int i = -3; i <= 3; i++) {
-      final angle = (i * 10) * pi / 180; 
-      
-      final p1 = Offset(centerX + radius * sin(angle), centerY - radius * cos(angle));
-      final p2 = Offset(centerX + (radius - 15) * sin(angle), centerY - (radius - 15) * cos(angle));
-      
-      canvas.drawLine(p1, p2, paint..strokeWidth = (i == 0 ? 3 : 1.5));
+      // 角度從 -30度 到 +30度
+      final angleDegrees = i * 10.0; // 每個刻度間隔10度
+      // 轉換為弧度，0度向上
+      final angleRadians = (angleDegrees) * pi / 180;
+
+      const tickLength = 15.0; // 刻度線長度
+      final startRadius = radius - tickLength;
+      final endRadius = radius;
+
+      final startX = centerX + startRadius * sin(angleRadians);
+      final startY = centerY - startRadius * cos(angleRadians);
+      final endX = centerX + endRadius * sin(angleRadians);
+      final endY = centerY - endRadius * cos(angleRadians);
+
+      final start = Offset(startX, startY);
+      final end = Offset(endX, endY);
+
+      // 中間刻度（0度）加粗
+      if (i == 0) {
+        canvas.drawLine(
+          start,
+          end,
+          Paint()
+            ..color = color
+            ..strokeWidth = 3
+            ..style = PaintingStyle.stroke,
+        );
+      } else {
+        canvas.drawLine(start, end, paint);
+      }
     }
   }
   @override
@@ -653,7 +731,7 @@ class _BPMInputPageState extends State<_BPMInputPage> {
   void _handleConfirm() {
     int newBPM = int.tryParse(inputValue) ?? widget.currentBPM;
     if (newBPM < 30) newBPM = 30;
-    if (newBPM > 300) newBPM = 300;
+    if (newBPM > 200) newBPM = 200;
     widget.onBPMChanged(newBPM);
     Navigator.of(context).pop();
   }
