@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/firebase_auth_service.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
@@ -49,6 +48,7 @@ class _LoginPageState extends State<LoginPage> {
           debugPrint('同步雲端數據時發生錯誤（不影響登入）: $e');
         }
 
+        if (!mounted) return;
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -94,6 +94,7 @@ class _LoginPageState extends State<LoginPage> {
             debugPrint('同步雲端數據時發生錯誤（不影響登入）: $e');
           }
 
+          if (!mounted) return;
           final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

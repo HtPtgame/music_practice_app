@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 import 'package:music_practice_app/services/settings_service.dart';
@@ -302,10 +300,7 @@ class _MetronomePageState extends State<MetronomePage>
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.dynamicTextDark),
-          onPressed: () => context.pop(),
-        ),
+        automaticallyImplyLeading: false, // 移除返回鍵
       ),
       body: SafeArea(
         child: Padding(
