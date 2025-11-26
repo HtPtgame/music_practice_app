@@ -919,15 +919,316 @@ for (final date in weekDates) {
 
 ---
 
+## 📅 歷史更新 (2025/11/26)
+
+### 🎵 MIDI 播放系統優化完成
+
+**日期**: 2025-11-26  
+**重要性**: ⭐⭐⭐ 關鍵修復  
+**影響範圍**: MIDI 檔案播放穩定性、錯誤處理
+
+#### 問題回報
+
+**症狀**: 部分 MIDI 檔案無法播放（如 `the-village-in-may.mid`）
+- 點擊播放後無響應
+- 控制台出現 `RangeError: Index out of range: 3951`
+- 計算出異常時長（19 分鐘）
+
+**問題檔案特徵**:
+```
+檔案: the-village-in-may.mid
+大小: 8.29 KB
+音符數: 110 個
+Tempo tick: 0, 1106395, 1108314
+問題: Tempo tick 值遠超音符範圍 (107520)
+結果: 時長計算錯誤 (1150.4 秒)
+```
+
+#### 根本原因分析
+
+**1. RangeError 錯誤**:
+- MIDI 解析器缺乏邊界檢查
+- `_readChunk()` 未驗證 position 是否超出檔案長度
+- 嘗試讀取 position 3951，但檔案只有 8485 bytes
+
+**2. 異常時長**:
+- Tempo 事件 tick 值（1106395）遠超實際音符範圍（107520）
+- `_precomputeTempos()` 未過濾這些異常 tempo
+- 導致計算出 1150.4 秒（19 分鐘）的錯誤時長
+
+#### 優化內容
+
+**1. MIDI 解析器強化** (`lib/utils/midi_parser.dart`)
+
+**檔案格式驗證**:
+```dart
+// 檢查最小檔案大小
+if (_byteData.lengthInBytes < 14) {
+  throw 'MIDI 檔案太小，至少需要 14 bytes';
+}
+
+// 驗證 TPQ 合理性
+if (ticksPerQuarterNote <= 0 || ticksPerQuarterNote > 10000) {
+  throw 'Invalid ticks per quarter note';
+}
+
+// 驗證軌道數量
+if (trackCount <= 0 || trackCount > 1000) {
+  throw 'Invalid track count';
+}
+```
+
+**Chunk 邊界檢查**:
+```dart
+// 檢查 header 是否超出範圍
+if (_p + 8 > _byteData.lengthInBytes) {
+  return null;
+}
+
+// 檢查 data 是否超出範圍
+if (_p + 8 + length > _byteData.lengthInBytes) {
+  return null;
+}
+```
+
+**安全的事件解析**:
+```dart
+// 所有事件類型改用 <= 邊界檢查
+if (p + 2 > data.lengthInBytes) break;  // 改進前: p + 1 >=
+```
+
+**2. MIDI 播放服務優化** (`lib/services/midi_player_service.dart`)
+
+**檔案驗證**:
+```dart
+// 檢查存在性
+if (!await file.exists()) {
+  throw Exception('MIDI 檔案不存在');
+}
+
+// 檢查大小合理性
+if (fileSize < 14) throw Exception('檔案太小');
+if (fileSize > 10MB) throw Exception('檔案過大');
+```
+
+**Tempo 事件過濾** (核心修復):
+```dart
+// 過濾超出音符範圍的 tempo
+_tempoChanges = parser.tempoEvents
+    .where((tempo) {
+      return tempo.tick <= lastEventTick + (_tpq * 4) &&
+             tempo.microsecondsPerQuarter > 0 &&
+             tempo.microsecondsPerQuarter < 10000000;
+    });
+```
+
+**Tempo 預計算驗證**:
+```dart
+// 驗證 tempo 值
+if (tempo.microsecondsPerQuarter <= 0 || > 10000000) {
+  continue;  // 跳過異常 tempo
+}
+
+// 驗證 msPerTick
+if (!msPerTick.isFinite || msPerTick <= 0 || > 1000) {
+  continue;
+}
+
+// 驗證段落時間
+if (!segmentMs.isFinite || segmentMs < 0 || > 3600000) {
+  continue;
+}
+
+// 預設值 fallback
+if (_cachedTempos.isEmpty) {
+  _cachedTempos.add(/* 使用 120 BPM */);
+}
+```
+
+**時長合理性檢查**:
+```dart
+// 驗證總時長
+if (durationMs <= 0) throw Exception('無效時長');
+if (durationMs > 3600000) throw Exception('時長過長');
+```
+
+**安全的事件時間計算**:
+```dart
+// 處理超出範圍的 tick
+if (tick > lastTempo.endTick) {
+  final extraMs = extraTicks * lastTempo.msPerTick;
+  if (!extraMs.isFinite) return lastTempo.cumulativeMs;
+}
+```
+
+**3. 播放頁面錯誤處理** (`lib/pages/playback_page.dart`)
+
+**用戶友善的錯誤提示**:
+```dart
+try {
+  await _midiService.play(widget.file!.path!);
+} catch (e) {
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('播放失敗: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+```
+
+**Slider 值修復**:
+```dart
+// 防止 Slider 範圍錯誤
+value: _totalDuration > 0 
+    ? _currentPosition.clamp(0.0, _totalDuration)
+    : 0.0,
+```
+
+**4. 測試工具** (`tools/test_midi_parser.dart`)
+
+**完整的 MIDI 診斷工具**:
+```bash
+dart run tools/test_midi_parser.dart <midi_file>
+```
+
+**檢查項目**:
+- 檔案基本資訊（大小、TPQ、音符數、Tempo 數）
+- 音符範圍（最低音、最高音）
+- Tempo 事件列表（tick、BPM、時間）
+- Tick 範圍檢查
+- 時長估算
+- 問題診斷（超大 tick、異常 tempo、超出音域）
+
+#### 安全檢查架構
+
+**4層安全防護**:
+```
+Level 1: 檔案層級
+├─ 存在性檢查
+├─ 大小檢查 (14B - 10MB)
+└─ 讀取錯誤處理
+
+Level 2: 解析層級
+├─ Header 格式驗證
+├─ Chunk 邊界檢查
+├─ TPQ 驗證 (1-10000)
+├─ 軌道數驗證 (1-1000)
+└─ 事件邊界檢查
+
+Level 3: 數據層級
+├─ 音符過濾 (A0-C8, 21-108)
+├─ Tick 檢查 (< 10,000,000)
+├─ Tempo 驗證 (> 0, < 10,000,000 μs)
+├─ msPerTick 驗證 (isFinite, > 0, < 1000)
+└─ 段落時間驗證 (isFinite, 0-3600000 ms)
+
+Level 4: 播放層級
+├─ 總時長驗證 (0-3600000 ms)
+├─ 事件時間計算安全性
+├─ Slider 範圍 clamp
+└─ 狀態更新異常處理
+```
+
+#### 優化效果
+
+| 項目 | 優化前 | 優化後 |
+|------|--------|--------|
+| RangeError | ❌ 崩潰 | ✅ 安全檢查 |
+| 異常時長 | ❌ 19 分鐘 | ✅ 37.3 秒 |
+| 錯誤訊息 | ❌ 無提示 | ✅ 用戶友善 |
+| 診斷工具 | ❌ 無 | ✅ 完整檢測 |
+
+#### 技術文檔
+
+**已整合文檔**:
+- `MIDI_PLAYBACK_IMPROVEMENTS.md` - 優化摘要
+- `MIDI_PLAYER_CODE_REFERENCE.md` - 程式碼參考
+- `tools/README.md` - 測試工具使用指南
+
+**關鍵檔案**:
+- `lib/utils/midi_parser.dart` (251 行) - MIDI 解析器
+- `lib/services/midi_player_service.dart` (595 行) - 播放服務
+- `lib/pages/playback_page.dart` (338 行) - 播放 UI
+- `tools/test_midi_parser.dart` (223 行) - 診斷工具
+
+---
+
+## 📅 歷史更新 (2025/11/18)
+
+### 🌐 國際化系統完善
+
+**日期**: 2025-11-18  
+**重要性**: ⭐⭐⭐ 功能完善  
+**影響範圍**: 多語言支援、UI/UX
+
+#### 系統架構
+
+**支援語言**: 繁中（預設）、英文（完整）、簡中、日文  
+**翻譯字串**: 300+ 個 key  
+**工具**: AppLocalizations (Flutter intl)
+
+**使用方式**:
+```dart
+final l10n = AppLocalizations.of(context)!;
+Text(l10n.commonAppName);  // 應用名稱
+```
+
+**國際化完成項目**:
+- ✅ 上傳頁面 (`uploadMidiNoFileSelected`, `uploadMidiSuccess`)
+- ✅ 標記對話框 (`annotationAddMarker`, `annotationEditMarker`)
+- ✅ 動物圖鑑入口
+- ✅ 語言切換通知優化（300ms 延遲 + addPostFrameCallback）
+- ✅ 節拍器文字自動縮小
+
+**參考文檔**: `INTERNATIONALIZATION_GUIDE.md`
+
+---
+
+### 🔐 Firebase 認證系統優化
+
+**雲端設定同步修正**:
+```dart
+// ❌ 舊邏輯：使用 ?? 預設值會覆蓋實際設定
+final volume = settings['masterVolume'] ?? 0.8;
+
+// ✅ 新邏輯：使用 containsKey() 精確檢查
+if (settings.containsKey('masterVolume')) {
+  await prefs.setDouble('master_volume', settings['masterVolume']);
+}
+```
+
+**修正範圍**: 7 個音量設定（master, midi, metronome, recording, overall, practice, record）
+
+---
+
+### 🎨 UI 優化細節
+
+**播放錄音按鈕整合**:
+```dart
+// 整合為單一動態按鈕
+ElevatedButton.icon(
+  icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+  label: Text(isPlaying ? '停止' : '播放錄音'),
+)
+```
+
+**練習頁面佈局調整**:
+- 錄音按鈕和狀態顯示改為上下排列
+- 累計打卡天數移至連續天數下方
+
+---
+
 ## 📅 歷史更新 (2025/11/17)
 
-### 🔍 三大核心功能系統審查（兩次完整審查）
+### 🔍 三大核心功能系統審查
 
 **審查範圍**: 打卡系統、動物圖鑑、練習時長記錄
 
-#### 第一次審查 - 發現並修正 10 個問題
+#### 關鍵修正 (12 項)
 
-**關鍵修正**:
 1. ✅ 連續打卡天數計算邏輯統一
 2. ✅ 動物圖鑑添加 `didChangeDependencies()` 生命週期監聽
 3. ✅ 動物圖鑑 `_loadData` 邏輯修正
@@ -937,52 +1238,26 @@ for (final date in weekDates) {
 7. ✅ 登出時清除本地數據
 8. ✅ 註冊時添加「保留訪客數據」選項
 9. ✅ 練習計時器切換畫面自動保存
-10. ✅ 數據完整性自動檢查機制（`_ensureDataIntegrity`）
-
-#### 第二次審查 - 補充修正 2 個問題
-
+10. ✅ 數據完整性自動檢查機制
 11. ✅ 登出時補全動物解鎖數據清理
 12. ✅ 動物圖鑑服務初始化改用全局單例
 
-**核心技術決策**:
+#### 核心技術決策
 
 **數據同步策略**:
-- 本地優先：所有 UI 從 SharedPreferences 讀取
-- 登入同步：雲端 → 本地（直接覆蓋）
-- 修改同步：本地 → 雲端（即時上傳）
-- 訪客保護：註冊時可選擇保留訪客數據
+- 本地優先：UI 從 SharedPreferences 讀取
+- 登入同步：雲端 → 本地
+- 修改同步：本地 → 雲端
+- 訪客保護：註冊時可選擇保留數據
 
 **時間格式統一**:
-- 打卡/動物解鎖：`yyyy-MM-ddT00:00:00.000`（只保留日期）
+- 打卡/動物解鎖：`yyyy-MM-ddT00:00:00.000`
 - 練習時長：秒數（本地）、分鐘×10（雲端）
 
 **錯誤恢復機制**:
 - 打卡：樂觀鎖 + 完整回滾
 - 動物解鎖：增量同步
-- 練習時長：每日清理（使用 `last_practice_clean_date`）
-
----
-
-### 📊 數據完整性自動檢查機制
-
-**功能**: 登入時自動檢查並補全舊帳號缺失的資料欄位
-
-**檢查欄位**:
-- `checkInDates` (打卡記錄)
-- `practiceTime` (練習時長)
-- `unlockedAnimals` (動物解鎖)
-- `musicNotes` (文字筆記)
-- `settings` (7個子欄位)
-
-**執行時機**:
-1. Email/Google 登入時
-2. App 啟動時（已登入狀態）
-3. 自動登入時（Firebase Auth 持久化）
-
-**優點**:
-- ✅ 向後相容（舊帳號自動升級）
-- ✅ 無需手動遷移
-- ✅ 防止讀取不存在欄位導致錯誤
+- 練習時長：每日清理
 
 ---
 
@@ -1205,6 +1480,374 @@ class _AnimalCollectionEntryCard extends StatelessWidget {
 ---
 
 ## 📅 歷史更新 (2025/11/16 早期)
+
+### 🐾 動物圖鑑打卡系統整合
+
+**日期**: 2025-11-16  
+**問題**: 組員新增的動物圖鑑使用獨立打卡系統，與首頁不同步
+
+**解決方案**: 移除獨立 `CheckInService`，改為直接讀取首頁的 `checked_dates`
+
+**數據流程**:
+```
+首頁打卡 → SharedPreferences (checked_dates) → 動物圖鑑讀取 → 自動解鎖
+           ↓
+        Firebase 同步
+```
+
+**修改檔案**: `lib/pages/animal_collection_page.dart`
+- 移除 `CheckInService` 依賴
+- 使用 `SharedPreferences` 直接讀取
+- 添加重新整理按鈕
+- 引導用戶到首頁打卡
+
+---
+
+## 📅 歷史更新 (2025/11/14)
+
+### 📊 UI 優化與數據精度改進
+
+#### 累計打卡天數顯示調整
+
+**問題**: 累計天數與連續天數並排，小螢幕擁擠
+
+**解決**: 改為垂直排列
+```dart
+Column(
+  children: [
+    Text('練習打卡'),
+    Row([Icon, Text('連續 $_consecutiveDays 天')]),
+    Row([Icon, Text('累計 $_totalCheckInDays 天')]),
+  ],
+)
+```
+
+#### 練習時長計算優化
+
+**問題**: 先轉分鐘再累加導致精度損失
+
+**範例**:
+```
+舊算法：1分30秒 (1min) + 1分40秒 (1min) = 2分鐘 ❌
+新算法：90秒 + 100秒 = 190秒 = 3分10秒 ✅
+```
+
+**修改**:
+```dart
+// ❌ 舊邏輯
+totalMinutes += seconds ~/ 60;
+
+// ✅ 新邏輯
+totalSeconds += seconds;
+final totalMinutes = totalSeconds ~/ 60;
+```
+
+#### 音量控制滑桿精度優化
+
+**問題**: 滑桿數值無限制，雲端出現冗長小數  
+**解決**: 添加 `divisions: 100`（每格 1%）
+
+**效果**: 
+- 數值簡化：0.87, 0.60（而非 0.8736492839...）
+- 雲端數據整潔
+
+---
+
+### 📊 練習統計功能修正
+
+#### 本週平均計算優化
+
+**問題**: 固定除以 7 天，未考慮本週已過天數
+
+**範例**:
+```
+情況：今天週二，週一練習60分鐘
+舊結果：60分鐘 ÷ 7天 = 8.6分鐘/天 ❌
+新結果：60分鐘 ÷ 2天 = 30分鐘/天 ✅
+```
+
+**本週定義**:
+- 週期: 週一 00:00 至週日 23:59
+- 計算: 使用 `DateTime.weekday` (1=週一, 7=週日)
+- 平均值: 總秒數 ÷ 已過天數（不含未來）
+
+**修改**:
+```dart
+// 只計算已過天數
+for (final date in weekDates) {
+  if (date.isAfter(DateTime(now.year, now.month, now.day))) {
+    continue;  // 跳過未來
+  }
+  daysInWeekSoFar++;
+  totalSeconds += _weeklyPracticeData[dateString] ?? 0;
+}
+final avgSeconds = totalSeconds / daysInWeekSoFar;
+```
+
+#### 連續打卡跨月修正
+
+**問題**: 跨月份時連續天數計算錯誤
+
+**修改**:
+```dart
+// 正確處理今天未打卡的情況
+for (int i = 0; i < 365; i++) {
+  if (_checkedDates.contains(dateString)) {
+    consecutive++;
+  } else {
+    if (i == 0 && !_checkedDates.contains(todayString)) {
+      continue;  // 今天未打卡，從昨天開始
+    }
+    break;
+  }
+}
+```
+
+---
+
+## 📅 歷史更新 (2025/11/11)
+
+### 🎵 計時器頁面切換警告功能
+
+**日期**: 2025-11-11  
+**問題**: 用戶在計時器運行時切換頁面，導致數據丟失
+
+**解決方案**: 全局狀態管理 + 頁面切換攔截
+
+#### 實現架構
+
+**1. 全局計時器狀態** (`lib/services/practice_timer_service.dart`):
+```dart
+class PracticeTimerService extends ChangeNotifier {
+  bool _isTimerRunning = false;
+  
+  void setTimerRunning(bool isRunning) {
+    _isTimerRunning = isRunning;
+    notifyListeners();
+  }
+}
+```
+
+**2. 計時器整合** (`lib/widgets/practice_timer_card.dart`):
+```dart
+void _startTimer() {
+  _timerService.setTimerRunning(true);  // 通知全局
+}
+
+void _pauseTimer() {
+  _timerService.setTimerRunning(false);  // 通知全局
+  await _savePracticeData();
+}
+```
+
+**3. 底部導航攔截** (`lib/widgets/main_shell.dart`):
+```dart
+void _onItemTapped(int index, BuildContext context) async {
+  if (timerService.isTimerRunning) {
+    final confirmed = await showDialog<bool>(
+      builder: (context) => AlertDialog(
+        title: Text('計時器運行中'),
+        content: Text('切換頁面將導致本次計時數據不被記錄...'),
+        actions: [
+          TextButton(child: Text('留在此頁')),
+          TextButton(child: Text('確定離開')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;  // 用戶取消
+  }
+  context.go('/...');
+}
+```
+
+**優點**:
+- ✅ 主動防護，避免數據丟失
+- ✅ 用戶友善的警告對話框
+- ✅ 全局狀態，任何頁面可檢測
+
+---
+
+### 🔐 Firebase 認證與數據系統建置
+
+**日期**: 2025-11-11  
+**重要性**: ⭐⭐⭐ 系統核心  
+**影響範圍**: 用戶認證、雲端同步
+
+#### 實作內容
+
+**1. Firebase 專案配置**:
+- 專案 ID: `sound-spirit-detective`
+- 啟用 Authentication（Email + Google Sign-In）
+- 啟用 Cloud Firestore
+- 配置 Android（google-services.json）
+
+**2. 認證服務** (`lib/services/firebase_auth_service.dart`):
+- Email/密碼註冊與登入
+- Google 帳號登入（強制顯示帳號選擇器）
+- 帳號刪除功能
+- 自動數據同步（登入時載入雲端數據）
+
+**3. 用戶模型** (`lib/models/user.dart`):
+```dart
+class User {
+  String id;
+  String? email;
+  List<DateTime> checkInDates;        // 打卡記錄
+  Map<String, int> practiceTime;      // 練習時間
+  Map<String, dynamic> settings;      // 設定
+}
+```
+
+**4. 數據同步策略**:
+```
+本地優先: UI 從 SharedPreferences 讀取
+登入同步: Firestore → SharedPreferences
+修改同步: SharedPreferences → Firestore
+離線支援: 未登入時使用本地數據
+```
+
+**5. 同步服務** (`lib/services/user_data_sync_service.dart`):
+```dart
+class UserDataSyncService {
+  Future<void> syncCheckInDates(List<DateTime> dates);
+  Future<void> syncPracticeTime(Map<String, int> time);
+  Future<void> syncSettings(Map<String, dynamic> settings);
+}
+```
+
+**參考文檔**: `FIREBASE_SETUP_GUIDE.md`, `AUTH_IMPROVEMENTS.md`
+
+---
+
+## 📅 歷史更新 (2025/11/08 - 2025/11/10)
+
+### 🎯 節拍器功能完整實作
+
+**日期**: 2025-11-08  
+**重要性**: ⭐⭐⭐ 核心功能  
+**影響範圍**: 節拍器頁面、音訊系統
+
+#### 核心架構
+
+**檔案**: `lib/pages/metronome_page.dart` (1078 行)
+
+**功能特性**:
+- BPM 範圍：40-200（可手動輸入 30-300）
+- 拍號支援：2/4, 3/4, 4/4, 6/4
+- 音效生成：即時生成 WAV 格式正弦波
+- 視覺動畫：擺錘動畫 + 脈衝動畫 + 拍點指示器
+- 音量整合：自動讀取節拍器音量設定
+
+#### 計時系統
+
+**使用 Ticker** (性能瓶頸核心):
+```dart
+Ticker? _ticker;
+
+void _startMetronome() {
+  final int intervalMs = (60000 / _bpm).round();
+  _ticker = createTicker((Duration elapsed) {
+    final currentBeatNumber = (elapsed.inMilliseconds / intervalMs).floor();
+    if (currentBeatNumber > beatCount) {
+      _playBeat();  // 觸發音訊 + UI + 動畫
+    }
+  });
+}
+```
+
+**問題分析**:
+- Ticker 每幀檢查 (~16ms @ 60fps)
+- 高 BPM 間隔短（180 BPM = 333ms，240 BPM = 250ms）
+- 同步觸發 setState() + 音訊生成 + 動畫
+
+#### 音訊系統
+
+**音效生成** (即時編碼):
+```dart
+Uint8List _generateBeepSound(bool isAccent) {
+  const int sampleRate = 44100;
+  const double duration = 0.1;  // 100ms
+  final int numSamples = 4410;
+  
+  // ⚠️ 每次播放都即時生成 WAV (~9KB)
+  // 包含：正弦波 + 諧波 + 淡出效果
+  return Uint8List.fromList(samples);
+}
+```
+
+**播放流程**:
+```dart
+void _playSound(bool isAccent) async {
+  // 1. 取得音量設定（異步）
+  final volume = await _settingsService.getMetronomeVolume();
+  
+  // 2. 設置音量
+  await _audioPlayer!.setVolume(volume);
+  
+  // 3. 即時生成音訊
+  final audioData = _generateBeepSound(isAccent);
+  
+  // 4. 播放
+  await _audioPlayer!.startPlayer(fromDataBuffer: audioData, ...);
+}
+```
+
+**性能瓶頸**:
+- 即時編碼：每拍生成 ~9KB WAV
+- 異步鏈：音量讀取 → 設置 → 編碼 → 播放
+- 高頻觸發：240 BPM = 每秒 4 次生成
+
+#### 動畫系統
+
+**擺錘動畫**:
+```dart
+AnimationController _pendulumController;
+Animation<double> _pendulumAnimation;
+
+_pendulumAnimation = Tween<double>(
+  begin: -0.7,  // -40度
+  end: 0.7,     // +40度
+).animate(CurvedAnimation(curve: Curves.easeInOut));
+
+_pendulumController.repeat(reverse: true);
+```
+
+**脈衝動畫**:
+```dart
+AnimationController _pulseController;
+Animation<double> _pulseAnimation;
+
+_pulseAnimation = Tween<double>(
+  begin: 1.0,
+  end: 1.3,
+).animate(CurvedAnimation(curve: Curves.elasticOut));
+
+// 每拍觸發
+_pulseController.forward().then((_) {
+  _pulseController.reverse();
+});
+```
+
+#### 優化建議
+
+**🔴 高優先級**:
+1. **預先生成音訊緩衝** → 消除即時編碼
+2. **音量設定快取** → 避免每拍異步讀取
+3. **考慮 Timer.periodic** → 降低檢查頻率
+
+**🟡 中優先級**:
+4. 分離音訊邏輯為獨立 Service
+5. 解耦動畫與音訊觸發時機
+
+**性能測試**:
+- ✅ 60 BPM：正常
+- ✅ 120 BPM：正常
+- ⚠️ 180 BPM：開始延遲
+- ❌ 240+ BPM：明顯卡頓
+
+**參考文檔**: `METRONOME_REFACTORING_GUIDE.md`（完整技術文檔，含程式碼）
+
+---
 
 ### 🐾 動物圖鑑打卡系統整合
 

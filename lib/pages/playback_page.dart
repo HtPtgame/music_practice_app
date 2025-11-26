@@ -65,7 +65,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
     super.dispose();
   }
 
-  void _togglePlayPause() {
+  void _togglePlayPause() async {
     if (widget.file?.path == null) return;
 
     if (_isPlaying) {
@@ -74,16 +74,46 @@ class _PlaybackPageState extends State<PlaybackPage> {
       if (_currentPosition > 0) {
         _midiService.resume();
       } else {
-        _midiService.play(widget.file!.path!);
+        try {
+          await _midiService.play(widget.file!.path!);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('播放失敗: ${e.toString()}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: '確定',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          }
+        }
       }
     }
   }
 
   void _restart() async {
     if (widget.file?.path == null) return;
-    await _midiService.stop();
-    await Future.delayed(const Duration(milliseconds: 200));
-    _midiService.play(widget.file!.path!);
+    
+    try {
+      await _midiService.stop();
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _midiService.play(widget.file!.path!);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('重新播放失敗: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   void _stop() {
@@ -211,7 +241,9 @@ class _PlaybackPageState extends State<PlaybackPage> {
                                         overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
                                       ),
                                       child: Slider(
-                                        value: _currentPosition,
+                                        value: _totalDuration > 0 
+                                            ? _currentPosition.clamp(0.0, _totalDuration)
+                                            : 0.0,
                                         max: _totalDuration > 0 ? _totalDuration : 1.0,
                                         onChanged: null,
                                       ),

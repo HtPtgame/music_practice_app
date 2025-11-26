@@ -81,8 +81,17 @@ class MidiPlayerService {
     if (_events.isEmpty) return 0;
     if (_cachedTempos.isEmpty) return 0;
 
-    final lastEvent = _events.last;
-    return _getEventTimeMs(lastEvent.tick).round();
+    try {
+      final lastEvent = _events.last;
+      final timeMs = _getEventTimeMs(lastEvent.tick);
+      
+      if (!timeMs.isFinite || timeMs < 0) return 0;
+      
+      return timeMs.round().clamp(0, 3600000); // 最多 1 小時
+    } catch (e) {
+      debugPrint('⚠️ Error calculating total duration: $e');
+      return 0;
+    }
   }
 
   Future<void> initialize() async {
@@ -192,34 +201,81 @@ class MidiPlayerService {
     _scheduledNotes.clear();
 
     try {
+      // ⭐ 檢查檔案是否存在
       final file = File(midiPath);
+      if (!await file.exists()) {
+        throw Exception('MIDI 檔案不存在: $midiPath');
+      }
+
+      final fileSize = await file.length();
+      debugPrint('\n📋 MIDI 檔案資訊:');
+      debugPrint('  • 檔案: ${file.path.split(Platform.pathSeparator).last}');
+      debugPrint('  • 大小: $fileSize bytes');
+
+      // ⭐ 檢查檔案大小
+      if (fileSize < 14) {
+        throw Exception('MIDI 檔案太小，可能已損壞');
+      }
+      if (fileSize > 10 * 1024 * 1024) {
+        throw Exception('MIDI 檔案過大 (>10MB)，可能無法處理');
+      }
+
+      // ⭐ 讀取檔案
       final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        throw Exception('MIDI 檔案空白');
+      }
 
+      // ⭐ 解析 MIDI
       final parser = MidiParser();
-      final events = parser.parse(bytes);
-      _tpq = parser.ticksPerQuarterNote;
+      List<MidiNoteEvent> events;
+      
+      try {
+        events = parser.parse(bytes);
+        _tpq = parser.ticksPerQuarterNote;
+        
+        debugPrint('  • TPQ: $_tpq');
+        debugPrint('  • 原始音符數: ${events.length}');
+        debugPrint('  • Tempo 事件數: ${parser.tempoEvents.length}');
+      } catch (e, stackTrace) {
+        debugPrint('❌ MIDI 解析失敗: $e');
+        debugPrint('Stack trace: $stackTrace');
+        throw Exception('MIDI 檔案解析失敗：$e');
+      }
 
-      // 過濾有效事件，只保留鋼琴音域
+      // ⭐ 驗證解析結果
+      if (_tpq <= 0 || _tpq > 10000) {
+        throw Exception('異常的 TPQ 值: $_tpq');
+      }
+
+      if (events.isEmpty) {
+        throw Exception('檔案中沒有找到任何音符');
+      }
+
+      // ⭐ 過濾有效事件，只保留鋼琴音域
       final filteredEvents = events.where((e) {
         return e.tick >= 0 &&
-            e.tick < 10000000 &&
+            e.tick < 10000000 && // 防止異常大的 tick 值
             e.noteNumber >= 21 && // A0
             e.noteNumber <= 108; // C8
       }).toList();
 
+      debugPrint('  • 過濾後音符數: ${filteredEvents.length}');
+
       if (filteredEvents.isEmpty) {
-        debugPrint('⚠️ No valid piano events found');
-        return;
+        throw Exception('沒有找到有效的鋼琴音符（A0-C8）');
       }
 
-      // 移除前導空白時間
+      // ⭐ 移除前導空白時間
       final firstNoteOn = filteredEvents.firstWhere(
         (e) => e.isNoteOn,
         orElse: () => filteredEvents.first,
       );
       final firstNoteTick = firstNoteOn.tick;
 
-      // 調整所有事件
+      debugPrint('  • 第一個音符 tick: $firstNoteTick');
+
+      // ⭐ 調整所有事件
       _events = filteredEvents.map((event) {
         return MidiNoteEvent(
           tick: (event.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
@@ -229,25 +285,59 @@ class MidiPlayerService {
         );
       }).toList();
 
-      // 調整 tempo 事件
-      _tempoChanges = parser.tempoEvents.map((tempo) {
-        return TempoChange(
-          tick: (tempo.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
-          microsecondsPerQuarter: tempo.microsecondsPerQuarter,
-        );
-      }).toList();
+      // ⭐ 調整並過濾 tempo 事件
+      final lastEventTick = _events.isNotEmpty ? _events.last.tick : 0;
+      
+      _tempoChanges = parser.tempoEvents
+          .map((tempo) {
+            return TempoChange(
+              tick: (tempo.tick - firstNoteTick).clamp(0, double.infinity).toInt(),
+              microsecondsPerQuarter: tempo.microsecondsPerQuarter,
+            );
+          })
+          .where((tempo) {
+            // 只保留在實際音符範圍內的 tempo 事件
+            final isValid = tempo.tick <= lastEventTick + (_tpq * 4) &&
+                           tempo.microsecondsPerQuarter > 0 &&
+                           tempo.microsecondsPerQuarter < 10000000; // 防止異常值
+            return isValid;
+          })
+          .toList();
 
       // 確保至少有一個 tempo
       if (_tempoChanges.isEmpty) {
+        debugPrint('  ⚠️ 沒有有效 tempo，使用預設 120 BPM');
         _tempoChanges.add(TempoChange(
           tick: 0,
           microsecondsPerQuarter: 500000, // 120 BPM
         ));
       }
 
-      // ⭐ 預計算所有 tempo 段
+      debugPrint('  • 有效 tempo 數: ${_tempoChanges.length}');
+
+      // ⭐ 預計算 tempo 段
       _precomputeTempos();
 
+      if (_cachedTempos.isEmpty) {
+        throw Exception('Tempo 預計算失敗');
+      }
+
+      // ⭐ 驗證總時長
+      final durationMs = totalDurationMs;
+      final durationSec = durationMs / 1000.0;
+      
+      debugPrint('  • 總時長: ${durationSec.toStringAsFixed(1)} 秒');
+
+      if (durationMs <= 0) {
+        throw Exception('無效的總時長');
+      }
+
+      if (durationMs > 3600000) { // > 1 小時
+        throw Exception('檔案時長過長 (>${(durationMs/60000).toStringAsFixed(0)} 分鐘)');
+      }
+
+      // ⭐ 開始播放
+      debugPrint('✅ MIDI 檔案驗證成功，開始播放\n');
       _currentIndex = 0;
       _isPaused = false;
 
@@ -260,9 +350,17 @@ class MidiPlayerService {
       _stopwatch.reset();
       _stopwatch.start();
       _startPlaybackLoop();
+      
     } catch (e) {
-      debugPrint('❌ Error playing MIDI: $e');
-      _playingStateController.add(false);
+      debugPrint('❌ MIDI 播放錯誤: $e');
+      if (e.toString().contains('RangeError') || 
+          e.toString().contains('Index out of range')) {
+        debugPrint('⚠️ 檢測到範圍錯誤，可能是 MIDI 檔案損壞或格式不正確');
+      }
+      
+      // 清理狀態
+      await stop();
+      rethrow;
     }
   }
 
@@ -270,14 +368,58 @@ class MidiPlayerService {
   void _precomputeTempos() {
     _cachedTempos.clear();
 
+    if (_tempoChanges.isEmpty || _events.isEmpty) {
+      debugPrint('⚠️ _precomputeTempos: 沒有 tempo 或事件');
+      return;
+    }
+
     double cumulativeMs = 0.0;
+    final lastEventTick = _events.last.tick;
 
     for (int i = 0; i < _tempoChanges.length; i++) {
       final tempo = _tempoChanges[i];
+      
+      // ⭐ 驗證 tempo 值
+      if (tempo.microsecondsPerQuarter <= 0 || tempo.microsecondsPerQuarter > 10000000) {
+        debugPrint('⚠️ 跳過異常 tempo: ${tempo.microsecondsPerQuarter}');
+        continue;
+      }
+      
       final msPerTick = tempo.msPerTick(_tpq);
-      final endTick = (i + 1 < _tempoChanges.length)
-          ? _tempoChanges[i + 1].tick
-          : (_events.isNotEmpty ? _events.last.tick + 1 : 999999999);
+      
+      // ⭐ 驗證 msPerTick
+      if (!msPerTick.isFinite || msPerTick <= 0 || msPerTick > 1000) {
+        debugPrint('⚠️ 跳過異常 msPerTick: $msPerTick');
+        continue;
+      }
+      
+      // 計算這個 tempo 段的結束 tick
+      int endTick;
+      if (i + 1 < _tempoChanges.length) {
+        // 下一個 tempo 的開始位置
+        endTick = _tempoChanges[i + 1].tick;
+      } else {
+        // 最後一個 tempo 段，使用實際最後一個音符的 tick + 緩衝
+        endTick = lastEventTick + (_tpq * 2); // 加 2 拍的緩衝時間
+      }
+      
+      // 確保 endTick 合理
+      endTick = endTick.clamp(tempo.tick, lastEventTick + (_tpq * 4));
+      
+      // ⭐ 驗證 tick 範圍
+      if (endTick <= tempo.tick) {
+        debugPrint('⚠️ 跳過無效 tick 範圍: ${tempo.tick} to $endTick');
+        continue;
+      }
+
+      final tickSpan = endTick - tempo.tick;
+      final segmentMs = tickSpan * msPerTick;
+      
+      // ⭐ 驗證段落時間
+      if (!segmentMs.isFinite || segmentMs < 0 || segmentMs > 3600000) {
+        debugPrint('⚠️ 跳過異常段落時間: $segmentMs ms');
+        continue;
+      }
 
       _cachedTempos.add(_CachedTempo(
         startTick: tempo.tick,
@@ -286,23 +428,60 @@ class MidiPlayerService {
         cumulativeMs: cumulativeMs,
       ));
 
-      cumulativeMs += (endTick - tempo.tick) * msPerTick;
+      cumulativeMs += segmentMs;
+    }
+    
+    // ⭐ 檢查是否成功建立快取
+    if (_cachedTempos.isEmpty && _tempoChanges.isNotEmpty) {
+      debugPrint('⚠️ 所有 tempo 都無效，嘗試使用預設值');
+      
+      // 使用預設 120 BPM
+      final defaultMsPerTick = 500000.0 / 1000.0 / _tpq;
+      _cachedTempos.add(_CachedTempo(
+        startTick: 0,
+        endTick: lastEventTick + (_tpq * 2),
+        msPerTick: defaultMsPerTick,
+        cumulativeMs: 0.0,
+      ));
     }
   }
 
   /// ⭐ 高效率取得事件時間 (O(1) 查表)
   double _getEventTimeMs(int tick) {
+    if (_cachedTempos.isEmpty) return 0.0;
+    if (tick < 0) return 0.0;
+
+    // ⭐ 安全檢查：超出範圏的 tick
+    final lastTempo = _cachedTempos.last;
+    if (tick > lastTempo.endTick) {
+      // 使用最後一個 tempo 段的速度推算
+      final extraTicks = tick - lastTempo.endTick;
+      final extraMs = extraTicks * lastTempo.msPerTick;
+      
+      if (!extraMs.isFinite || extraMs < 0) {
+        return lastTempo.cumulativeMs;
+      }
+      
+      return lastTempo.cumulativeMs + 
+             (lastTempo.endTick - lastTempo.startTick) * lastTempo.msPerTick +
+             extraMs;
+    }
+
+    // 找到包含該 tick 的 tempo 段
     for (final tempo in _cachedTempos) {
       if (tick >= tempo.startTick && tick < tempo.endTick) {
-        return tempo.cumulativeMs + (tick - tempo.startTick) * tempo.msPerTick;
+        final deltaMs = (tick - tempo.startTick) * tempo.msPerTick;
+        
+        if (!deltaMs.isFinite || deltaMs < 0) {
+          return tempo.cumulativeMs;
+        }
+        
+        return tempo.cumulativeMs + deltaMs;
       }
     }
 
-    // Fallback
-    if (_cachedTempos.isEmpty) return 0;
-    final lastTempo = _cachedTempos.last;
-    return lastTempo.cumulativeMs +
-        (tick - lastTempo.startTick) * lastTempo.msPerTick;
+    // 如果沒有找到，返回第一個 tempo 的累積時間
+    return _cachedTempos.first.cumulativeMs;
   }
 
   void pause() {
@@ -440,15 +619,29 @@ class MidiPlayerService {
       try {
         for (var i = 21; i <= 108; i++) {
           // 只停止鋼琴音域
-          _midiPro.stopNote(sfId: _soundfontId!, key: i);
+          await _midiPro.stopNote(sfId: _soundfontId!, key: i);
         }
       } catch (e) {
-        debugPrint('❌ Error stopping notes: $e');
+        // 忽略停止音符的錯誤
+        if (kDebugMode) {
+          debugPrint('⚠️ Error stopping notes: $e');
+        }
       }
     }
 
-    if (!_playingStateController.isClosed) _playingStateController.add(false);
-    if (!_progressController.isClosed) _progressController.add(0.0);
+    // 安全更新狀態
+    try {
+      if (!_playingStateController.isClosed) {
+        _playingStateController.add(false);
+      }
+      if (!_progressController.isClosed) {
+        _progressController.add(0.0);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Error updating state controllers: $e');
+      }
+    }
   }
 
   void dispose() {

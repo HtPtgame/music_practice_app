@@ -2,6 +2,48 @@
 
 本目錄包含音訊處理和 MIDI 分析的整合工具，用於未來新增測試音檔時的格式處理。
 
+---
+
+### 🆕 test_midi_parser.dart - MIDI 解析器測試工具
+
+**新增 (2025/11/26)** - 用於快速診斷 MIDI 檔案是否可以正常播放。
+
+**功能**:
+- 檔案格式驗證
+- 音符範圍檢查
+- Tempo 事件分析
+- 時長估算
+- 問題自動診斷
+
+**使用方式**:
+```bash
+dart tools/test_midi_parser.dart <midi_file_path>
+```
+
+**範例**:
+```bash
+# 測試問題檔案
+dart tools/test_midi_parser.dart assets/test_voice/the-village-in-may.mid
+
+# 測試正常檔案
+dart tools/test_midi_parser.dart assets/test_voice/小星星.mid
+```
+
+**檢查項目**:
+- ✅ 檔案大小和格式
+- ✅ TPQ (Ticks Per Quarter Note)
+- ✅ 音符數量和範圍
+- ✅ Tempo 事件列表
+- ✅ Tick 範圍分析
+- ✅ 時長估算
+- ✅ 問題診斷：
+  - 超大 tick 值 (> 10,000,000)
+  - 超出鋼琴範圍的音符 (< A0 或 > C8)
+  - 異常 tempo 值
+  - 遠超音符範圍的 tempo 事件
+
+---
+
 ##  工具列表
 
 ###  audio_tools.dart - 音訊處理工具集
@@ -189,6 +231,12 @@ dart tools/audio_tools.dart analyze assets/test_voice/生日快樂.wav
 
 ##  更新記錄
 
+**2025/11/26** - MIDI 播放系統優化
+- 新增 `test_midi_parser.dart` - MIDI 檔案診斷工具
+- 強化 MIDI 解析器的邊界檢查
+- 改進播放系統的錯誤處理
+- 詳見 `MIDI_PLAYBACK_IMPROVEMENTS.md`
+
 **2025/11/08** - 工具整合
 - 將三個音訊處理工具整合為 `audio_tools.dart`
 - 保留 MIDI 分析工具為 `midi_tools.dart`
@@ -202,5 +250,5 @@ dart tools/audio_tools.dart analyze assets/test_voice/生日快樂.wav
 
 ---
 
-**最後更新**: 2025/11/08  
+**最後更新**: 2025/11/26  
 **維護者**: GitHub Copilot
