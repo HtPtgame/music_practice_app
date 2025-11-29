@@ -146,13 +146,14 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
     // 讀取位深度 (位置 34-35)
     final bitsPerSample = bytes[34] | (bytes[35] << 8);
 
-    // 驗證格式
-    if (numChannels != 1) {
-      throw Exception('僅支持單聲道 WAV 文件 (當前: $numChannels 聲道)');
-    }
-
+    // 驗證位深度
     if (bitsPerSample != 16) {
       throw Exception('僅支持 16-bit WAV 文件 (當前: $bitsPerSample-bit)');
+    }
+
+    // 驗證聲道數
+    if (numChannels != 1 && numChannels != 2) {
+      throw Exception('僅支持單聲道或立體聲 WAV 文件 (當前: $numChannels 聲道)');
     }
 
     // 尋找 "data" 區塊
@@ -167,12 +168,18 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
 
       if (chunkId == 'data') {
         // 找到數據區塊
-        final samples =
+        Uint8List samples =
             bytes.sublist(dataOffset + 8, dataOffset + 8 + chunkSize);
+        
+        // 如果是立體聲，自動轉換為單聲道
+        if (numChannels == 2) {
+          samples = _stereoToMono(samples);
+        }
+        
         return _WavData(
           samples: samples,
           sampleRate: sampleRate,
-          numChannels: numChannels,
+          numChannels: 1, // 轉換後總是單聲道
           bitsPerSample: bitsPerSample,
         );
       }
@@ -181,6 +188,37 @@ class AudioAnalyzerServiceImpl implements IAudioAnalyzer {
     }
 
     throw Exception('WAV 文件格式錯誤: 找不到 data 區塊');
+  }
+
+  /// 將立體聲 PCM16 數據轉換為單聲道
+  /// 
+  /// 通過將左右聲道的樣本取平均值來混合成單聲道
+  Uint8List _stereoToMono(Uint8List stereoData) {
+    // 立體聲: L(2bytes) R(2bytes) L(2bytes) R(2bytes) ...
+    // 單聲道: M(2bytes) M(2bytes) ...
+    final monoLength = stereoData.length ~/ 2;
+    final monoData = Uint8List(monoLength);
+    
+    for (int i = 0; i < stereoData.length - 3; i += 4) {
+      // 讀取左聲道 (16-bit little-endian)
+      final left = stereoData[i] | (stereoData[i + 1] << 8);
+      final leftSigned = left > 32767 ? left - 65536 : left;
+      
+      // 讀取右聲道 (16-bit little-endian)
+      final right = stereoData[i + 2] | (stereoData[i + 3] << 8);
+      final rightSigned = right > 32767 ? right - 65536 : right;
+      
+      // 取平均值混合為單聲道
+      final mono = ((leftSigned + rightSigned) ~/ 2).clamp(-32768, 32767);
+      
+      // 寫入單聲道數據 (16-bit little-endian)
+      final monoUnsigned = mono < 0 ? mono + 65536 : mono;
+      final monoIndex = i ~/ 2;
+      monoData[monoIndex] = monoUnsigned & 0xFF;
+      monoData[monoIndex + 1] = (monoUnsigned >> 8) & 0xFF;
+    }
+    
+    return monoData;
   }
 }
 

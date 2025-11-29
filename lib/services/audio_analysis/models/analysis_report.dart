@@ -5,14 +5,20 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../timeline_analysis_service.dart';
 
-/// 分析報告 (已優化 - v3.4-v3.6 功能恢復 2025/11/27)
+/// 分析報告 (v4.0 全面優化 - 2025/11/29)
 ///
-/// 新增功能:
+/// v4.0 優化重點:
+/// - 修正環境音節奏分數過高問題（99.3% → 合理值）
+/// - 修正短錄音分數過高問題（98.7% → 合理懲罰）
+/// - 提升正式演奏的分數表現
+/// - 新增覆蓋率因子：正確音符太少時節奏分數無意義
+///
+/// 功能特性:
 /// - 混淆矩陣 (Confusion Matrix) 評估
 /// - F1 分數計算,防止「亂彈高分」問題
 /// - 時間軸分析結果整合
 /// - 短錄音偵測與懲罰 (durationPenalty)
-/// - 更精確的評分機制
+/// - 覆蓋率調整的節奏分數 (rhythmScore)
 class AnalysisReport {
   /// 總音符數 (期望演奏的音符數)
   final int totalNotes;
@@ -63,24 +69,48 @@ class AnalysisReport {
   /// - 延遲開始、中斷、跳過段落等資訊
   final TimelineAnalysisResult? timelineAnalysis;
 
-  /// 短錄音懲罰係數 (v3.7 優化 - 2025/11/29)
+  /// 短錄音懲罰係數 (v4.0 大幅優化 - 2025/11/29)
   ///
-  /// 當錄音時長明顯短於 MIDI 預期時長時的懲罰係數
-  /// - 1.0: 無懲罰 (>=90% 正常長度)
-  /// - 0.5-1.0: 輕微懲罰 (50-90%)
-  /// - 0.0-0.5: 嚴重懲罰 (<50% 非常短)
+  /// 問題：30秒錄音/164秒曲目 = 18.3%，卻得到 98.7 分
+  /// 原因：durationPenalty 計算不夠嚴格
   ///
-  /// v3.7 優化: 加強短錄音懲罰力度，解汻30秒錄音得98.7分的問題
+  /// v4.0 優化：使用更嚴格的懲罰曲線
+  /// - 1.0: 無懲罰 (>=90% 完整演奏)
+  /// - 0.5-1.0: 輕微懲罰 (70-90%)
+  /// - 0.2-0.5: 中度懲罰 (50-70%)
+  /// - 0.05-0.2: 嚴重懲罰 (30-50%)
+  /// - <0.05: 極度懲罰 (<30% - 如30秒/164秒=18.3%)
   double get durationPenalty {
     if (timelineAnalysis == null) return 1.0;
     final ratio = timelineAnalysis!.durationRatio;
     
-    // v3.7: 更嚴格的懲罰曲線
-    if (ratio >= 0.9) return 1.0; // 90%以上無懲罰
-    if (ratio >= 0.7) return 0.6 + (ratio - 0.7) * 2.0; // 70-90%: 0.6-1.0
-    if (ratio >= 0.5) return 0.3 + (ratio - 0.5) * 1.5; // 50-70%: 0.3-0.6
-    if (ratio >= 0.3) return 0.1 + (ratio - 0.3) * 1.0; // 30-50%: 0.1-0.3
-    return 0.05; // <30%: 極低分 (30秒/164秒=18.3% -> 0.05倍)
+    // v4.0: 更嚴格且平滑的懲罰曲線
+    if (ratio >= 0.9) {
+      return 1.0; // 90%以上無懲罰
+    }
+    if (ratio >= 0.7) {
+      // 70-90%: 0.5-1.0 (線性插值)
+      return 0.5 + (ratio - 0.7) * 2.5;
+    }
+    if (ratio >= 0.5) {
+      // 50-70%: 0.2-0.5 (線性插值)
+      return 0.2 + (ratio - 0.5) * 1.5;
+    }
+    if (ratio >= 0.3) {
+      // 30-50%: 0.05-0.2 (線性插值)
+      return 0.05 + (ratio - 0.3) * 0.75;
+    }
+    // <30%: 極低分 (如 18.3% -> ~0.02)
+    return max(0.01, ratio * 0.1);
+  }
+
+  /// 覆蓋率 (v4.0 新增)
+  ///
+  /// 正確音符數 / 期望總音符數
+  /// 用於調整節奏分數：如果只檢出很少的正確音符，節奏分數應該無意義
+  double get coverageRate {
+    if (totalNotes == 0) return 0;
+    return correctNotes / totalNotes;
   }
 
   AnalysisReport({
@@ -162,59 +192,96 @@ class AnalysisReport {
     return falsePositives / totalNotes;
   }
 
-  /// 節奏分數 (0-100) - v3.7 優化 2025/11/29
+  /// 節奏分數 (0-100) - v4.7 加強環境噪音懲罰 2025/11/29
   ///
-  /// v3.7 優化: 解決環境音節奏分數過高問題
-  /// 原因: 環境音可能有很少的誤報音符，但節奏錯誤極低，導致99.3%高分
-  /// 解決方案: 結合準確率調整節奏分數，低準確率時降低節奏分數
+  /// 目標：
+  /// 1. 正式演奏時節奏分數應達到 95%+
+  /// 2. 環境噪音節奏分數應低於 30%
+  ///
+  /// v4.7 調整：
+  /// - 加強低覆蓋率的節奏分數懲罰
+  /// - 覆蓋率 < 50% 時使用更嚴格的覆蓋率因子
   double get rhythmScore {
     if (totalNotes == 0) return 0;
+    if (correctNotes == 0) return 0;
     
-    // 基礎節奏分數: 根據節奏錯誤計算
-    final timingErrors = earlyNotes + lateNotes;
-    final baseRhythmScore = correctNotes > 0 
-        ? (1 - (timingErrors / correctNotes)).clamp(0.0, 1.0)
-        : 0.0;
+    // v4.6: 加權節奏分數計算
+    final timingCorrectNotes = correctNotes - earlyNotes - lateNotes;
+    final timingErrorNotes = earlyNotes + lateNotes;
     
-    // v3.7: 根據準確率調整節奏分數
-    // 準確率很低時，節奏分數也應該降低
-    final accuracyFactor = accuracy.clamp(0.3, 1.0); // 最低30%的影響
-    final adjustedRhythmScore = baseRhythmScore * accuracyFactor;
+    // 加權計算：搶拍/拖拍給予 0.8 權重
+    final weightedScore = (timingCorrectNotes * 1.0 + timingErrorNotes * 0.8) / correctNotes;
+    double baseRhythmScore = weightedScore.clamp(0.0, 1.0);
+    
+    // 對高覆蓋率演奏給予額外獎勵
+    if (coverageRate >= 0.95) {
+      baseRhythmScore = (baseRhythmScore * 1.03).clamp(0.0, 1.0);
+    } else if (coverageRate >= 0.9) {
+      baseRhythmScore = (baseRhythmScore * 1.02).clamp(0.0, 1.0);
+    }
+    
+    // v4.7: 加強低覆蓋率的節奏分數懲罰
+    // 環境噪音覆蓋率約 38%，應該大幅降低節奏分數
+    double coverageFactor = 1.0;
+    if (coverageRate < 0.6) {
+      // 使用二次曲線懲罰，覆蓋率越低懲罰越重
+      // coverageRate = 0.6 → factor = 1.0
+      // coverageRate = 0.5 → factor ≈ 0.69
+      // coverageRate = 0.4 → factor ≈ 0.44
+      // coverageRate = 0.3 → factor ≈ 0.25
+      // coverageRate = 0.2 → factor ≈ 0.11
+      final ratio = coverageRate / 0.6;
+      coverageFactor = ratio * ratio;
+      coverageFactor = coverageFactor.clamp(0.05, 1.0);
+    }
+    
+    // 最低音符門檻
+    if (correctNotes < 10) {
+      coverageFactor = coverageFactor * 0.5;
+    }
+    
+    // 最終節奏分數
+    final adjustedRhythmScore = baseRhythmScore * coverageFactor;
     
     return (adjustedRhythmScore * 100).clamp(0, 100);
   }
 
-  /// 總分 (0-100) - v3.7 全面優化 2025/11/29
+  /// 總分 (0-100) - v4.3 環境噪音處理加強 2025/11/29
   ///
-  /// v3.7 優化:
-  /// 1. 修正38.7%準確率卻得0分的異常問題
-  /// 2. 平衡環境音和實際演奏的分數
-  /// 3. 加強短錄音懲罰（30秒錄音不應該得98.7分）
+  /// 設計目標：
+  /// 1. 正式演奏（高覆蓋率）應得到合理高分 (80-95%)
+  /// 2. 環境噪音（低覆蓋率）應得到低分 (<15%)
+  /// 3. 短錄音應受到嚴重懲罰
+  /// 4. 錯誤曲目（時長不匹配）應得到低分
   ///
-  /// 評分策略:
-  /// - F1 Score (50% 權重): 綜合考慮準確率和完整性
-  /// - 節奏分數 (50% 權重): 節奏準確性（已結合準確率調整）
-  /// - 短錄音懲罰: 時長不足時降低分數
+  /// v4.3 調整：
+  /// - 提高環境噪音懲罰閾值：coverageRate < 0.6 時開始懲罰
+  /// - 使用三次曲線使懲罰更嚴格
   double get overallScore {
-    // 使用 F1 Score 作為主要評分 (0-100)
-    // F1 Score 會同時考慮 Precision 和 Recall，避免亂彈高分
-    final f1Percent = f1Score * 100;
+    // v4.1: 使用準確率（Recall）作為主要指標
+    final accuracyPercent = accuracy * 100;
     
-    // 節奏分數已經結合準確率調整，可以直接使用
+    // 節奏分數（已結合覆蓋率調整）
     final rhythm = rhythmScore;
     
-    // v3.7: 調整權重為 50%:50%，更平衡
-    final baseScore = (f1Percent * 0.5 + rhythm * 0.5);
+    // v4.1: 調整權重為 70%:30%
+    final baseScore = (accuracyPercent * 0.7 + rhythm * 0.3);
     
-    // 應用短錄音懲罰 (v3.7 加強)
-    final finalScore = baseScore * durationPenalty;
+    // 應用短錄音懲罰 (v4.0)
+    var finalScore = baseScore * durationPenalty;
     
-    // 確保最低分：即使有一些正確音符，也應該給予基礎分
-    // 解決38.7%準確率卻0分的問題
-    if (finalScore < 1.0 && accuracy > 0.1) {
-      // 最低保證分 = 準確率 * 20
-      final minScore = accuracy * 20;
-      return max(finalScore, minScore).clamp(0, 100);
+    // v4.3: 環境噪音懲罰（更嚴格）
+    // 覆蓋率 < 60% 時開始應用懲罰
+    // 這處理「環境背景音偶然命中一些音符」的情況
+    if (coverageRate < 0.6) {
+      // 使用三次曲線使懲罰更嚴格
+      // coverageRate = 0.6 → penalty = 1.0 (無懲罰)
+      // coverageRate = 0.4 → penalty ≈ 0.30
+      // coverageRate = 0.3 → penalty ≈ 0.125
+      // coverageRate = 0.2 → penalty ≈ 0.037
+      final ratio = coverageRate / 0.6;
+      final noisePenalty = ratio * ratio * ratio; // 三次方
+      finalScore = finalScore * noisePenalty.clamp(0.01, 1.0);
     }
     
     return finalScore.clamp(0, 100);
@@ -359,8 +426,15 @@ class AnalysisReport {
       return suggestions;
     }
 
-    // 音準建議 (使用 F1 Score 而非 accuracy)
-    if (f1Score < 0.6) {
+    // 音準建議 (v4.8 優化 - 高分時只顯示正面評價)
+    if (overallScore >= 90) {
+      // 高分時直接顯示優秀評價
+      if (f1Score >= 0.95) {
+        suggestions.add(l10n?.suggestionPitchPerfect ?? '🌟 音準表現完美!');
+      } else {
+        suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
+      }
+    } else if (f1Score < 0.6) {
       suggestions.add(l10n?.suggestionPitchNeedsPractice ?? '🎹 音準需要加強練習,建議放慢速度逐個音符確認');
     } else if (f1Score < 0.8) {
       suggestions.add(l10n?.suggestionPitchBasic ?? '🎵 音準基本正確,但仍有進步空間');
@@ -370,25 +444,29 @@ class AnalysisReport {
       suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
     }
 
-    // Precision 建議 (新增)
-    if (precision < 0.7 && falsePositives > 5) {
+    // Precision 建議 (v4.8 優化 - 只在分數較低時顯示警告)
+    // 只有在總分低於 85 分時才顯示多餘音符警告
+    if (overallScore < 85 && precision < 0.7 && falsePositives > 5) {
       suggestions.add(l10n?.suggestionExtraNotes(falsePositives) ?? '⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
       suggestions.add(l10n?.suggestionAvoidWrongKeys ?? '   - 避免誤觸其他琴鍵');
       suggestions.add(l10n?.suggestionEnsureAccuracy ?? '   - 確保手指準確按在正確位置');
     }
 
-    // Recall 建議
-    if (recall < 0.7) {
+    // Recall 建議 (v4.8 優化 - 只在分數較低時顯示警告)
+    // 只有在總分低於 85 分時才顯示漏音警告
+    if (overallScore < 85 && recall < 0.7) {
       suggestions.add(l10n?.suggestionManyMissed(missedNotes) ?? '❌ 漏音較多 ($missedNotes個),建議:');
       suggestions.add(l10n?.suggestionCheckKeyPress ?? '   - 檢查手指是否完全按下琴鍵');
       suggestions.add(l10n?.suggestionRetryQuietEnvironment ?? '   - 在安靜環境下重新錄音');
       suggestions.add(l10n?.suggestionCheckMicSensitivity ?? '   - 確保麥克風靈敏度足夠');
-    } else if (missedNotes > totalNotes * 0.1) {
+    } else if (overallScore < 90 && missedNotes > totalNotes * 0.1) {
       suggestions.add(l10n?.suggestionSomeMissed(missedNotes) ?? '⚠️ 有少量漏音 ($missedNotes個),請檢查按鍵力度');
     }
 
-    // 節奏建議
-    if (rhythmScore < 60) {
+    // 節奏建議 (v4.8 優化 - 高分時只顯示正面評價)
+    if (overallScore >= 90) {
+      suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
+    } else if (rhythmScore < 60) {
       suggestions.add(l10n?.suggestionRhythmUnstable ?? '⏱️ 節奏不穩定,建議使用節拍器練習');
     } else if (rhythmScore < 80) {
       suggestions.add(l10n?.suggestionRhythmBasic ?? '🎼 節奏基本穩定,可以嘗試稍微提高速度');
@@ -396,10 +474,13 @@ class AnalysisReport {
       suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
     }
 
-    if (earlyNotes > lateNotes * 2) {
-      suggestions.add(l10n?.suggestionTendencyRushing ?? '⏩ 有搶拍傾向,可以放鬆一點,不要太急');
-    } else if (lateNotes > earlyNotes * 2) {
-      suggestions.add(l10n?.suggestionTendencyDragging ?? '⏸️ 有拖拍傾向,可能需要加強節奏訓練');
+    // 搶拍/拖拍建議 (v4.8 優化 - 只在分數較低時顯示)
+    if (overallScore < 85) {
+      if (earlyNotes > lateNotes * 2) {
+        suggestions.add(l10n?.suggestionTendencyRushing ?? '⏩ 有搶拍傾向,可以放鬆一點,不要太急');
+      } else if (lateNotes > earlyNotes * 2) {
+        suggestions.add(l10n?.suggestionTendencyDragging ?? '⏸️ 有拖拍傾向,可能需要加強節奏訓練');
+      }
     }
 
     return suggestions;

@@ -296,20 +296,20 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('準備開始直接 WAV 錄音...');
       debugPrint('WAV 檔案路徑: $wavPath');
 
-      // 直接使用 WAV 格式錄音（優化參數）
+      // 直接使用 WAV 格式錄音（v4.8 優化 - 提高採樣率以改善音準識別）
       debugPrint('開始 WAV 錄音，參數:');
       debugPrint('  檔案路徑: $wavPath');
       debugPrint('  編解碼器: pcm16WAV');
-      debugPrint('  採樣率: 16000 Hz (降低以提高穩定性)');
+      debugPrint('  採樣率: 44100 Hz (CD 品質，提升音準識別精度)');
       debugPrint('  聲道數: 1');
-      debugPrint('  位元率: 256000 bps');
+      debugPrint('  位元率: 705600 bps');
 
       await _recorder!.startRecorder(
         toFile: wavPath,
         codec: Codec.pcm16WAV, // 直接錄製 WAV 格式
-        sampleRate: 16000, // 降低採樣率提高穩定性
-        numChannels: 1, // 單聲道
-        bitRate: 256000, // 16000 * 16 * 1 = 256000 bps
+        sampleRate: 44100, // CD 品質採樣率，提升音準識別精度
+        numChannels: 1, // 單聲道（節省空間，音樂分析不需要立體聲）
+        bitRate: 705600, // 44100 * 16 * 1 = 705600 bps
       );
 
       debugPrint('✅ WAV 錄音已啟動，直接錄製為 WAV 格式');
@@ -795,10 +795,12 @@ class _PracticePageState extends State<PracticePage> {
       }
       try {
         // 更新播放位置（毫秒轉秒）
-        final position = await _player!.getProgress();
-        if (position != null && position['position'] != null) {
-          final positionMs = position['position']!.inMilliseconds;
-          final durationMs = position['duration']!.inMilliseconds;
+        final progressMap = await _player!.getProgress();
+        final progress = progressMap['progress'];
+        final duration = progressMap['duration'];
+        if (progress != null && duration != null) {
+          final positionMs = progress.inMilliseconds;
+          final durationMs = duration.inMilliseconds;
           setState(() {
             _playbackPosition = positionMs / 1000.0;
             _playbackDuration = durationMs / 1000.0;

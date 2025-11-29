@@ -22,14 +22,25 @@ class NoteDetectorService implements INoteDetector {
   static const int maxMidiNote = 108; // 最高音 (C8)
   static const double minNoteDuration = 0.15; // 最短音符時長 (秒)
   static const int numHarmonics = 3; // 檢查的諧波數量
-  static const List<double> harmonicWeights = [1.0, 0.6, 0.3]; // 基頻權重
+  static const List<double> harmonicWeights = [1.0, 0.38, 0.14]; // v2.7: 在v2.5和v2.6之間
   static const int frameSkip = 5; // 跳幀以減少運算量
-  static const double minConfidenceScore = 0.55; // 🔧 平衡要求
-  static const int minHarmonicPeaks = 2; // 🔧 保持較低以提高召回率
+  static const double minConfidenceScore = 0.62; // v2.7: 從0.58回調至0.62 (適度要求)
+  static const int minHarmonicPeaks = 3; // v2.3: 從2提升，需要更多諧波確認
   static const int maxNotesPerFrame = 3; // 保留每幀限制
 
   /// 固定能量閾值 (已停用動態調整功能)
-  static const double minEnergyThreshold = 0.38;
+  /// v2.2: 從 0.38 降至 0.30 (FP過多)
+  /// v2.3: 從 0.30 提升至 0.45 (減少諧波誤判)
+  /// v2.5: 從 0.45 提升至 0.55 (防止人聲/噪音誤判)
+  /// v2.6: 從 0.55 降至 0.48 (平衡準確率與靈敏度) - 過於激進
+  /// v2.7: 從 0.48 回調至 0.52 (精細平衡，Recall目標75%+)
+  static const double minEnergyThreshold = 0.52;
+  
+  /// v2.5 新增：諧波比例驗證參數
+  /// v2.7 精調：在v2.5和v2.6之間找平衡
+  static const double harmonicRatioTolerance = 0.07; // v2.7: 5%→8%→7% (適度放寬)
+  static const double minHarmonicRatio = 0.55; // v2.7: 60%→50%→55% (至少55%諧波符合)
+  static const double spectralPurityThreshold = 0.22; // v2.7: 0.25→0.20→0.22 (適度要求)
 
   // 音符範圍限制
   static const int noteRangeMargin = 5; // MIDI 音符範圍擴展量 (半音)
@@ -145,9 +156,9 @@ class NoteDetectorService implements INoteDetector {
     return notes;
   }
 
-  /// 計算音符置信度
+  /// 計算音符置信度 (v2.5: 添加諧波比例驗證)
   ///
-  /// 基於諧波能量加權求和
+  /// 基於諧波能量加權求和 + 諧波比例驗證（防止人聲/噪音誤判）
   double _calculateNoteConfidence(
     int midiNote,
     List<double> spectrum,
@@ -156,32 +167,141 @@ class NoteDetectorService implements INoteDetector {
     final frequencies = _calculateHarmonics(midiNote);
     double confidence = 0.0;
     int peakCount = 0;
+    int validHarmonics = 0; // v2.5: 符合整數倍關係的諧波數
+
+    final fundamentalFreq = frequencies[0];
+    final fundamentalBin = spectrogram.freqToBin(fundamentalFreq);
+    
+    // v2.5: 先檢查基頻是否存在且足夠強
+    if (fundamentalBin < 0 || fundamentalBin >= spectrum.length) {
+      return 0.0;
+    }
+    
+    final fundamentalEnergy = spectrum[fundamentalBin];
+    if (fundamentalEnergy < minEnergyThreshold) {
+      return 0.0; // 基頻太弱，直接排除
+    }
 
     for (int i = 0; i < numHarmonics && i < frequencies.length; i++) {
-      final freq = frequencies[i];
-      final freqBin = spectrogram.freqToBin(freq);
+      final expectedFreq = frequencies[i];
+      final expectedBin = spectrogram.freqToBin(expectedFreq);
 
-      if (freqBin >= 0 && freqBin < spectrum.length) {
-        final energy = spectrum[freqBin];
+      if (expectedBin >= 0 && expectedBin < spectrum.length) {
+        final energy = spectrum[expectedBin];
 
         if (energy > minEnergyThreshold) {
-          final weight = i < harmonicWeights.length ? harmonicWeights[i] : 0.1;
-          confidence += energy * weight;
+          // v2.5: 驗證諧波比例關係
+          final isValidHarmonic = _validateHarmonicRatio(
+            expectedFreq,
+            fundamentalFreq,
+            i + 1, // 第幾次諧波 (1=基頻, 2=第二諧波...)
+          );
+          
+          if (isValidHarmonic) {
+            validHarmonics++;
+            final weight = i < harmonicWeights.length ? harmonicWeights[i] : 0.1;
+            confidence += energy * weight;
 
-          // 檢查是否為局部峰值
-          if (_isPeak(spectrum, freqBin)) {
-            peakCount++;
+            // 檢查是否為局部峰值
+            if (_isPeak(spectrum, expectedBin)) {
+              peakCount++;
+            }
           }
         }
       }
     }
 
-    // 要求至少有一定數量的諧波峰值
-    if (peakCount < minHarmonicPeaks) {
-      confidence *= 0.3;
+    // v2.5: 驗證諧波比例關係（防止人聲/噪音）
+    final harmonicRatio = validHarmonics / numHarmonics;
+    if (harmonicRatio < minHarmonicRatio) {
+      return 0.0; // 諧波比例不符，可能是人聲或噪音
     }
 
-    return confidence;
+    // 要求至少有指定數量的峰值才算是有效音符
+    if (peakCount < minHarmonicPeaks) {
+      return 0.0; // 無效音符
+    }
+    
+    // v2.5: 頻譜純度檢查（排除寬頻噪音）
+    final spectralPurity = _calculateSpectralPurity(
+      spectrum,
+      spectrogram,
+      fundamentalFreq,
+    );
+    
+    if (spectralPurity < spectralPurityThreshold) {
+      return 0.0; // 頻譜不純，可能是噪音
+    }
+
+    return confidence * spectralPurity; // v2.5: 用頻譜純度加權
+  }
+  
+  /// v2.5: 驗證諧波頻率比例關係
+  /// v2.7: 優化 - 高頻諧波適度放寬容忍度
+  ///
+  /// 檢查實際頻率是否符合理論諧波頻率（整數倍關係）
+  /// 人聲/噪音的「諧波」通常不是精確的整數倍
+  bool _validateHarmonicRatio(
+    double actualFreq,
+    double fundamentalFreq,
+    int harmonicNumber,
+  ) {
+    final expectedFreq = fundamentalFreq * harmonicNumber;
+    final ratio = actualFreq / expectedFreq;
+    
+    // v2.7: 高次諧波適度放寬（第3諧波10.5%容忍度）
+    final tolerance = harmonicNumber > 2 
+        ? harmonicRatioTolerance * 1.5  // 第3諧波以上: 10.5%容忍度
+        : harmonicRatioTolerance;        // 基頻和第2諧波: 7%容忍度
+    
+    return (ratio - 1.0).abs() < tolerance;
+  }
+  
+  /// v2.5: 計算頻譜純度
+  ///
+  /// 檢查能量是否集中在諧波頻率附近
+  /// 寬頻噪音會在整個頻譜分散，純音會集中在諧波位置
+  double _calculateSpectralPurity(
+    List<double> spectrum,
+    Spectrogram spectrogram,
+    double fundamentalFreq,
+  ) {
+    final fundamentalBin = spectrogram.freqToBin(fundamentalFreq);
+    if (fundamentalBin < 0 || fundamentalBin >= spectrum.length) {
+      return 0.0;
+    }
+    
+    // 計算諧波附近的能量
+    double harmonicEnergy = 0.0;
+    final windowSize = 3; // 諧波附近±3個bin
+    
+    for (int h = 1; h <= numHarmonics; h++) {
+      final harmonicFreq = fundamentalFreq * h;
+      final harmonicBin = spectrogram.freqToBin(harmonicFreq);
+      
+      if (harmonicBin >= 0 && harmonicBin < spectrum.length) {
+        // 累加諧波附近的能量
+        for (int offset = -windowSize; offset <= windowSize; offset++) {
+          final bin = harmonicBin + offset;
+          if (bin >= 0 && bin < spectrum.length) {
+            harmonicEnergy += spectrum[bin] * spectrum[bin];
+          }
+        }
+      }
+    }
+    
+    // 計算總能量
+    double totalEnergy = 0.0;
+    for (final mag in spectrum) {
+      totalEnergy += mag * mag;
+    }
+    
+    if (totalEnergy < 1e-10) {
+      return 0.0;
+    }
+    
+    // 純度 = 諧波能量 / 總能量
+    return sqrt(harmonicEnergy / totalEnergy);
   }
 
   /// 檢查是否為局部峰值
