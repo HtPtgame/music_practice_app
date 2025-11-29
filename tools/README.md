@@ -1,6 +1,50 @@
 ﻿# 工具檔案目錄
 
-本目錄包含音訊處理和 MIDI 分析的整合工具，用於未來新增測試音檔時的格式處理。
+本目錄包含音訊處理、MIDI 分析和偵錯測試的整合工具。
+
+---
+
+## 🆕 debug_test_runner.dart - 偵錯測試運行工具
+
+**新增 (2025/11/29 v2.0)** - 用於執行偵錯系統的準確度測試。
+
+**功能**:
+- 執行 1-4 輪測試
+- 支援安靜模式（只顯示總表）
+- 自動過濾 Flutter test 框架雜訊
+- 清晰的測試分隔與格式化輸出
+
+**使用方式**:
+```bash
+# 顯示幫助
+dart tools/debug_test_runner.dart help
+
+# 執行全部 4 輪測試
+dart tools/debug_test_runner.dart
+
+# 執行指定輪次
+dart tools/debug_test_runner.dart 1      # 第一輪：生日快樂
+dart tools/debug_test_runner.dart 2      # 第二輪：測試音檔
+dart tools/debug_test_runner.dart 3      # 第三輪：小星星
+dart tools/debug_test_runner.dart 4      # 第四輪：名偵探柯南
+
+# 安靜模式（只顯示總表）
+dart tools/debug_test_runner.dart 4 -q
+```
+
+**測試輪次**:
+| 輪次 | 曲目 | 音符數 | 時長 | 描述 |
+|------|------|--------|------|------|
+| 1 | 生日快樂 | 25 | 17s | 簡單旋律測試 |
+| 2 | 測試音檔 | 94 | 34s | 單音無伴奏測試 |
+| 3 | 小星星 | 147 | 27s | 伴奏測試 |
+| 4 | 名偵探柯南 | 1431 | 164s | 複雜長曲測試 |
+
+**每輪測試樣本**:
+- MIDI轉檔 (1個) - 期望準確率 ≥90%
+- 手機/電腦錄製 (3個) - 期望準確率 ≥90%
+- 錯誤音檔 (3個) - 期望準確率 <50%
+- 環境噪音 (2個) - 期望準確率 <20%
 
 ---
 
@@ -230,6 +274,13 @@ dart tools/audio_tools.dart analyze assets/test_voice/生日快樂.wav
 ---
 
 ##  更新記錄
+
+**2025/11/29** - 偵錯測試運行工具 v2.0
+- 新增 `debug_test_runner.dart` - 偵錯測試運行工具
+- 支援安靜模式 `-q` 只顯示總表
+- 自動過濾 Flutter test 框架雜訊
+- 每個 WAV 測試之間有清晰分隔線
+- 不再依賴外部測試腳本的直接導入
 
 **2025/11/26** - MIDI 播放系統優化
 - 新增 `test_midi_parser.dart` - MIDI 檔案診斷工具

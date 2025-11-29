@@ -1,90 +1,20 @@
 // debug_test_runner.dart
-// 優化的偵錯測試運行工具 - 2025/11/29
+// 偵錯測試運行工具 - 2025/11/29 v2.0
+// 透過執行 flutter test 來運行偵錯測試，並過濾輸出
+//
 // 用法: dart tools/debug_test_runner.dart [測試輪次] [選項]
 // 範例: dart tools/debug_test_runner.dart 4 -q  (執行第4輪測試，安靜模式)
 
 import 'dart:io';
 import 'dart:convert';
 
-/// 測試配置
-class TestConfig {
-  final int round;
-  final String name;
-  final String midiPath;
-  final int noteCount;
-  final double duration;
-  final String description;
-
-  const TestConfig({
-    required this.round,
-    required this.name,
-    required this.midiPath,
-    required this.noteCount,
-    required this.duration,
-    required this.description,
-  });
-
-  /// 計算音符密度 (音符數/秒)
-  double get noteDensity => noteCount / duration;
-}
-
-/// 四輪測試配置
-const List<TestConfig> testRounds = [
-  // 第一輪：生日快樂
-  TestConfig(
-    round: 1,
-    name: '生日快樂',
-    midiPath: 'assets/test_voice/生日快樂.mid',
-    noteCount: 25,
-    duration: 17.0,
-    description: '簡單旋律測試',
-  ),
-
-  // 第二輪：測試音檔
-  TestConfig(
-    round: 2,
-    name: '測試音檔',
-    midiPath: 'assets/test_voice/測試音檔.mid',
-    noteCount: 94,
-    duration: 34.0,
-    description: '單音無伴奏測試',
-  ),
-
-  // 第三輪：小星星
-  TestConfig(
-    round: 3,
-    name: '小星星',
-    midiPath: 'assets/test_voice/小星星.mid',
-    noteCount: 147,
-    duration: 27.0,
-    description: '伴奏測試',
-  ),
-
-  // 第四輪：名偵探柯南
-  TestConfig(
-    round: 4,
-    name: '名偵探柯南',
-    midiPath: 'assets/test_voice/名偵探柯南.mid',
-    noteCount: 1431,
-    duration: 164.0,
-    description: '複雜長曲測試',
-  ),
-];
-
-/// 測試樣本類型
-enum SampleType {
-  midiConverted('MIDI轉檔', true),
-  phoneRecording('手機錄製', true),
-  phoneRecording2('手機錄製2', true),
-  computerRecording('電腦錄製', true),
-  shortRecording('短錄音(30秒)', true), // 新增：短錄音測試
-  wrongSong('錯誤音檔', false),
-  environmentNoise('環境噪音', false);
-
-  final String label;
-  final bool shouldPass;
-  const SampleType(this.label, this.shouldPass);
-}
+/// 測試輪次資訊
+const rounds = {
+  1: ('生日快樂', 25, 17.0, '簡單旋律測試'),
+  2: ('測試音檔', 94, 34.0, '單音無伴奏測試'),
+  3: ('小星星', 147, 27.0, '伴奏測試'),
+  4: ('名偵探柯南', 1431, 164.0, '複雜長曲測試'),
+};
 
 void main(List<String> args) async {
   // 檢查是否請求幫助
@@ -115,28 +45,14 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  // 顯示標題
-  if (!quietMode) {
-    print('\n${'=' * 80}');
-    print('🎯 偵錯測試運行工具 - Debug Test Runner');
-    print('   版本: 2025/11/29');
-    if (targetRound != null) {
-      print('   模式: 第 $targetRound 輪測試 (${testRounds[targetRound - 1].name})');
-    } else {
-      print('   模式: 完整測試（4輪）');
-    }
-    print('=' * 80);
-  }
-
   // 執行測試
-  final roundsToRun = targetRound != null ? [targetRound - 1] : [0, 1, 2, 3];
+  final roundsToRun = targetRound != null ? [targetRound] : [1, 2, 3, 4];
 
-  for (final roundIndex in roundsToRun) {
-    final config = testRounds[roundIndex];
-    await _runRound(config, quietMode);
+  for (final round in roundsToRun) {
+    await _runRound(round, quietMode);
   }
 
-  if (!quietMode) {
+  if (!quietMode && roundsToRun.length > 1) {
     print('\n${'=' * 80}');
     print('✅ 所有測試完成！');
     print('${'=' * 80}\n');
@@ -144,28 +60,16 @@ void main(List<String> args) async {
 }
 
 /// 執行單輪測試
-Future<void> _runRound(TestConfig config, bool quietMode) async {
-  if (!quietMode) {
-    print('\n${'=' * 80}');
-    print('📍 第 ${config.round} 輪測試：${config.name}');
-    print('   描述: ${config.description}');
-    print('   音符數: ${config.noteCount}, 時長: ${config.duration}秒');
-    print('   音符密度: ${config.noteDensity.toStringAsFixed(2)} notes/sec');
-    print('${'=' * 80}');
-  }
-
+Future<void> _runRound(int round, bool quietMode) async {
   // 設定環境變數
   final env = {
     ...Platform.environment,
-    'TEST_MODE': config.round.toString(),
+    'TEST_MODE': round.toString(),
+    'QUIET_MODE': quietMode ? '1' : '0',
   };
 
-  // 執行 Flutter 測試 (使用 --reporter expanded 獲得更好的輸出格式)
+  // 執行 Flutter 測試
   final testPath = 'test/integration/debug_accuracy_test.dart';
-  
-  if (!quietMode) {
-    print('\n🚀 執行測試: flutter test $testPath\n');
-  }
 
   final result = await Process.run(
     'flutter',
@@ -187,33 +91,27 @@ Future<void> _runRound(TestConfig config, bool quietMode) async {
 
   if (result.stderr != null && result.stderr.toString().isNotEmpty) {
     if (!quietMode || result.exitCode != 0) {
-      final stderrOutput = result.stderr.toString();
-      // 過濾 stderr 中的無用訊息
-      final filteredStderr = _filterOutput(stderrOutput, quietMode);
+      final filteredStderr = _filterOutput(result.stderr.toString(), quietMode);
       if (filteredStderr.isNotEmpty) {
         stderr.write(filteredStderr);
       }
     }
   }
 
-  if (result.exitCode != 0) {
-    if (!quietMode) {
-      print('\n❌ 第 ${config.round} 輪測試失敗 (退出碼: ${result.exitCode})');
-    }
-    exit(result.exitCode);
+  if (result.exitCode != 0 && !quietMode) {
+    print('\n❌ 第 $round 輪測試失敗 (退出碼: ${result.exitCode})');
   }
-
-  if (!quietMode) {
-    print('\n✅ 第 ${config.round} 輪測試完成\n');
-  }
+  
+  // 不管測試是否通過，都繼續執行下一輪
 }
 
-/// 過濾輸出，移除不需要的訊息
+/// 過濾輸出
 String _filterOutput(String output, bool quietMode) {
   final lines = output.split('\n');
   final filteredLines = <String>[];
-  final seenLines = <String>{}; // 用於去重
-  
+  final seenContent = <String>{};  // 只追蹤有意義的內容行
+  bool inSummaryTable = false;
+
   for (var line in lines) {
     // 移除 Flutter test 框架的時間戳記（如 "00:08 +9:"）
     line = line.replaceAll(RegExp(r'^\d{2}:\d{2}\s*[\+\-]?\d*:?\s*'), '');
@@ -221,34 +119,65 @@ String _filterOutput(String output, bool quietMode) {
     // 移除 "Shell:" 前綴
     line = line.replaceAll(RegExp(r'^Shell:\s*'), '');
     
+    // 移除 "loading" 訊息
+    if (line.toLowerCase().contains('loading') && line.contains('.dart')) continue;
+    
     // 移除空的時間戳記行
-    if (line.trim().isEmpty || RegExp(r'^\d{2}:\d{2}\s*$').hasMatch(line)) {
+    if (RegExp(r'^\d{2}:\d{2}\s*$').hasMatch(line)) continue;
+    
+    // 移除測試框架雜訊
+    if (line.startsWith('✓') || line.startsWith('√')) continue;
+    if (line.contains('All tests passed!')) continue;
+    if (line.contains('tests passed')) continue;
+    if (line.contains('Running') && line.contains('test')) continue;
+    
+    // 移除 flutter test 框架的 group/test 標題行
+    if (line.contains('偵錯系統準確度測試') && line.contains('輪') && line.contains('：')) continue;
+
+    // 偵測總表開始
+    if (line.contains('準確率總表')) {
+      inSummaryTable = true;
+    }
+
+    // 安靜模式：只顯示總表
+    if (quietMode && !inSummaryTable) {
+      if (line.contains('測試完成')) {
+        inSummaryTable = false;
+      }
+      continue;
+    }
+
+    // 偵測總表結束
+    if (inSummaryTable && line.contains('測試完成')) {
+      filteredLines.add(line);
+      inSummaryTable = false;
+      continue;
+    }
+
+    final trimmedLine = line.trim();
+    
+    // 允許空行通過（作為分隔）
+    if (trimmedLine.isEmpty) {
+      // 避免連續多個空行
+      if (filteredLines.isNotEmpty && filteredLines.last.trim().isNotEmpty) {
+        filteredLines.add('');
+      }
       continue;
     }
     
-    // 移除重複的測試框架訊息
-    if (line.contains('Loading') && line.contains('test')) continue;
-    if (line.contains('Running') && line.contains('test')) continue;
-    if (line.startsWith('✓') || line.startsWith('√')) continue; // 移除測試通過標記
-    if (line.contains('All tests passed!')) continue;
-    if (line.contains('tests passed')) continue;
-    
-    // 去除重複行
-    final trimmedLine = line.trim();
-    if (trimmedLine.isEmpty) continue;
-    if (seenLines.contains(trimmedLine)) continue;
-    seenLines.add(trimmedLine);
-    
-    // 在每個 WAV 測試之間加空行（偵測到新的測試開始）
-    if (line.contains('📋 測試開始:') || line.contains('測試開始:')) {
-      if (filteredLines.isNotEmpty && !filteredLines.last.trim().isEmpty) {
-        filteredLines.add(''); // 加空行分隔
-      }
+    // 分隔線始終允許通過（不去重）
+    if (trimmedLine.startsWith('─') || trimmedLine.startsWith('=')) {
+      filteredLines.add(line);
+      continue;
     }
     
+    // 去除有意義內容的重複（不包括格式化元素）
+    if (seenContent.contains(trimmedLine)) continue;
+    seenContent.add(trimmedLine);
+
     filteredLines.add(line);
   }
-  
+
   return filteredLines.join('\n');
 }
 
@@ -256,7 +185,7 @@ String _filterOutput(String output, bool quietMode) {
 void _printUsage() {
   print('''
 ═══════════════════════════════════════════════════════════════════════════════
-🎯 偵錯測試運行工具 - Debug Test Runner v2025/11/29
+🎯 偵錯測試運行工具 - Debug Test Runner v2.0
 ═══════════════════════════════════════════════════════════════════════════════
 
 用法: dart tools/debug_test_runner.dart [測試輪次] [選項]
@@ -270,24 +199,18 @@ void _printUsage() {
   ※ 不指定輪次則執行全部4輪測試
 
 選項:
-  -q, --quiet      安靜模式
+  -q, --quiet      安靜模式（只顯示每輪的總表）
   -h, --help       顯示此幫助訊息
   help             顯示此幫助訊息
 
-安靜模式差異 (-q):
-  普通模式                          安靜模式
-  ─────────────────────────────────────────────────────────────
-  ✓ 顯示測試運行工具標題            ✗ 不顯示
-  ✓ 顯示每輪測試的詳細資訊          ✗ 不顯示
-  ✓ 顯示 "執行測試" 提示            ✗ 不顯示
-  ✓ 顯示 "測試完成" 訊息            ✗ 不顯示
-  ✓ 顯示測試結果（準確率等）        ✓ 顯示（僅保留核心結果）
-  
-輸出過濾（兩種模式都會）:
-  • 移除 Flutter 時間戳記（如 "00:08 +9:"）
-  • 移除 "Shell:" 前綴
-  • 移除重複訊息
-  • 在 WAV 測試之間自動加空行分隔
+模式差異:
+  ┌────────────────────────┬────────────┬────────────┐
+  │ 內容                   │ 普通模式   │ 安靜模式   │
+  ├────────────────────────┼────────────┼────────────┤
+  │ 每個樣本的測試過程     │     ✓      │     ✗      │
+  │ 每輪的準確率總表       │     ✓      │     ✓      │
+  │ 警告摘要               │     ✓      │     ✓      │
+  └────────────────────────┴────────────┴────────────┘
 
 範例:
   dart tools/debug_test_runner.dart                    # 執行全部4輪測試
@@ -295,13 +218,11 @@ void _printUsage() {
   dart tools/debug_test_runner.dart 4 -q               # 執行第4輪（安靜模式）
   dart tools/debug_test_runner.dart help               # 顯示幫助訊息
 
-測試內容:
-  每輪測試包含以下樣本：
-  • MIDI轉檔 (1個)
-  • 手機/電腦錄製 (3個) - 正確演奏
-  • 錯誤音檔 (3個) - 其他曲目
-  • 環境噪音 (2個)
-  • 短錄音測試 (僅名偵探柯南, 1個) - 用於測試短錄音懲罰機制
+每輪測試內容:
+  • MIDI轉檔 (1個) - 期望準確率 ≥90%
+  • 手機/電腦錄製 (3個) - 期望準確率 ≥90%
+  • 錯誤音檔 (3個) - 期望準確率 <50%
+  • 環境噪音 (2個) - 期望準確率 <20%
 
 ═══════════════════════════════════════════════════════════════════════════════
 ''');

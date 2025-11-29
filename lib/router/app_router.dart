@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:music_practice_app/pages/analysis_page.dart';
 import 'package:music_practice_app/pages/home_page.dart';
 import 'package:music_practice_app/pages/playback_page.dart';
+import 'package:music_practice_app/pages/practice_page.dart';
 import 'package:music_practice_app/pages/upload_page.dart';
 import 'package:music_practice_app/pages/upload_page2.dart';
 import 'package:music_practice_app/pages/library_page.dart';
@@ -158,6 +159,17 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => const NoTransitionPage(
         child: AnimalCollectionPage(),
       ),
+    ),
+    // 練習頁面 (演奏偵錯)
+    GoRoute(
+      path: '/practice',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final file = state.extra as PlatformFile?;
+        return NoTransitionPage(
+          child: PracticePage(file: file),
+        );
+      },
     ),
   ],
 );
