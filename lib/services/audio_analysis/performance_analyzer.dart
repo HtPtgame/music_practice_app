@@ -5,35 +5,40 @@ import 'package:music_practice_app/services/audio_analysis/note_verification_ser
 import 'package:music_practice_app/services/audio_analysis/note_detector_service.dart';
 import 'package:music_practice_app/services/audio_analysis/error_classification_service_impl_v2.dart';
 import 'package:music_practice_app/services/audio_analysis/auto_alignment_service.dart';
+import 'package:music_practice_app/services/audio_analysis/timeline_analysis_service.dart';
 import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
 import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
 import 'package:music_practice_app/services/audio_analysis/models/confusion_matrix.dart';
 
-/// Week 3 演奏分析器實現 (已回溯 - 2025/10/27)
+/// Week 3 演奏分析器實現 (已恢復 v3.4-v3.6 功能 - 2025/11/27)
 ///
 /// 完整流程:
 /// 1. 解析 MIDI 標準答案
 /// 2. 分析 WAV 錄音頻譜
-/// 2.5. 自動檢測錄音起始點並對齊時間軸 (Phase 1A)
+/// 2.5. 時間軸分析 (Phase 1B - 新增)
+/// 2.6. 自動檢測錄音起始點並對齊時間軸 (Phase 1A)
 /// 3. 檢測所有音符 (不僅驗證)
 /// 4. 計算混淆矩陣 (TP/FP/FN)
 /// 5. 驗證期望音符是否存在
 /// 6. 分類錯誤類型
 /// 7. 生成分析報告 (包含 F1 分數)
 ///
-/// 新增功能 (2025/10/25):
+/// 功能清單:
 /// - Phase 0: 檢測所有演奏音符,計算 Precision/Recall/F1 Score,防止「亂彈高分」問題
 /// - Phase 1A: 自動檢測錄音起始點,支持 0-30 秒延遲容錯
+/// - Phase 1B: 時間軸分析 - 偵測延遲開始、中斷、短錄音、跳過段落
 ///
-/// 已停用功能 (2025/10/27):
-/// - 動態參數系統 (多彈奏偵測、錯誤音檔偵測、環境雜訊抑制暫時停用)
-/// - 原因: 對偵錯功能有負面影響，待後續優化
+/// v3.4-v3.6 恢復功能 (2025/11/27):
+/// - 時間軸分析服務 (TimelineAnalysisService)
+/// - 短錄音偵測 (durationPenalty)
+/// - 節奏評分優化
 class PerformanceAnalyzer implements IPerformanceAnalyzer {
   final _midiParser = MidiParserService();
   final _audioAnalyzer = AudioAnalyzerServiceImpl();
   final _noteVerifier = NoteVerificationServiceImpl();
   final _noteDetector = NoteDetectorService(); // Phase 0 - 檢測所有音符
   final _autoAlignment = AutoAlignmentService(); // Phase 1A - 自動對齊
+  final _timelineAnalysis = TimelineAnalysisService(); // Phase 1B - 時間軸分析
   final _errorClassifier = ErrorClassificationServiceImpl();
 
   @override
@@ -60,7 +65,20 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
       final spectrogram = await _audioAnalyzer.analyze(wavPath);
       onProgress?.call(0.45);
 
-      // 步驟 2.5: 自動對齊時間軸 (Phase 1A - 5%)
+      // 步驟 2.5: 時間軸分析 (Phase 1B - 5%)
+      // 分析錄音的整體時間軸特徵：延遲開始、中斷、跳過段落等
+      TimelineAnalysisResult? timelineResult;
+      try {
+        timelineResult = await _timelineAnalysis.analyze(
+          spectrogram: spectrogram,
+          midiTimeline: timeline,
+        );
+        print('📊 時間軸分析狀態: ${timelineResult.overallStatus}');
+      } catch (e) {
+        print('⚠️ 時間軸分析失敗 (非致命): $e');
+      }
+
+      // 步驟 2.6: 自動對齊時間軸 (Phase 1A - 5%)
       // 檢測錄音的實際起始點,並調整 MIDI 時間軸以匹配
       // 這解決了「延遲 10 秒才開始演奏」的問題
       final actualStart = _autoAlignment.detectActualStart(spectrogram);
@@ -153,7 +171,7 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
       final processingTime = DateTime.now().difference(startTime);
       onProgress?.call(1.0);
 
-      // 生成報告 (包含混淆矩陣與時間偏移)
+      // 生成報告 (包含混淆矩陣、時間偏移與時間軸分析)
       return AnalysisReport(
         totalNotes: totalExpected,
         correctNotes: correctNotes,
@@ -166,6 +184,7 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
         timeOffset: actualStart, // Phase 1A: 記錄檢測到的時間偏移
         confusionMatrix: confusionMatrix, // Phase 0
         totalDetectedNotes: totalDetected, // Phase 0
+        timelineAnalysis: timelineResult, // Phase 1B: 時間軸分析
       );
     } catch (e) {
       rethrow;

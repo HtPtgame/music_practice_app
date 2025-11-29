@@ -46,6 +46,16 @@ class _PracticePageState extends State<PracticePage> {
   int _recordingDurationSeconds = 0;
   Timer? _recordingTimer;
 
+  // 錄音/上傳模式切換 (2025/11/27 恢復)
+  bool _isRecordMode = true; // true: 錄音模式, false: 上傳模式
+
+  // 播放器狀態 (2025/11/27 恢復)
+  bool _isPaused = false;
+  double _playbackPosition = 0.0; // 當前播放位置（秒）
+  double _playbackDuration = 0.0; // 總時長（秒）
+  Timer? _playbackTimer;
+  StreamSubscription? _playerSubscription;
+
   // 錄音計時器將在錄音過程中自動處理
 
   // [已淘汰 2025/10/08] AI 模型相關變數 (保留以避免編譯錯誤,但不會被使用)
@@ -700,6 +710,8 @@ class _PracticePageState extends State<PracticePage> {
     }
     setState(() {
       isPlaying = true;
+      _isPaused = false;
+      _playbackPosition = 0.0;
     });
     try {
       // 優先使用 WAV 格式播放
@@ -717,15 +729,22 @@ class _PracticePageState extends State<PracticePage> {
         fromURI: _audioPath,
         codec: playbackCodec,
         whenFinished: () {
+          _playbackTimer?.cancel();
           setState(() {
             isPlaying = false;
+            _isPaused = false;
+            _playbackPosition = 0.0;
           });
         },
       );
+
+      // 啟動播放進度計時器 (2025/11/27 恢復)
+      _startPlaybackTimer();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         isPlaying = false;
+        _isPaused = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.errorPlaybackFailed(e.toString())), backgroundColor: Colors.red),
@@ -735,9 +754,115 @@ class _PracticePageState extends State<PracticePage> {
 
   Future<void> stopPlaying() async {
     await _player!.stopPlayer();
+    _playbackTimer?.cancel();
+    _playerSubscription?.cancel();
     setState(() {
       isPlaying = false;
+      _isPaused = false;
+      _playbackPosition = 0.0;
     });
+  }
+
+  // 暫停播放 (2025/11/27 恢復)
+  Future<void> pausePlaying() async {
+    if (_player != null && isPlaying) {
+      await _player!.pausePlayer();
+      _playbackTimer?.cancel();
+      setState(() {
+        _isPaused = true;
+      });
+    }
+  }
+
+  // 繼續播放 (2025/11/27 恢復)
+  Future<void> resumePlaying() async {
+    if (_player != null && _isPaused) {
+      await _player!.resumePlayer();
+      _startPlaybackTimer();
+      setState(() {
+        _isPaused = false;
+      });
+    }
+  }
+
+  // 啟動播放進度計時器 (2025/11/27 恢復)
+  void _startPlaybackTimer() {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+      if (!isPlaying || _player == null) {
+        timer.cancel();
+        return;
+      }
+      try {
+        // 更新播放位置（毫秒轉秒）
+        final position = await _player!.getProgress();
+        if (position != null && position['position'] != null) {
+          final positionMs = position['position']!.inMilliseconds;
+          final durationMs = position['duration']!.inMilliseconds;
+          setState(() {
+            _playbackPosition = positionMs / 1000.0;
+            _playbackDuration = durationMs / 1000.0;
+          });
+        }
+      } catch (e) {
+        // 忽略錯誤
+      }
+    });
+  }
+
+  // 上傳 WAV 檔案 (2025/11/27 恢復)
+  Future<void> uploadWavFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['wav'],
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        
+        // 複製檔案到應用目錄
+        final directory = await getApplicationDocumentsDirectory();
+        final targetPath = '${directory.path}/uploaded_recording.wav';
+        final targetFile = File(targetPath);
+        
+        if (file.bytes != null) {
+          await targetFile.writeAsBytes(file.bytes!);
+        } else if (file.path != null) {
+          await File(file.path!).copy(targetPath);
+        }
+
+        // 驗證檔案
+        if (await targetFile.exists()) {
+          final fileSize = await targetFile.length();
+          debugPrint('✅ WAV 檔案上傳成功: $targetPath (${fileSize} bytes)');
+          
+          setState(() {
+            _audioPath = targetPath;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✅ 上傳成功：${file.name} (${(fileSize / 1024).toStringAsFixed(1)} KB)'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ 上傳 WAV 檔案失敗: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 上傳失敗: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // 新增：轉換為 MIDI 檔案的功能
@@ -2393,6 +2518,13 @@ class _PracticePageState extends State<PracticePage> {
     return '➖ 未知';
   }
 
+  // 格式化時長顯示 (2025/11/27 新增)
+  String _formatDuration(double seconds) {
+    final int minutes = seconds.floor() ~/ 60;
+    final int secs = seconds.floor() % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -2485,90 +2617,225 @@ class _PracticePageState extends State<PracticePage> {
                           const SizedBox(width: 8),
                           FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text(l10n?.practiceRecord ?? '錄音控制',
+                            child: Text(_isRecordMode ? '錄音控制' : '上傳音檔',
                                 style: const TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // 倒數計時開關
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.timer, size: 20, color: Colors.grey),
-                          const SizedBox(width: 8),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(l10n?.practiceEnableCountdown ?? '3秒倒數計時',
-                                style:
-                                    const TextStyle(fontSize: 14, color: Colors.grey)),
-                          ),
-                          const SizedBox(width: 12),
-                          Switch(
-                            value: _enableCountdown,
-                            onChanged: (value) {
-                              setState(() {
-                                _enableCountdown = value;
-                              });
-                            },
-                            activeColor: AppColors.dynamicPrimary,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Column(
-                        children: [
-                          // 狀態顯示器
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isRecording
-                                    ? Icons.fiber_manual_record
-                                    : Icons.stop_circle_outlined,
-                                color: isRecording ? Colors.red : Colors.green,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                isRecording
-                                    ? '${l10n?.practiceRecording ?? '正在錄音'}... ${_recordingDurationSeconds}${l10n?.practiceSeconds ?? 's'}'
-                                    : (_audioPath != null ? (l10n?.practiceRecordingSuccess ?? '錄音完成') : (l10n?.practiceNoRecording ?? '未錄音')),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: isRecording
-                                      ? Colors.red
-                                      : (_audioPath != null
-                                          ? Colors.green
-                                          : Colors.grey),
-                                  fontWeight: FontWeight.w500,
+                      
+                      // 錄音/上傳模式切換 (2025/11/27 恢復)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (!isRecording && !isPlaying) {
+                                    setState(() {
+                                      _isRecordMode = true;
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: _isRecordMode ? AppColors.dynamicPrimary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.mic,
+                                        size: 18,
+                                        color: _isRecordMode ? Colors.white : Colors.grey[700],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '錄音',
+                                        style: TextStyle(
+                                          color: _isRecordMode ? Colors.white : Colors.grey[700],
+                                          fontWeight: _isRecordMode ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // 錄音按鈕
-                          ElevatedButton.icon(
-                            onPressed:
-                                isRecording ? stopRecording : startRecording,
-                            icon: Icon(isRecording
-                                ? Icons.stop
-                                : Icons.fiber_manual_record),
-                            label: Text(isRecording
-                                ? (l10n?.practiceStopRecord ?? '停止')
-                                : (_audioPath != null ? (l10n?.practiceRecord ?? '重新錄音') : (l10n?.practiceRecord ?? '開始'))),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  isRecording ? Colors.grey : Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 32, vertical: 16),
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (!isRecording && !isPlaying) {
+                                    setState(() {
+                                      _isRecordMode = false;
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: !_isRecordMode ? AppColors.dynamicPrimary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.upload_file,
+                                        size: 18,
+                                        color: !_isRecordMode ? Colors.white : Colors.grey[700],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '上傳',
+                                        style: TextStyle(
+                                          color: !_isRecordMode ? Colors.white : Colors.grey[700],
+                                          fontWeight: !_isRecordMode ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-
+                      const SizedBox(height: 16),
+                      
+                      // 根據模式顯示不同內容
+                      if (_isRecordMode) ...[
+                        // 倒數計時開關
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.timer, size: 20, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(l10n?.practiceEnableCountdown ?? '3秒倒數計時',
+                                  style:
+                                      const TextStyle(fontSize: 14, color: Colors.grey)),
+                            ),
+                            const SizedBox(width: 12),
+                            Switch(
+                              value: _enableCountdown,
+                              onChanged: (value) {
+                                setState(() {
+                                  _enableCountdown = value;
+                                });
+                              },
+                              activeColor: AppColors.dynamicPrimary,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Column(
+                          children: [
+                            // 狀態顯示器
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isRecording
+                                      ? Icons.fiber_manual_record
+                                      : Icons.stop_circle_outlined,
+                                  color: isRecording ? Colors.red : Colors.green,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  isRecording
+                                      ? '${l10n?.practiceRecording ?? '正在錄音'}... ${_recordingDurationSeconds}${l10n?.practiceSeconds ?? 's'}'
+                                      : (_audioPath != null ? (l10n?.practiceRecordingSuccess ?? '錄音完成') : (l10n?.practiceNoRecording ?? '未錄音')),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: isRecording
+                                        ? Colors.red
+                                        : (_audioPath != null
+                                            ? Colors.green
+                                            : Colors.grey),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            // 錄音按鈕
+                            ElevatedButton.icon(
+                              onPressed:
+                                  isRecording ? stopRecording : startRecording,
+                              icon: Icon(isRecording
+                                  ? Icons.stop
+                                  : Icons.fiber_manual_record),
+                              label: Text(isRecording
+                                  ? (l10n?.practiceStopRecord ?? '停止')
+                                  : (_audioPath != null ? '重新錄音' : (l10n?.practiceRecord ?? '開始錄音'))),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    isRecording ? Colors.grey : Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        // 上傳模式
+                        Column(
+                          children: [
+                            Icon(
+                              _audioPath != null ? Icons.check_circle : Icons.upload_file,
+                              size: 48,
+                              color: _audioPath != null ? Colors.green : Colors.grey,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _audioPath != null 
+                                  ? '已上傳檔案' 
+                                  : '請選擇 WAV 檔案',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _audioPath != null ? Colors.green : Colors.grey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (_audioPath != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _audioPath!.split('/').last,
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: uploadWavFile,
+                              icon: const Icon(Icons.upload_file),
+                              label: Text(_audioPath != null ? '重新上傳' : '選擇檔案'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.dynamicPrimary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -2576,7 +2843,7 @@ class _PracticePageState extends State<PracticePage> {
 
               const SizedBox(height: 16),
 
-              // 播放控制區域
+              // 播放控制區域 (2025/11/27 增強)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -2596,22 +2863,86 @@ class _PracticePageState extends State<PracticePage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: (!isRecording && _audioPath != null)
-                              ? (isPlaying ? stopPlaying : playRecording)
-                              : null,
-                          icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
-                          label: Text(isPlaying 
-                              ? (l10n?.practiceStopPlayback ?? '停止播放')
-                              : (l10n?.practicePlayback ?? '播放錄音')),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isPlaying ? Colors.orange : Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          ),
+                      const SizedBox(height: 16),
+                      
+                      // 播放進度條 (2025/11/27 新增)
+                      if (_audioPath != null && (isPlaying || _playbackPosition > 0)) ...[
+                        Column(
+                          children: [
+                            // 進度條
+                            Slider(
+                              value: _playbackDuration > 0 
+                                  ? (_playbackPosition / _playbackDuration).clamp(0.0, 1.0) 
+                                  : 0.0,
+                              onChanged: null, // 暫時不支援拖動
+                              activeColor: AppColors.dynamicPrimary,
+                              inactiveColor: Colors.grey[300],
+                            ),
+                            // 時間顯示
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _formatDuration(_playbackPosition),
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                                  Text(
+                                    _formatDuration(_playbackDuration),
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 8),
+                      ],
+                      
+                      // 播放控制按鈕
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // 播放/停止按鈕
+                          ElevatedButton.icon(
+                            onPressed: (!isRecording && _audioPath != null)
+                                ? (isPlaying 
+                                    ? (_isPaused ? resumePlaying : pausePlaying)
+                                    : playRecording)
+                                : null,
+                            icon: Icon(
+                              isPlaying 
+                                  ? (_isPaused ? Icons.play_arrow : Icons.pause)
+                                  : Icons.play_arrow
+                            ),
+                            label: Text(
+                              isPlaying 
+                                  ? (_isPaused ? '繼續' : '暫停')
+                                  : '播放錄音'
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isPlaying ? Colors.orange : Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            ),
+                          ),
+                          
+                          // 停止按鈕（僅在播放時顯示）
+                          if (isPlaying) ...[
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: stopPlaying,
+                              icon: const Icon(Icons.stop),
+                              label: const Text('停止'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
@@ -2701,6 +3032,12 @@ class _PracticePageState extends State<PracticePage> {
 
   // Week 4 Phase 2: 演奏分析方法
   Future<void> _analyzePerformance() async {
+    // 分析前先停止播放 (2025/11/27 修復)
+    if (isPlaying) {
+      await stopPlaying();
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
     if (_audioPath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

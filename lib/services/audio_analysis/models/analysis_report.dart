@@ -1,13 +1,17 @@
+import 'dart:math' show max;
 import 'performance_error.dart';
 import 'confusion_matrix.dart';
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
+import '../timeline_analysis_service.dart';
 
-/// 分析報告 (已優化 - 2025/10/25)
+/// 分析報告 (已優化 - v3.4-v3.6 功能恢復 2025/11/27)
 ///
 /// 新增功能:
 /// - 混淆矩陣 (Confusion Matrix) 評估
 /// - F1 分數計算,防止「亂彈高分」問題
+/// - 時間軸分析結果整合
+/// - 短錄音偵測與懲罰 (durationPenalty)
 /// - 更精確的評分機制
 class AnalysisReport {
   /// 總音符數 (期望演奏的音符數)
@@ -52,6 +56,33 @@ class AnalysisReport {
   /// - 如果檢測到的音符數 >> 期望音符數 → 可能在亂彈
   final int? totalDetectedNotes;
 
+  /// 時間軸分析結果 (v3.4 新增 - 2025/11/27)
+  ///
+  /// 包含:
+  /// - 演奏時長與預期時長的比較
+  /// - 延遲開始、中斷、跳過段落等資訊
+  final TimelineAnalysisResult? timelineAnalysis;
+
+  /// 短錄音懲罰係數 (v3.7 優化 - 2025/11/29)
+  ///
+  /// 當錄音時長明顯短於 MIDI 預期時長時的懲罰係數
+  /// - 1.0: 無懲罰 (>=90% 正常長度)
+  /// - 0.5-1.0: 輕微懲罰 (50-90%)
+  /// - 0.0-0.5: 嚴重懲罰 (<50% 非常短)
+  ///
+  /// v3.7 優化: 加強短錄音懲罰力度，解汻30秒錄音得98.7分的問題
+  double get durationPenalty {
+    if (timelineAnalysis == null) return 1.0;
+    final ratio = timelineAnalysis!.durationRatio;
+    
+    // v3.7: 更嚴格的懲罰曲線
+    if (ratio >= 0.9) return 1.0; // 90%以上無懲罰
+    if (ratio >= 0.7) return 0.6 + (ratio - 0.7) * 2.0; // 70-90%: 0.6-1.0
+    if (ratio >= 0.5) return 0.3 + (ratio - 0.5) * 1.5; // 50-70%: 0.3-0.6
+    if (ratio >= 0.3) return 0.1 + (ratio - 0.3) * 1.0; // 30-50%: 0.1-0.3
+    return 0.05; // <30%: 極低分 (30秒/164秒=18.3% -> 0.05倍)
+  }
+
   AnalysisReport({
     required this.totalNotes,
     required this.correctNotes,
@@ -64,6 +95,7 @@ class AnalysisReport {
     this.timeOffset = 0.0,
     this.confusionMatrix,
     this.totalDetectedNotes,
+    this.timelineAnalysis,
   });
 
   /// 音準正確率 (0-1)
@@ -130,27 +162,62 @@ class AnalysisReport {
     return falsePositives / totalNotes;
   }
 
-  /// 節奏分數 (0-100)
+  /// 節奏分數 (0-100) - v3.7 優化 2025/11/29
+  ///
+  /// v3.7 優化: 解決環境音節奏分數過高問題
+  /// 原因: 環境音可能有很少的誤報音符，但節奏錯誤極低，導致99.3%高分
+  /// 解決方案: 結合準確率調整節奏分數，低準確率時降低節奏分數
   double get rhythmScore {
     if (totalNotes == 0) return 0;
+    
+    // 基礎節奏分數: 根據節奏錯誤計算
     final timingErrors = earlyNotes + lateNotes;
-    final timingAccuracy = 1 - (timingErrors / totalNotes);
-    return (timingAccuracy * 100).clamp(0, 100);
+    final baseRhythmScore = correctNotes > 0 
+        ? (1 - (timingErrors / correctNotes)).clamp(0.0, 1.0)
+        : 0.0;
+    
+    // v3.7: 根據準確率調整節奏分數
+    // 準確率很低時，節奏分數也應該降低
+    final accuracyFactor = accuracy.clamp(0.3, 1.0); // 最低30%的影響
+    final adjustedRhythmScore = baseRhythmScore * accuracyFactor;
+    
+    return (adjustedRhythmScore * 100).clamp(0, 100);
   }
 
-  /// 總分 (0-100)
+  /// 總分 (0-100) - v3.7 全面優化 2025/11/29
   ///
-  /// 優化版評分 (2025/10/27):
-  /// - 準確率 (60% 權重): 實際演奏正確的音符比例
-  /// - 節奏分數 (40% 權重): 節奏準確性
+  /// v3.7 優化:
+  /// 1. 修正38.7%準確率卻得0分的異常問題
+  /// 2. 平衡環境音和實際演奏的分數
+  /// 3. 加強短錄音懲罰（30秒錄音不應該得98.7分）
   ///
-  /// 修正原因: F1 Score 在低準確率時仍可能給高分（如51.7%準確率得87分）
+  /// 評分策略:
+  /// - F1 Score (50% 權重): 綜合考慮準確率和完整性
+  /// - 節奏分數 (50% 權重): 節奏準確性（已結合準確率調整）
+  /// - 短錄音懲罰: 時長不足時降低分數
   double get overallScore {
-    // 使用實際準確率作為主要評分 (0-100)
-    final accuracyPercent = accuracy * 100;
-
-    // 準確率權重 60%, 節奏權重 40%
-    return (accuracyPercent * 0.6 + rhythmScore * 0.4).clamp(0, 100);
+    // 使用 F1 Score 作為主要評分 (0-100)
+    // F1 Score 會同時考慮 Precision 和 Recall，避免亂彈高分
+    final f1Percent = f1Score * 100;
+    
+    // 節奏分數已經結合準確率調整，可以直接使用
+    final rhythm = rhythmScore;
+    
+    // v3.7: 調整權重為 50%:50%，更平衡
+    final baseScore = (f1Percent * 0.5 + rhythm * 0.5);
+    
+    // 應用短錄音懲罰 (v3.7 加強)
+    final finalScore = baseScore * durationPenalty;
+    
+    // 確保最低分：即使有一些正確音符，也應該給予基礎分
+    // 解決38.7%準確率卻0分的問題
+    if (finalScore < 1.0 && accuracy > 0.1) {
+      // 最低保證分 = 準確率 * 20
+      final minScore = accuracy * 20;
+      return max(finalScore, minScore).clamp(0, 100);
+    }
+    
+    return finalScore.clamp(0, 100);
   }
 
   /// 評級 (S/A/B/C/D/F) - 已優化
@@ -166,22 +233,24 @@ class AnalysisReport {
     return 'F'; // <55%
   }
 
-  /// 是否可能在亂彈 - 新增 2025/10/25
+  /// 是否可能在亂彈 - 優化 2025/11/27
   ///
-  /// 判斷標準:
-  /// - Precision < 0.5: 一半以上是誤報
-  /// - 或 誤報率 > 50%
+  /// 判斷標準（更嚴格，避免誤判）:
+  /// - Precision < 0.3: 大部分檢測為誤報
+  /// - 且 False Positive Rate > 0.7: 超過70%的檢測是錯的
+  /// - 且 F1 Score < 0.3: 綜合評分極低
   bool get isProbablyRandomPlaying {
-    return precision < 0.5 || falsePositiveRate > 0.5;
+    return precision < 0.3 && falsePositiveRate > 0.7 && f1Score < 0.3;
   }
 
-  /// 是否為錯誤曲目 - 新增 2025/10/25
+  /// 是否為錯誤曲目 - 優化 2025/11/27
   ///
-  /// 判斷標準:
-  /// - F1 Score < 0.2: 幾乎完全不匹配
-  /// - 且 Recall < 0.3: 期望音符大部分未檢出
+  /// 判斷標準（更嚴格，避免誤判）:
+  /// - F1 Score < 0.15: 幾乎完全不匹配（從0.2降至0.15）
+  /// - 且 Recall < 0.2: 期望音符幾乎全部未檢出（從0.3降至0.2）
+  /// - 且 Accuracy < 0.3: 準確率極低
   bool get isProbablyWrongSong {
-    return f1Score < 0.2 && recall < 0.3;
+    return f1Score < 0.15 && recall < 0.2 && accuracy < 0.3;
   }
 
   /// 錯誤分布 (用於圖表)

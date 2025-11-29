@@ -158,11 +158,212 @@ class AutoAlignmentService {
     return sqrt(totalEnergy / spectrogram.freqBins); // RMS 能量
   }
 
-  /// 檢測錄音結尾點 (可選功能,暫不實作)
+  /// 檢測錄音結尾點 (2025/11/27 實作)
   ///
-  /// 用於未來擴展:裁剪錄音結尾的靜音段
-  double? detectActualEnd(Spectrogram spectrogram) {
-    // TODO: 從後往前搜索最後一個有效音樂時間點
-    return null;
+  /// 用於裁剪錄音結尾的靜音段
+  ///
+  /// 參數:
+  /// - [spectrogram]: 頻譜圖
+  ///
+  /// 返回: 實際音樂結束時間 (秒)
+  double detectActualEnd(Spectrogram spectrogram) {
+    // 1. 估算底噪水平
+    final noiseFloor = _estimateNoiseFloor(spectrogram);
+    final threshold = noiseFloor * startThresholdMultiplier;
+
+    print('🔍 檢測錄音結尾點:');
+    print('  底噪水平: ${noiseFloor.toStringAsFixed(6)}');
+    print('  檢測閾值: ${threshold.toStringAsFixed(6)}');
+
+    // 2. 從後往前搜索最後一個有效音樂時間點
+    int consecutiveFrames = 0;
+    int? endFrame;
+
+    for (int frame = spectrogram.timeFrames - 1; frame >= 0; frame--) {
+      final energy = _calculateFrameEnergy(spectrogram, frame);
+
+      if (energy > threshold) {
+        consecutiveFrames++;
+        endFrame ??= frame;
+
+        // 連續超過閾值足夠久,確認為真正結束點
+        if (consecutiveFrames >= minContinuousFrames) {
+          final endTime = endFrame * spectrogram.timeResolution;
+          print(
+              '  ✅ 檢測到結尾點: ${endTime.toStringAsFixed(3)}秒 (第 $endFrame 幀)');
+          print('  📊 連續強能量幀數: $consecutiveFrames');
+          return endTime;
+        }
+      } else {
+        // 重置計數器
+        consecutiveFrames = 0;
+        endFrame = null;
+      }
+    }
+
+    // 沒找到明顯結尾點,返回總時長
+    final totalDuration = spectrogram.timeFrames * spectrogram.timeResolution;
+    print('  ⚠️ 未檢測到明顯結尾點,使用總時長: ${totalDuration.toStringAsFixed(3)}秒');
+    return totalDuration;
+  }
+
+  /// 檢測演奏中的靜音間隙 (中斷檢測) - 2025/11/27 新增
+  ///
+  /// 用於檢測演奏中途停頓的時間點
+  ///
+  /// 參數:
+  /// - [spectrogram]: 頻譜圖
+  /// - [minSilenceDuration]: 最小靜音時長 (秒),預設 2.0 秒
+  ///
+  /// 返回: 靜音間隙列表 [(開始時間, 結束時間), ...]
+  List<(double, double)> detectSilentGaps(
+    Spectrogram spectrogram, {
+    double minSilenceDuration = 2.0,
+  }) {
+    final noiseFloor = _estimateNoiseFloor(spectrogram);
+    final threshold = noiseFloor * startThresholdMultiplier;
+    final minSilentFrames =
+        (minSilenceDuration / spectrogram.timeResolution).round();
+
+    final silentGaps = <(double, double)>[];
+    int consecutiveSilentFrames = 0;
+    int? silentStartFrame;
+
+    print('🔍 檢測靜音間隙 (閾值: ${minSilenceDuration.toStringAsFixed(1)}秒)...');
+
+    for (int frame = 0; frame < spectrogram.timeFrames; frame++) {
+      final energy = _calculateFrameEnergy(spectrogram, frame);
+      final isSilent = energy <= threshold;
+
+      if (isSilent) {
+        consecutiveSilentFrames++;
+        silentStartFrame ??= frame;
+
+        // 達到最小靜音時長時記錄開始
+        if (consecutiveSilentFrames == minSilentFrames) {
+          final startTime = silentStartFrame * spectrogram.timeResolution;
+          silentGaps.add((startTime, 0.0)); // 暫時不知道結束時間
+        }
+      } else {
+        // 結束靜音段落
+        if (consecutiveSilentFrames >= minSilentFrames) {
+          final endTime = frame * spectrogram.timeResolution;
+          // 更新最後一個靜音段落的結束時間
+          if (silentGaps.isNotEmpty) {
+            final lastGap = silentGaps.removeLast();
+            silentGaps.add((lastGap.$1, endTime));
+            print(
+                '  發現間隙: ${lastGap.$1.toStringAsFixed(1)}s - ${endTime.toStringAsFixed(1)}s '
+                '(${(endTime - lastGap.$1).toStringAsFixed(1)}秒)');
+          }
+        }
+
+        consecutiveSilentFrames = 0;
+        silentStartFrame = null;
+      }
+    }
+
+    // 處理結尾仍在靜音的情況
+    if (consecutiveSilentFrames >= minSilentFrames && silentGaps.isNotEmpty) {
+      final lastGap = silentGaps.removeLast();
+      final endTime = spectrogram.timeFrames * spectrogram.timeResolution;
+      silentGaps.add((lastGap.$1, endTime));
+    }
+
+    print('  ✅ 檢測到 ${silentGaps.length} 個靜音間隙');
+    return silentGaps;
+  }
+
+  /// 進階對齊 MIDI 時間軸 (支援分段對齊) - 2025/11/27 更新
+  ///
+  /// 對齊策略更新:
+  /// 1. 單段演奏: 簡單偏移
+  /// 2. 多段演奏 (有中斷): 分段對齊以匹配 MIDI 段落
+  /// 3. 跳過段落: 識別未演奏的 MIDI 段落
+  ///
+  /// 參數:
+  /// - [timeline]: 原始 MIDI 時間軸
+  /// - [actualStart]: 實際起始時間 (秒)
+  /// - [musicSegments]: 檢測到的音樂段落 (可選,用於多段對齊)
+  ///
+  /// 返回: 對齊後的新時間軸
+  MidiTimeline alignMidiTimelineAdvanced(
+    MidiTimeline timeline,
+    double actualStart, {
+    List<(double, double)>? musicSegments,
+  }) {
+    if (timeline.events.isEmpty) return timeline;
+
+    // 沒有提供音樂段落,使用簡單對齊
+    if (musicSegments == null || musicSegments.isEmpty) {
+      return alignMidiTimeline(timeline, actualStart);
+    }
+
+    // 只有一個段落,使用簡單對齊
+    if (musicSegments.length == 1) {
+      return alignMidiTimeline(timeline, actualStart);
+    }
+
+    print('\n⏰ 進階分段對齊:');
+    print('  檢測到 ${musicSegments.length} 個音樂段落');
+    print('  MIDI 總時長: ${timeline.duration.toStringAsFixed(1)}秒');
+
+    // 多段對齊: 較複雜
+    // 策略: 將 MIDI 分段,依序與音樂段落配對
+    final alignedEvents = <NoteEvent>[];
+    int musicSegmentIndex = 0;
+    double currentMidiTime = 0.0;
+
+    for (final segment in musicSegments) {
+      final segmentStart = segment.$1;
+      final segmentEnd = segment.$2;
+      final segmentDuration = segmentEnd - segmentStart;
+
+      print('  處理段落 ${musicSegmentIndex + 1}: '
+          '${segmentStart.toStringAsFixed(1)}s - ${segmentEnd.toStringAsFixed(1)}s '
+          '(${segmentDuration.toStringAsFixed(1)}秒)');
+
+      // 收集 MIDI 中對應這個時間範圍的音符
+      final segmentNotes = <NoteEvent>[];
+      double segmentMidiDuration = 0.0;
+
+      for (final event in timeline.events) {
+        if (event.startTime < currentMidiTime) continue;
+
+        segmentNotes.add(event);
+        segmentMidiDuration = event.endTime - currentMidiTime;
+
+        // 達到這個段落的預期時長後停止
+        if (segmentMidiDuration >= segmentDuration * 0.9) {
+          break;
+        }
+      }
+
+      // 對齊這些音符
+      final offset = segmentStart - currentMidiTime;
+      for (final note in segmentNotes) {
+        alignedEvents.add(NoteEvent(
+          midiNote: note.midiNote,
+          startTime: note.startTime + offset,
+          endTime: note.endTime + offset,
+          velocity: note.velocity,
+        ));
+      }
+
+      print('    對齊 ${segmentNotes.length} 個音符,偏移 ${offset.toStringAsFixed(1)}秒');
+
+      // 更新下一個段落的起始時間
+      if (segmentNotes.isNotEmpty) {
+        currentMidiTime = segmentNotes.last.endTime;
+      }
+      musicSegmentIndex++;
+    }
+
+    print('  ✅ 分段對齊完成,總共對齊 ${alignedEvents.length} 個音符\n');
+
+    return MidiTimeline(
+      events: alignedEvents,
+      duration: timeline.duration,
+    );
   }
 }
