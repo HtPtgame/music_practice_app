@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
-import 'package:music_practice_app/services/settings_service.dart';
+import 'package:music_practice_app/core/services/settings_service.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 

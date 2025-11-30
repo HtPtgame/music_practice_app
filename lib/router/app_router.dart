@@ -12,14 +12,15 @@ import 'package:music_practice_app/pages/upload_page2.dart';
 import 'package:music_practice_app/pages/library_page.dart';
 import 'package:music_practice_app/pages/settings_page.dart';
 import 'package:music_practice_app/pages/note_page.dart';
-import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
+import 'package:music_practice_app/features/pieces/pages/piece_detail_page.dart';
 import 'package:music_practice_app/pages/metronome_page.dart';
-import 'package:music_practice_app/pages/sheet_annotation_page.dart';
 import 'package:music_practice_app/pages/login_page.dart';
 import 'package:music_practice_app/pages/register_page.dart';
 import 'package:music_practice_app/pages/profile_page.dart';
 import 'package:music_practice_app/pages/animal_collection_page.dart';
+import 'package:music_practice_app/models/sheet_annotation.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
+import 'package:music_practice_app/features/lessons/pages/lesson_book_page.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -81,25 +82,17 @@ final GoRouter appRouter = GoRouter(
                   child: MusicSheetDetailPage(
                     sheetName: extra['sheetName'] as String,
                     initialNotes: extra['initialNotes'] as List<String>,
+                    initialSheets:
+                        extra['initialSheets'] as List<AnnotatedSheet>,
                     onNotesChanged:
                         extra['onNotesChanged'] as Function(List<String>),
+                    onSheetsChanged: extra['onSheetsChanged']
+                        as Function(List<AnnotatedSheet>),
                   ),
                 );
               },
             ),
-            // 電子譜面標註作為筆記頁面的子路由
-            GoRoute(
-              path: 'sheet-annotation',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                child: const SheetAnnotationPage(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                  return child;
-                },
-              ),
-            ),
+
           ],
         ),
       ],
@@ -170,6 +163,13 @@ final GoRouter appRouter = GoRouter(
           child: PracticePage(file: file),
         );
       },
+    ),
+    GoRoute(
+      path: '/lessons',
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: LessonBookPage(),
+      ),
     ),
   ],
 );

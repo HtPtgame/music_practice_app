@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro.dart';
 import 'package:music_practice_app/utils/midi_parser.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:music_practice_app/services/settings_service.dart';
+import 'package:music_practice_app/core/services/settings_service.dart';
 
 /// 預排程音符 - 用於 look-ahead scheduling
 class _ScheduledNote {

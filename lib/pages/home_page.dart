@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/widgets/check_in_card.dart';
 import 'package:music_practice_app/widgets/practice_timer_card.dart';
-import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class HomePage extends StatelessWidget {
@@ -134,8 +134,75 @@ class _HomePageContent extends StatelessWidget {
         // 練習計時卡片
         const PracticeTimerCard(),
 
+        const SizedBox(height: 16),
+
+        // 家庭聯絡簿入口
+        _LessonBookButton(),
+
         const SizedBox(height: 100), // 底部間距
       ],
+    );
+  }
+}
+
+class _LessonBookButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.dynamicCard,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () => context.push('/lessons'),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.dynamicPrimary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.menu_book,
+                  color: AppColors.dynamicPrimary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '家庭聯絡簿',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '記錄老師上課內容與練習建議',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.dynamicTextLight,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

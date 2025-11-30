@@ -1,6 +1,6 @@
 // lib/utils/app_colors.dart
 import 'package:flutter/material.dart';
-import 'theme_manager.dart';
+import 'package:music_practice_app/core/theme/theme_manager.dart';
 
 class AppColors {
   // 靜態常數顏色（供 const 使用）

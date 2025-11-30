@@ -6,6 +6,7 @@ class AnnotationMarker {
   final String id;
   final Offset position; // 相對位置 (0.0 ~ 1.0)
   final String note;
+  final int? measure; // 小節數
   final DateTime createdAt;
   final Color color;
   final String iconPath; // 星星圖標路徑
@@ -14,6 +15,7 @@ class AnnotationMarker {
     required this.id,
     required this.position,
     required this.note,
+    this.measure,
     required this.createdAt,
     this.color = Colors.red,
     this.iconPath = 'assets/star1.svg', // 預設為星星1
@@ -25,6 +27,7 @@ class AnnotationMarker {
       'x': position.dx,
       'y': position.dy,
       'note': note,
+      'measure': measure,
       'createdAt': createdAt.toIso8601String(),
       'color': color.value,
       'iconPath': iconPath,
@@ -39,6 +42,7 @@ class AnnotationMarker {
         (json['y'] as num).toDouble(),
       ),
       note: json['note'] as String,
+      measure: json['measure'] as int?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       color: Color(json['color'] as int),
       iconPath: json['iconPath'] as String? ?? 'assets/star1.svg', // 向後兼容

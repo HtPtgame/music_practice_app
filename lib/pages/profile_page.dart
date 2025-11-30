@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 
 /// 個人資料頁面

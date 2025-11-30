@@ -1,28 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/pages/music_sheet_detail_page.dart';
+import 'package:music_practice_app/features/pieces/pages/piece_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:music_practice_app/models/sheet_annotation.dart';
+import 'package:music_practice_app/widgets/annotatable_image_viewer.dart';
 
 // 樂譜目錄數據模型
 class MusicSheet {
   final String name;
   final List<String> notes;
+  final List<AnnotatedSheet> annotatedSheets;
   final DateTime createdAt;
 
   MusicSheet({
     required this.name,
     required this.notes,
+    List<AnnotatedSheet>? annotatedSheets,
     required this.createdAt,
-  });
+  }) : annotatedSheets = annotatedSheets ?? [];
 
   // 轉換為 JSON
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'notes': notes,
+      'annotatedSheets': annotatedSheets.map((s) => s.toJsonString()).toList(),
       'createdAt': createdAt.millisecondsSinceEpoch,
     };
   }
@@ -32,6 +39,10 @@ class MusicSheet {
     return MusicSheet(
       name: json['name'] as String,
       notes: List<String>.from(json['notes'] as List),
+      annotatedSheets: (json['annotatedSheets'] as List<dynamic>?)
+              ?.map((e) => AnnotatedSheet.fromJsonString(e as String))
+              .toList() ??
+          [],
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int),
     );
   }
@@ -45,10 +56,11 @@ class NotePage extends StatefulWidget {
 }
 
 class _NotePageState extends State<NotePage> {
+  // 樂譜目錄數據
   final List<MusicSheet> _musicSheets = [];
-  bool _isLoading = true; // 添加加載狀態
-  bool _isEditMode = false; // 編輯模式
-  final Set<int> _selectedIndices = {}; // 選中的索引
+  bool _isNoteLoading = true;
+  bool _isNoteEditMode = false;
+  final Set<int> _selectedNoteIndices = {};
 
   @override
   void initState() {
@@ -56,10 +68,8 @@ class _NotePageState extends State<NotePage> {
     _loadMusicSheets();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  // --- 樂譜目錄相關方法 ---
+
 
   // 載入樂譜目錄
   Future<void> _loadMusicSheets() async {
@@ -74,21 +84,20 @@ class _NotePageState extends State<NotePage> {
           _musicSheets.addAll(
             jsonList.map((json) => MusicSheet.fromJson(json)).toList(),
           );
-          _isLoading = false; // 載入完成
+          _isNoteLoading = false;
         });
         print('成功載入 ${_musicSheets.length} 個樂譜目錄');
       } else {
         print('沒有找到已儲存的樂譜目錄');
         setState(() {
-          _isLoading = false; // 載入完成（無數據）
+          _isNoteLoading = false;
         });
       }
     } catch (e) {
       print('載入樂譜目錄時發生錯誤: $e');
-      // 如果載入失敗，確保列表是空的
       setState(() {
         _musicSheets.clear();
-        _isLoading = false; // 載入完成（錯誤）
+        _isNoteLoading = false;
       });
     }
   }
@@ -184,17 +193,17 @@ class _NotePageState extends State<NotePage> {
     );
   }
 
-  void _toggleEditMode() {
+  void _toggleNoteEditMode() {
     setState(() {
-      _isEditMode = !_isEditMode;
-      if (!_isEditMode) {
-        _selectedIndices.clear();
+      _isNoteEditMode = !_isNoteEditMode;
+      if (!_isNoteEditMode) {
+        _selectedNoteIndices.clear();
       }
     });
   }
 
-  void _deleteSelectedSheets() {
-    if (_selectedIndices.isEmpty) return;
+  void _deleteSelectedNoteSheets() {
+    if (_selectedNoteIndices.isEmpty) return;
 
     final l10n = AppLocalizations.of(context);
     
@@ -206,7 +215,7 @@ class _NotePageState extends State<NotePage> {
             fit: BoxFit.scaleDown,
             child: Text(l10n?.notePageConfirmDelete ?? '確認刪除'),
           ),
-          content: Text('${l10n?.notePageConfirmDeleteMessage ?? '確定要刪除'} ${_selectedIndices.length} ${l10n?.notePageConfirmDeleteSuffix ?? '個樂譜及其所有筆記嗎?'}'),
+          content: Text('${l10n?.notePageConfirmDeleteMessage ?? '確定要刪除'} ${_selectedNoteIndices.length} ${l10n?.notePageConfirmDeleteSuffix ?? '個樂譜及其所有筆記嗎?'}'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -218,14 +227,14 @@ class _NotePageState extends State<NotePage> {
             TextButton(
               onPressed: () async {
                 // 從大到小排序索引,避免刪除時索引錯亂
-                final sortedIndices = _selectedIndices.toList()
+                final sortedIndices = _selectedNoteIndices.toList()
                   ..sort((a, b) => b.compareTo(a));
                 setState(() {
                   for (final index in sortedIndices) {
                     _musicSheets.removeAt(index);
                   }
-                  _selectedIndices.clear();
-                  _isEditMode = false;
+                  _selectedNoteIndices.clear();
+                  _isNoteEditMode = false;
                 });
                 await _saveMusicSheets();
                 Navigator.of(context).pop();
@@ -252,10 +261,18 @@ class _NotePageState extends State<NotePage> {
         builder: (context) => MusicSheetDetailPage(
           sheetName: _musicSheets[index].name,
           initialNotes: _musicSheets[index].notes,
+          initialSheets: _musicSheets[index].annotatedSheets,
           onNotesChanged: (updatedNotes) async {
             setState(() {
               _musicSheets[index].notes.clear();
               _musicSheets[index].notes.addAll(updatedNotes);
+            });
+            await _saveMusicSheets();
+          },
+          onSheetsChanged: (updatedSheets) async {
+            setState(() {
+              _musicSheets[index].annotatedSheets.clear();
+              _musicSheets[index].annotatedSheets.addAll(updatedSheets);
             });
             await _saveMusicSheets();
           },
@@ -267,6 +284,8 @@ class _NotePageState extends State<NotePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final hasItems = _musicSheets.isNotEmpty;
+    final hasSelection = _selectedNoteIndices.isNotEmpty;
     
     return Scaffold(
       key: const ValueKey('note_page'),
@@ -275,7 +294,9 @@ class _NotePageState extends State<NotePage> {
         title: FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-            _isEditMode ? (l10n?.notePageSelectToDelete ?? '選擇要刪除的樂譜') : (l10n?.notePageTitle ?? '樂譜目錄'),
+            _isNoteEditMode 
+              ? (l10n?.notePageSelectToDelete ?? '選擇要刪除的樂譜')
+              : (l10n?.notePageTitle ?? '樂譜筆記'),
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -287,39 +308,31 @@ class _NotePageState extends State<NotePage> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          // 電子譜面標註按鈕
-          if (!_isEditMode)
-            IconButton(
-              onPressed: () => context.go('/notes/sheet-annotation'),
-              icon: const Icon(Icons.auto_stories),
-              tooltip: l10n?.notePageSheetAnnotation ?? '電子譜面標註',
-              color: AppColors.dynamicPrimary,
-            ),
-          if (_musicSheets.isNotEmpty)
+          if (hasItems)
             TextButton(
-              onPressed: _isEditMode ? _toggleEditMode : _toggleEditMode,
+              onPressed: _toggleNoteEditMode,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  _isEditMode ? (l10n?.notePageCancel ?? '取消') : (l10n?.notePageEdit ?? '編輯'),
+                  _isNoteEditMode ? (l10n?.notePageCancel ?? '取消') : (l10n?.notePageEdit ?? '編輯'),
                   style: TextStyle(
                     fontSize: 16,
-                    color: _isEditMode ? Colors.red : AppColors.dynamicPrimary,
+                    color: _isNoteEditMode ? Colors.red : AppColors.dynamicPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-          if (_isEditMode && _selectedIndices.isNotEmpty)
+          if (_isNoteEditMode && hasSelection)
             IconButton(
-              onPressed: _deleteSelectedSheets,
+              onPressed: _deleteSelectedNoteSheets,
               icon: const Icon(Icons.delete, color: Colors.red),
               tooltip: l10n?.notePageDeleteSelected ?? '刪除選中項',
             ),
         ],
       ),
-      body: _buildMusicSheetsTab(l10n),
-      floatingActionButton: _isEditMode
+      body: _buildMusicSheetsList(l10n),
+      floatingActionButton: _isNoteEditMode
           ? null
           : FloatingActionButton(
               onPressed: _showAddMusicSheetDialog,
@@ -329,25 +342,12 @@ class _NotePageState extends State<NotePage> {
     );
   }
 
-  Widget _buildMusicSheetsTab(AppLocalizations? l10n) {
+  Widget _buildMusicSheetsList(AppLocalizations? l10n) {
     // 如果正在載入，顯示加載指示器
-    if (_isLoading) {
+    if (_isNoteLoading) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              color: AppColors.dynamicPrimary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n?.notePageLoading ?? '載入中...',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.dynamicTextLight,
-              ),
-            ),
-          ],
+        child: CircularProgressIndicator(
+          color: AppColors.dynamicPrimary,
         ),
       );
     }
@@ -380,18 +380,6 @@ class _NotePageState extends State<NotePage> {
                       color: AppColors.dynamicTextLight.withValues(alpha: 0.5),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => context.go('/notes/sheet-annotation'),
-                    icon: const Icon(Icons.auto_stories),
-                    label: Text(l10n?.notePageOrUseAnnotation ?? '或使用電子譜面標註'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.dynamicPrimary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                    ),
-                  ),
                 ],
               ),
             )
@@ -405,19 +393,19 @@ class _NotePageState extends State<NotePage> {
               itemCount: _musicSheets.length,
               itemBuilder: (context, index) {
                 final sheet = _musicSheets[index];
-                final isSelected = _selectedIndices.contains(index);
+                final isSelected = _selectedNoteIndices.contains(index);
 
                 return Card(
                   color: AppColors.dynamicCard,
                   elevation: 2,
                   child: InkWell(
                     onTap: () {
-                      if (_isEditMode) {
+                      if (_isNoteEditMode) {
                         setState(() {
                           if (isSelected) {
-                            _selectedIndices.remove(index);
+                            _selectedNoteIndices.remove(index);
                           } else {
-                            _selectedIndices.add(index);
+                            _selectedNoteIndices.add(index);
                           }
                         });
                       } else {
@@ -473,7 +461,7 @@ class _NotePageState extends State<NotePage> {
                           ),
                         ),
                         // 編輯模式: 顯示勾選框
-                        if (_isEditMode)
+                        if (_isNoteEditMode)
                           Positioned(
                             top: 8,
                             right: 8,
@@ -495,8 +483,8 @@ class _NotePageState extends State<NotePage> {
                               child: isSelected
                                   ? const Icon(
                                       Icons.check,
-                                      color: Colors.white,
                                       size: 18,
+                                      color: Colors.white,
                                     )
                                   : null,
                             ),
@@ -510,3 +498,4 @@ class _NotePageState extends State<NotePage> {
     );
   }
 }
+

@@ -2,12 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/utils/theme_manager.dart';
-import 'package:music_practice_app/utils/language_manager.dart';
+import 'package:music_practice_app/core/theme/theme_manager.dart';
+import 'package:music_practice_app/core/language/language_manager.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
-import 'package:music_practice_app/services/settings_service.dart';
+import 'package:music_practice_app/core/services/settings_service.dart';
 import 'package:music_practice_app/services/haptic_service.dart';
-import 'package:music_practice_app/services/auth_service_config.dart';
+import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
 
 class SettingsPage extends StatefulWidget {

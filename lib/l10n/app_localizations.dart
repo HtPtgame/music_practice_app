@@ -599,6 +599,9 @@ class AppLocalizations {
   String get annotationEditMarker => '編輯標記';
   String get annotationNoteLabel => '筆記內容';
   String get annotationNoteHint => '輸入您的筆記...';
+  String get annotationMeasureLabel => '小節數';
+  String get annotationMeasureHint => '例如：12';
+  String get annotationSyncedToNotes => '已將標記同步到練習筆記';
   
   // ========== 樂譜目錄頁面 ==========
   String get notePageTitle => '樂譜目錄';
@@ -1741,6 +1744,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get annotationNoteLabel => 'Note Content';
   @override
   String get annotationNoteHint => 'Enter your note...';
+  @override
+  String get annotationMeasureLabel => 'Measure Number';
+  @override
+  String get annotationMeasureHint => 'e.g., 12';
+  @override
+  String get annotationSyncedToNotes => 'Markers synced to practice notes';
 
   @override
   String get notePageTitle => 'Music Sheets';

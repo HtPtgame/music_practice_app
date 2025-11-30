@@ -11,12 +11,14 @@ class AnnotatableImageViewer extends StatefulWidget {
   final AnnotatedSheet sheet;
   final Function(List<AnnotationMarker>) onMarkersChanged;
   final bool isEditable;
+  final bool isFullScreen;
 
   const AnnotatableImageViewer({
     super.key,
     required this.sheet,
     required this.onMarkersChanged,
     this.isEditable = true,
+    this.isFullScreen = false,
   });
 
   @override
@@ -27,18 +29,11 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
   List<AnnotationMarker> _markers = [];
   final TransformationController _transformationController =
       TransformationController();
-  bool _isFullScreen = false;
 
   @override
   void initState() {
     super.initState();
     _markers = List.from(widget.sheet.markers);
-  }
-
-  void _toggleFullScreen() {
-    setState(() {
-      _isFullScreen = !_isFullScreen;
-    });
   }
 
   void _addMarker(Offset position, Size imageSize) {
@@ -58,6 +53,9 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
     final TextEditingController noteController = TextEditingController(
       text: existingMarker?.note ?? '',
     );
+    final TextEditingController measureController = TextEditingController(
+      text: existingMarker?.measure?.toString() ?? '',
+    );
     Color selectedColor = existingMarker?.color ?? Colors.red;
     String selectedIcon = existingMarker?.iconPath ?? 'assets/star1.svg'; // 預設為星星1
 
@@ -72,6 +70,16 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextField(
+                  controller: measureController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.annotationMeasureLabel,
+                    hintText: AppLocalizations.of(context)!.annotationMeasureHint,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: noteController,
                   decoration: InputDecoration(
@@ -119,38 +127,6 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16),
-                Text(AppLocalizations.of(context)!.annotationMarkerColor, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    Colors.amber,        // 金色（適合星星）
-                    Colors.yellow,       // 黃色
-                    Colors.orange,       // 橙色
-                    Colors.red,          // 紅色
-                    Colors.blue,         // 藍色
-                    Colors.purple,       // 紫色
-                  ].map((color) {
-                    return GestureDetector(
-                      onTap: () => setDialogState(() => selectedColor = color),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: selectedColor == color
-                                ? Colors.black
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
               ],
             ),
           ),
@@ -179,6 +155,10 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                   );
                   return;
                 }
+                
+                // 解析小節數
+                final measureText = measureController.text.trim();
+                final int? measureNum = measureText.isEmpty ? null : int.tryParse(measureText);
 
                 setState(() {
                   if (existingMarker != null) {
@@ -193,6 +173,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                         createdAt: existingMarker.createdAt,
                         color: selectedColor,
                         iconPath: selectedIcon,
+                        measure: measureNum,
                       );
                     }
                   } else {
@@ -204,6 +185,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                       createdAt: DateTime.now(),
                       color: selectedColor,
                       iconPath: selectedIcon,
+                      measure: measureNum,
                     ));
                   }
                 });
@@ -244,19 +226,20 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
             final displayHeight = imageSize.height * scale;
 
             // 全螢幕模式時的 padding 和樣式
-            final outerPadding = _isFullScreen ? 0.0 : 16.0;
-            final cardPadding = _isFullScreen ? 0.0 : 12.0; // Card 內部 padding
-            final borderRadius = _isFullScreen ? 0.0 : 20.0;
-            final showShadow = !_isFullScreen;
+            final isFullScreen = widget.isFullScreen;
+            final outerPadding = isFullScreen ? 0.0 : 16.0;
+            final cardPadding = isFullScreen ? 0.0 : 12.0; // Card 內部 padding
+            final borderRadius = isFullScreen ? 0.0 : 20.0;
+            final showShadow = !isFullScreen;
 
             return Container(
               padding: EdgeInsets.all(outerPadding),
               child: Center(
                 child: Container(
-                  width: _isFullScreen
+                  width: isFullScreen
                       ? screenWidth
                       : displayWidth + cardPadding * 2,
-                  height: _isFullScreen
+                  height: isFullScreen
                       ? screenHeight
                       : displayHeight + cardPadding * 2,
                   decoration: BoxDecoration(
@@ -283,53 +266,37 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                     padding: EdgeInsets.all(cardPadding),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(
-                          _isFullScreen ? 0 : borderRadius - 8),
+                          isFullScreen ? 0 : borderRadius - 8),
                       child: InteractiveViewer(
                         transformationController: _transformationController,
                         minScale: 0.5,
                         maxScale: 4.0,
                         child: GestureDetector(
-                          // 雙擊切換全螢幕
-                          onDoubleTap: _toggleFullScreen,
-                          onTapDown: widget.isEditable
+                          // 雙擊加入標記
+                          onDoubleTapDown: widget.isEditable
                               ? (details) {
                                   final RenderBox box =
                                       context.findRenderObject() as RenderBox;
                                   final localPosition =
                                       box.globalToLocal(details.globalPosition);
 
-                                  // 調整位置以考慮所有 padding
+                                  // 調整位置以考慮所有 padding 和圖片居中偏移
                                   final totalPadding =
                                       outerPadding + cardPadding;
+                                  final offsetX = isFullScreen
+                                      ? (screenWidth - displayWidth) / 2
+                                      : 0.0;
+                                  final offsetY = isFullScreen
+                                      ? (screenHeight - displayHeight) / 2
+                                      : 0.0;
                                   final adjustedPosition = Offset(
-                                    localPosition.dx - totalPadding,
-                                    localPosition.dy - totalPadding,
+                                    localPosition.dx - totalPadding - offsetX,
+                                    localPosition.dy - totalPadding - offsetY,
                                   );
 
-                                  final contentWidth = _isFullScreen
-                                      ? screenWidth
-                                      : displayWidth;
-                                  final contentHeight = _isFullScreen
-                                      ? screenHeight
-                                      : displayHeight;
-
-                                  // 檢查是否點擊到現有標記
-                                  for (final marker in _markers) {
-                                    final markerPos = Offset(
-                                      marker.position.dx * contentWidth,
-                                      marker.position.dy * contentHeight,
-                                    );
-                                    final distance =
-                                        (adjustedPosition - markerPos).distance;
-                                    if (distance < 20) {
-                                      _showNoteDialog(marker.position, marker);
-                                      return;
-                                    }
-                                  }
-
-                                  // 新增標記
+                                  // 新增標記 (使用實際顯示尺寸)
                                   _addMarker(adjustedPosition,
-                                      Size(contentWidth, contentHeight));
+                                      Size(displayWidth, displayHeight));
                                 }
                               : null,
                           child: Stack(
@@ -337,65 +304,67 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                               // 背景圖片 - 帶邊框
                               Container(
                                 width:
-                                    _isFullScreen ? screenWidth : displayWidth,
-                                height: _isFullScreen
+                                    isFullScreen ? screenWidth : displayWidth,
+                                height: isFullScreen
                                     ? screenHeight
                                     : displayHeight,
                                 decoration: BoxDecoration(
-                                  border: _isFullScreen
+                                  border: isFullScreen
                                       ? null
                                       : Border.all(
                                           color: AppColors.dynamicPrimary
                                               .withOpacity(0.2),
                                           width: 3,
                                         ),
-                                  borderRadius: _isFullScreen
+                                  borderRadius: isFullScreen
                                       ? null
                                       : BorderRadius.circular(
                                           borderRadius - 10),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                      _isFullScreen ? 0 : borderRadius - 12),
+                                      isFullScreen ? 0 : borderRadius - 12),
                                   child: Image.file(
                                     File(widget.sheet.filePath),
                                     fit: BoxFit.contain,
-                                    width: _isFullScreen
+                                    width: isFullScreen
                                         ? screenWidth
                                         : displayWidth,
-                                    height: _isFullScreen
+                                    height: isFullScreen
                                         ? screenHeight
                                         : displayHeight,
                                   ),
                                 ),
                               ),
 
-                              // 標記圖標
+                              // 標記圖標 (縮小: 24x24)
                               ..._markers.map((marker) {
-                                final contentWidth =
-                                    _isFullScreen ? screenWidth : displayWidth;
-                                final contentHeight = _isFullScreen
-                                    ? screenHeight
-                                    : displayHeight;
+                                // 計算圖片居中後的偏移量
+                                final offsetX = isFullScreen
+                                    ? (screenWidth - displayWidth) / 2
+                                    : 0.0;
+                                final offsetY = isFullScreen
+                                    ? (screenHeight - displayHeight) / 2
+                                    : 0.0;
 
                                 return Positioned(
-                                  left: marker.position.dx * contentWidth - 20,
-                                  top: marker.position.dy * contentHeight - 20,
+                                  left: offsetX + marker.position.dx * displayWidth - 12,
+                                  top: offsetY + marker.position.dy * displayHeight - 12,
                                   child: GestureDetector(
                                     onTap: () => _showNoteDialog(
                                         marker.position, marker),
                                     child: Container(
-                                      width: 40,
-                                      height: 40,
+                                      width: 24,
+                                      height: 24,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
                                             color:
                                                 Colors.black.withOpacity(0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
-                                            spreadRadius: 1,
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                            spreadRadius: 0,
                                           ),
                                         ],
                                       ),

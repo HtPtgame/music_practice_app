@@ -6,11 +6,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../utils/app_colors.dart';
-import '../models/drawing_data.dart';
-import '../widgets/drawing_canvas.dart';
-import '../models/sheet_annotation.dart';
-import 'package:music_practice_app/features/pieces/pages/sheet_viewer_page.dart';
+import 'package:music_practice_app/features/practice/widgets/practice_flow_card.dart';
+import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/models/drawing_data.dart';
+import 'package:music_practice_app/widgets/drawing_canvas.dart';
+import 'package:music_practice_app/models/sheet_annotation.dart';
+import 'sheet_viewer_page.dart';
 
 // 練習要點數據模型
 class PracticeNote {
@@ -83,6 +84,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
   late TabController _tabController;
   late List<PracticeNote> _notes;
   late List<AnnotatedSheet> _sheets;
+  final Set<PracticeStepType> _completedPracticeSteps = <PracticeStepType>{};
   
   // 電子譜相關狀態
   bool _isSheetEditMode = false;
@@ -494,7 +496,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
           labelColor: AppColors.dynamicPrimary,
           unselectedLabelColor: Colors.grey,
           indicatorColor: AppColors.dynamicPrimary,
-          tabs: const [
+          tabs: [
             Tab(text: '電子譜'),
             Tab(text: '練習筆記'),
           ],
@@ -518,11 +520,22 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildSheetsTab(l10n),
-          _buildNotesTab(l10n),
+          PracticeFlowCard(
+            steps: _buildPracticeSteps(l10n),
+            completedSteps: _completedPracticeSteps,
+            onStepToggle: _togglePracticeStep,
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSheetsTab(l10n),
+                _buildNotesTab(l10n),
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: _isSheetEditMode
@@ -533,6 +546,83 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
               child: const Icon(Icons.add, color: Colors.white),
             ),
     );
+  }
+
+  void _togglePracticeStep(PracticeStepType type) {
+    setState(() {
+      if (_completedPracticeSteps.contains(type)) {
+        _completedPracticeSteps.remove(type);
+      } else {
+        _completedPracticeSteps.add(type);
+      }
+    });
+  }
+
+  List<PracticeStepConfig> _buildPracticeSteps(AppLocalizations? l10n) {
+    final focusLabel = _composeFocusRangeLabel();
+    final earliestNote = _earliestPracticeNote();
+    final slowDescription = focusLabel != null
+        ? '在$focusLabel 以原速 50% 逐音檢查並確認指法。'
+        : '以原速 50% 慢練，專注在沒有錯音與放鬆手型。';
+    final rhythmDescription = earliestNote != null
+        ? '針對第 ${earliestNote.measure} 小節改變節奏（長短、附點、三連音）拆解技巧。'
+        : '挑出困難小節，改用長短、附點或三連音節奏分段練習。';
+    final toneDescription = _latestToneHint();
+
+    return [
+      PracticeStepConfig(
+        type: PracticeStepType.slowPractice,
+        title: 'Step 1 • 慢練',
+        description: slowDescription,
+        icon: Icons.speed,
+      ),
+      PracticeStepConfig(
+        type: PracticeStepType.rhythmTraining,
+        title: 'Step 2 • 節奏變化',
+        description: rhythmDescription,
+        icon: Icons.timeline,
+      ),
+      PracticeStepConfig(
+        type: PracticeStepType.toneListening,
+        title: 'Step 3 • 聆聽音色',
+        description: toneDescription,
+        icon: Icons.hearing,
+      ),
+    ];
+  }
+
+  PracticeNote? _earliestPracticeNote() {
+    if (_notes.isEmpty) return null;
+    final sorted = [..._notes]..sort((a, b) => a.measure.compareTo(b.measure));
+    return sorted.first;
+  }
+
+  String? _composeFocusRangeLabel() {
+    final measures = <int>[];
+    measures.addAll(_notes.map((note) => note.measure));
+    for (final sheet in _sheets) {
+      for (final marker in sheet.markers) {
+        if (marker.measure != null) {
+          measures.add(marker.measure!);
+        }
+      }
+    }
+    if (measures.isEmpty) {
+      return null;
+    }
+    measures.sort();
+    if (measures.first == measures.last) {
+      return '第 ${measures.first} 小節';
+    }
+    return '第 ${measures.first}-${measures.last} 小節';
+  }
+
+  String _latestToneHint() {
+    if (_notes.isNotEmpty) {
+      final latest = _notes.last;
+      return '錄一段並聽：「${latest.content}」是否有做到。';
+    }
+    return '錄 30 秒並回放，觀察音色層次與均衡。';
   }
 
   Widget _buildNotesTab(AppLocalizations? l10n) {
@@ -744,7 +834,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -826,7 +916,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                                       ),
                                     ),
                                   );
-                                }),
+                                }).toList(),
                               // 編輯模式時顯示勾選框
                           if (_isSheetEditMode)
                             Positioned(
@@ -850,7 +940,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
+                                        color: Colors.black.withOpacity(0.2),
                                         blurRadius: 4,
                                       ),
                                     ],
@@ -873,7 +963,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.2),
+                                      color: Colors.black.withOpacity(0.2),
                                       blurRadius: 4,
                                     ),
                                   ],
@@ -916,7 +1006,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
