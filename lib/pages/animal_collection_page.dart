@@ -149,12 +149,14 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
       setState(() {
         _checkedDates = checkedDatesJson.toSet();
         _consecutiveDays = consecutiveDays;
-        // 根據打卡天數解鎖動物
+        // ✅ 根據打卡天數檢查並補救漏解鎖的動物
+        // 這是一個安全機制：如果之前因為某些原因（如 App 崩潰）沒有解鎖應該解鎖的動物，
+        // 這裡會補救。但不會重複解鎖已經解鎖的動物（checkAndUnlockAnimals 內部會檢查）
         _collectionService.checkAndUnlockAnimals(_checkedDates.length);
         _isLoading = false;
       });
 
-      // 檢查是否有新解鎖的動物
+      // 檢查是否有新解鎖的動物（補救機制觸發時才會有）
       final newUnlockedAnimals = _collectionService.unlockedAnimals
           .where((a) => !oldUnlockedIds.contains(a.id))
           .toList();
@@ -193,17 +195,17 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
     debugPrint('🐾 載入動物解鎖數據...');
     debugPrint('🐾 目前使用者: ${user?.email ?? "訪客"}');
     
-    if (user != null && user.unlockedAnimals.isNotEmpty) {
-      // 從雲端數據載入
+    if (user != null) {
+      // 已登入用戶：從雲端數據載入（即使為空也要載入，避免使用本地舊數據）
       debugPrint('🐾 從雲端載入: ${user.unlockedAnimals}');
       _collectionService.loadUnlockedAnimals(user.unlockedAnimals);
     } else {
-      // 從本地 SharedPreferences 載入（訪客模式）
+      // 訪客模式：從本地 SharedPreferences 載入
       final prefs = await SharedPreferences.getInstance();
       final unlockedJson = prefs.getString('unlocked_animals');
       debugPrint('🐾 本地數據: $unlockedJson');
       
-      if (unlockedJson != null) {
+      if (unlockedJson != null && unlockedJson.isNotEmpty) {
         try {
           final Map<String, dynamic> decoded =
               Map<String, dynamic>.from(jsonDecode(unlockedJson));
@@ -213,7 +215,13 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
           _collectionService.loadUnlockedAnimals(unlockedAnimals);
         } catch (e) {
           debugPrint('載入本地動物解鎖數據失敗: $e');
+          // 載入失敗時，確保載入空數據
+          _collectionService.loadUnlockedAnimals({});
         }
+      } else {
+        // 本地無數據，載入空數據
+        debugPrint('🐾 本地無數據，載入空解鎖列表');
+        _collectionService.loadUnlockedAnimals({});
       }
     }
   }

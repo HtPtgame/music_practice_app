@@ -4,11 +4,7 @@ import 'package:music_practice_app/features/pieces/pages/piece_detail_page.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:music_practice_app/l10n/app_localizations.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:music_practice_app/models/sheet_annotation.dart';
-import 'package:music_practice_app/widgets/annotatable_image_viewer.dart';
 
 // 樂譜目錄數據模型
 class MusicSheet {

@@ -652,10 +652,15 @@ class FirebaseAuthService extends ChangeNotifier {
       debugPrint('已同步練習時間到本地: ${user.practiceTime.length} 筆記錄');
 
       // ✅ 同步動物解鎖數據（直接覆蓋本地數據）
+      // 修復：即使雲端為空，也要清除本地舊數據
       if (user.unlockedAnimals.isNotEmpty) {
         final unlockedJson = jsonEncode(user.unlockedAnimals);
         await prefs.setString('unlocked_animals', unlockedJson);
         debugPrint('已同步動物解鎖數據到本地: ${user.unlockedAnimals.length} 隻');
+      } else {
+        // 雲端沒有解鎖動物，清除本地舊數據
+        await prefs.remove('unlocked_animals');
+        debugPrint('雲端無解鎖動物，已清除本地舊數據');
       }
 
       // 同步個人化設定

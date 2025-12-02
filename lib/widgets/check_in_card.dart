@@ -225,52 +225,15 @@ class _CheckInCardState extends State<CheckInCard> {
   /// 檢查並顯示新解鎖的動物動畫
   Future<void> _checkAndShowUnlockedAnimals() async {
     try {
-      // 先立即顯示可能解鎖的動物對話框，再背景處理數據
+      final prefs = await SharedPreferences.getInstance();
       final newTotalDays = _totalCheckInDays;
       final collectionService = AnimalCollectionService();
       final allAnimals = collectionService.allAnimals;
       
-      // 找出今天可能新解鎖的動物（快速同步操作）
-      final potentialUnlocks = <AnimalCollection>[];
-      final now = DateTime.now();
-      final dateOnly = DateTime(now.year, now.month, now.day);
-      
-      for (var animal in allAnimals) {
-        if (newTotalDays >= animal.requiredCheckInDays) {
-          potentialUnlocks.add(animal.copyWith(unlockedAt: dateOnly));
-        }
-      }
-      
-      // 如果有潛在解鎖動物，立即顯示第一個（最快響應）
-      if (potentialUnlocks.isNotEmpty) {
-        // 背景處理：載入已解鎖數據並驗證
-        _verifyAndShowUnlocks(potentialUnlocks);
-        
-        // 立即顯示第一個可能的解鎖動物
-        final firstAnimal = potentialUnlocks.first;
-        final navigatorState = rootNavigatorKey.currentState;
-        if (navigatorState != null) {
-          await showDialog(
-            context: navigatorState.context,
-            barrierDismissible: false,
-            builder: (context) => UnlockAnimationDialog(animal: firstAnimal),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ 檢查解鎖動物失敗: $e');
-    }
-  }
-  
-  /// 背景驗證並處理解鎖數據
-  void _verifyAndShowUnlocks(List<AnimalCollection> potentialUnlocks) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      // 載入已解鎖的動物
+      // 載入已解鎖的動物記錄
       final unlockedJson = prefs.getString('unlocked_animals');
       Map<String, String> unlockedAnimals = {};
-      if (unlockedJson != null) {
+      if (unlockedJson != null && unlockedJson.isNotEmpty) {
         try {
           final decoded = Map<String, dynamic>.from(jsonDecode(unlockedJson));
           unlockedAnimals = decoded.map((key, value) => MapEntry(key, value as String));
@@ -279,27 +242,24 @@ class _CheckInCardState extends State<CheckInCard> {
         }
       }
       
+      // ✅ 找出今天新解鎖的動物（只解鎖今天剛達到條件的）
+      final newUnlocks = <AnimalCollection>[];
       final now = DateTime.now();
       final dateOnly = DateTime(now.year, now.month, now.day);
-      bool hasNewUnlocks = false;
       
-      // 驗證哪些是真正新解鎖的
-      for (var animal in potentialUnlocks) {
-        if (!unlockedAnimals.containsKey(animal.id)) {
-          // 首次解鎖
+      for (var animal in allAnimals) {
+        // 檢查：1) 今天達到解鎖條件 2) 之前未解鎖過
+        if (newTotalDays >= animal.requiredCheckInDays && 
+            !unlockedAnimals.containsKey(animal.id)) {
+          newUnlocks.add(animal.copyWith(unlockedAt: dateOnly));
+          // 立即標記為已解鎖（避免重複顯示）
           unlockedAnimals[animal.id] = dateOnly.toIso8601String();
-          hasNewUnlocks = true;
-        } else {
-          final unlockedDate = DateTime.parse(unlockedAnimals[animal.id]!);
-          if (DateTime(unlockedDate.year, unlockedDate.month, unlockedDate.day).isAtSameMomentAs(dateOnly)) {
-            hasNewUnlocks = true;
-          }
         }
       }
       
-      // 保存數據（背景）
-      if (hasNewUnlocks) {
-        prefs.setString('unlocked_animals', jsonEncode(unlockedAnimals));
+      // 保存更新後的解鎖數據
+      if (newUnlocks.isNotEmpty) {
+        await prefs.setString('unlocked_animals', jsonEncode(unlockedAnimals));
         
         // 雲端同步（背景執行）
         final user = authService.currentUser;
@@ -308,12 +268,24 @@ class _CheckInCardState extends State<CheckInCard> {
             debugPrint('同步失敗: $e');
           });
         }
+        
+        // 顯示所有新解鎖動物的動畫（按順序）
+        final navigatorState = rootNavigatorKey.currentState;
+        if (navigatorState != null) {
+          for (var animal in newUnlocks) {
+            await showDialog(
+              context: navigatorState.context,
+              barrierDismissible: false,
+              builder: (context) => UnlockAnimationDialog(animal: animal),
+            );
+          }
+        }
       }
     } catch (e) {
-      debugPrint('❌ 背景驗證失敗: $e');
+      debugPrint('❌ 檢查解鎖動物失敗: $e');
     }
   }
-
+  
   /// 測試解鎖動畫（長按已打卡按鈕觸發）
   Future<void> _testUnlockAnimation() async {
     // 立即播放音效
