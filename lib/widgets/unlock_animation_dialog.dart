@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/animal_collection.dart';
 import '../l10n/app_localizations.dart';
 import '../pages/animal_collection_page.dart'; // 為了使用 getAnimalName 函數
@@ -50,6 +51,7 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
     );
 
     _controller.forward();
+    // 音效已在 showDialog 之前播放，這裡不再播放
   }
 
   @override
@@ -158,29 +160,61 @@ class _UnlockAnimationDialogState extends State<UnlockAnimationDialog>
                   ),
                   const SizedBox(height: 24),
 
-                  // 關閉按鈕
+                  // 按鈕列
                   FadeTransition(
                     opacity: _fadeAnimation,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.orange,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 12,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 太好了按鈕
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.orange,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                          child: Text(
+                            l10n?.animalUnlockGreat ?? '太好了！',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                        const SizedBox(height: 12),
+                        // 前往圖鑑按鈕
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            context.push('/animal-collection');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.orange,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                          child: Text(
+                            l10n?.animalUnlockGoToCollection ?? '前往圖鑑',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        l10n?.animalUnlockGreat ?? '太好了！',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                 ],

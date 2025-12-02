@@ -65,8 +65,11 @@ class MainShell extends StatelessWidget {
                 label: l10n?.metronomeTitle ?? '節拍器',
               ),
               BottomNavigationBarItem(
-                icon: const RepaintBoundary(
-                  child: Icon(Icons.note_alt, size: 35),
+                icon: RepaintBoundary(
+                  child: _buildNotesIcon(context, false),
+                ),
+                activeIcon: RepaintBoundary(
+                  child: _buildNotesIcon(context, true),
                 ),
                 label: l10n?.navPractice ?? '練習',
               ),
@@ -113,6 +116,18 @@ class MainShell extends StatelessWidget {
   Widget _buildMetronomeIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
       'assets/節拍器.svg',
+      width: 35,
+      height: 35,
+      colorFilter: ColorFilter.mode(
+        isActive ? AppColors.dynamicPrimary : Colors.grey[600]!,
+        BlendMode.srcIn,
+      ),
+    );
+  }
+
+  Widget _buildNotesIcon(BuildContext context, bool isActive) {
+    return SvgPicture.asset(
+      'assets/筆記_5.svg',
       width: 35,
       height: 35,
       colorFilter: ColorFilter.mode(

@@ -4,9 +4,11 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:music_practice_app/services/sound_effect_service.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:music_practice_app/models/animal_collection.dart';
 import 'package:music_practice_app/widgets/unlock_animation_dialog.dart';
+import 'package:music_practice_app/router/app_router.dart';
 import 'dart:convert';
 
 class CheckInCard extends StatefulWidget {
@@ -138,6 +140,23 @@ class _CheckInCardState extends State<CheckInCard> {
     _consecutiveDays = consecutive;
   }
 
+  /// 快速檢查是否會解鎖新動物（同步方法，不等待）
+  bool _willUnlockNewAnimal(int newTotalDays) {
+    final collectionService = AnimalCollectionService();
+    final allAnimals = collectionService.allAnimals;
+    final currentTotalDays = _totalCheckInDays;
+    
+    // 檢查是否有動物在新天數時剛好達到解鎖條件
+    for (var animal in allAnimals) {
+      // 之前未解鎖，現在剛好達到
+      if (currentTotalDays < animal.requiredCheckInDays && 
+          newTotalDays >= animal.requiredCheckInDays) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Future<void> _checkIn() async {
     if (_hasCheckedToday) return;
 
@@ -148,6 +167,15 @@ class _CheckInCardState extends State<CheckInCard> {
     final backupConsecutiveDays = _consecutiveDays;
     final backupTotalDays = _totalCheckInDays;
     final backupHasChecked = _hasCheckedToday;
+    
+    // 計算是否會解鎖新動物（在任何異步操作之前）
+    final newTotalDays = _checkedDates.length + 1;
+    final willUnlockNewAnimal = _willUnlockNewAnimal(newTotalDays);
+    
+    // 如果會解鎖新動物，立即播放音效（不等待任何東西）
+    if (willUnlockNewAnimal) {
+      SoundEffectService().playNewAnimalSound();
+    }
 
     try {
       setState(() {
@@ -197,7 +225,46 @@ class _CheckInCardState extends State<CheckInCard> {
   /// 檢查並顯示新解鎖的動物動畫
   Future<void> _checkAndShowUnlockedAnimals() async {
     try {
-      debugPrint('🔍 開始檢查解鎖動物...');
+      // 先立即顯示可能解鎖的動物對話框，再背景處理數據
+      final newTotalDays = _totalCheckInDays;
+      final collectionService = AnimalCollectionService();
+      final allAnimals = collectionService.allAnimals;
+      
+      // 找出今天可能新解鎖的動物（快速同步操作）
+      final potentialUnlocks = <AnimalCollection>[];
+      final now = DateTime.now();
+      final dateOnly = DateTime(now.year, now.month, now.day);
+      
+      for (var animal in allAnimals) {
+        if (newTotalDays >= animal.requiredCheckInDays) {
+          potentialUnlocks.add(animal.copyWith(unlockedAt: dateOnly));
+        }
+      }
+      
+      // 如果有潛在解鎖動物，立即顯示第一個（最快響應）
+      if (potentialUnlocks.isNotEmpty) {
+        // 背景處理：載入已解鎖數據並驗證
+        _verifyAndShowUnlocks(potentialUnlocks);
+        
+        // 立即顯示第一個可能的解鎖動物
+        final firstAnimal = potentialUnlocks.first;
+        final navigatorState = rootNavigatorKey.currentState;
+        if (navigatorState != null) {
+          await showDialog(
+            context: navigatorState.context,
+            barrierDismissible: false,
+            builder: (context) => UnlockAnimationDialog(animal: firstAnimal),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ 檢查解鎖動物失敗: $e');
+    }
+  }
+  
+  /// 背景驗證並處理解鎖數據
+  void _verifyAndShowUnlocks(List<AnimalCollection> potentialUnlocks) async {
+    try {
       final prefs = await SharedPreferences.getInstance();
       
       // 載入已解鎖的動物
@@ -211,101 +278,46 @@ class _CheckInCardState extends State<CheckInCard> {
           debugPrint('解析已解鎖動物數據失敗: $e');
         }
       }
-
-      // 創建服務實例來獲取所有動物
-      final collectionService = AnimalCollectionService();
-      final allAnimals = collectionService.allAnimals;
-      final totalDays = _totalCheckInDays;
       
-      debugPrint('📊 累計打卡天數: $totalDays');
-      debugPrint('📝 已解鎖動物數量: ${unlockedAnimals.length}');
-      debugPrint('📋 總動物數量: ${allAnimals.length}');
+      final now = DateTime.now();
+      final dateOnly = DateTime(now.year, now.month, now.day);
+      bool hasNewUnlocks = false;
       
-      List<AnimalCollection> shouldShowAnimals = [];
-      
-      for (var animal in allAnimals) {
-        debugPrint('🐾 檢查 ${animal.name} (需要${animal.requiredCheckInDays}天)');
-        
-        // 檢查是否達到解鎖條件
-        if (totalDays >= animal.requiredCheckInDays) {
-          final now = DateTime.now();
-          final dateOnly = DateTime(now.year, now.month, now.day);
-          
-          // 檢查是否今天才解鎖（或之前沒解鎖過）
-          bool isNewlyUnlocked = false;
-          
-          if (!unlockedAnimals.containsKey(animal.id)) {
-            // 之前沒解鎖過，現在新解鎖
-            debugPrint('  🎉 首次解鎖！');
-            isNewlyUnlocked = true;
-            unlockedAnimals[animal.id] = dateOnly.toIso8601String();
-          } else {
-            // 已經解鎖過，檢查是否今天解鎖的
-            final unlockedDateStr = unlockedAnimals[animal.id]!;
-            final unlockedDate = DateTime.parse(unlockedDateStr);
-            final unlockedDateOnly = DateTime(unlockedDate.year, unlockedDate.month, unlockedDate.day);
-            
-            if (unlockedDateOnly.isAtSameMomentAs(dateOnly)) {
-              debugPrint('  🎊 今天解鎖的，顯示動畫！');
-              isNewlyUnlocked = true;
-            } else {
-              debugPrint('  ✅ 之前解鎖過');
-            }
-          }
-          
-          if (isNewlyUnlocked) {
-            final unlockedAnimal = animal.copyWith(unlockedAt: dateOnly);
-            shouldShowAnimals.add(unlockedAnimal);
-          }
+      // 驗證哪些是真正新解鎖的
+      for (var animal in potentialUnlocks) {
+        if (!unlockedAnimals.containsKey(animal.id)) {
+          // 首次解鎖
+          unlockedAnimals[animal.id] = dateOnly.toIso8601String();
+          hasNewUnlocks = true;
         } else {
-          debugPrint('  ⏳ 還差 ${animal.requiredCheckInDays - totalDays} 天');
+          final unlockedDate = DateTime.parse(unlockedAnimals[animal.id]!);
+          if (DateTime(unlockedDate.year, unlockedDate.month, unlockedDate.day).isAtSameMomentAs(dateOnly)) {
+            hasNewUnlocks = true;
+          }
         }
       }
-
-      debugPrint('🆕 需要顯示動畫的動物數量: ${shouldShowAnimals.length}');
-
-      // 顯示所有應該顯示動畫的動物
-      for (var animal in shouldShowAnimals) {
-        // 延遲一點顯示動畫（等 SnackBar 顯示後）
-        await Future.delayed(const Duration(milliseconds: 500));
+      
+      // 保存數據（背景）
+      if (hasNewUnlocks) {
+        prefs.setString('unlocked_animals', jsonEncode(unlockedAnimals));
         
-        debugPrint('🎊 顯示解鎖動畫: ${animal.name}');
-        
-        // 顯示慶祝動畫
-        if (mounted) {
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => UnlockAnimationDialog(animal: animal),
-          );
-        }
-      }
-
-      // 保存更新後的解鎖數據
-      if (unlockedAnimals.isNotEmpty) {
-        await prefs.setString('unlocked_animals', jsonEncode(unlockedAnimals));
-        debugPrint('💾 已保存解鎖數據到本地');
-        
-        // 同步到雲端
+        // 雲端同步（背景執行）
         final user = authService.currentUser;
         if (user != null) {
-          try {
-            await _syncService.syncUnlockedAnimals(unlockedAnimals);
-            debugPrint('☁️ 已同步到雲端');
-          } catch (e) {
-            debugPrint('同步解鎖動物數據失敗: $e');
-          }
+          _syncService.syncUnlockedAnimals(unlockedAnimals).catchError((e) {
+            debugPrint('同步失敗: $e');
+          });
         }
       }
     } catch (e) {
-      debugPrint('❌ 檢查解鎖動物失敗: $e');
-      debugPrint('錯誤堆疊: ${StackTrace.current}');
+      debugPrint('❌ 背景驗證失敗: $e');
     }
   }
 
   /// 測試解鎖動畫（長按已打卡按鈕觸發）
   Future<void> _testUnlockAnimation() async {
-    debugPrint('🧪 測試解鎖動畫');
+    // 立即播放音效
+    SoundEffectService().playNewAnimalSound();
     
     // 獲取第一個已解鎖的動物來測試
     final collectionService = AnimalCollectionService();

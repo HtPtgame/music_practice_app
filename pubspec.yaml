@@ -37,6 +37,9 @@ dependencies:
   firebase_auth: ^5.3.3  # Firebase 認證
   cloud_firestore: ^5.5.2  # Firestore 資料庫（儲存使用者資料）
   google_sign_in: ^6.2.2  # Google 登入
+  
+  # 音效套件
+  audioplayers: ^6.1.0  # 用於播放短音效
 
 dev_dependencies:
   flutter_test:
@@ -68,3 +71,5 @@ flutter:
   assets:
     - assets/ # 宣告整個 assets 資料夾
     - assets/TimGM6mb.sf2 # SoundFont 檔案
+    - assets/unlock.mp3 # 解鎖音效
+    - assets/new_animal.mp3 # 獲得新動物音效
