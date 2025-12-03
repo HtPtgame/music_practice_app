@@ -174,7 +174,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/slow-practice',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: SlowPracticePage(),
       ),
