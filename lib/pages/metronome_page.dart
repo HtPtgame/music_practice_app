@@ -32,6 +32,8 @@ class _MetronomePageState extends State<MetronomePage>
   // --- 服務與計時 ---
   final SettingsService _settingsService = SettingsService();
   Timer? _metronomeTimer;
+  DateTime? _metronomeStartTime;
+  int _beatCount = 0;
 
   // --- 音訊系統 ---
   FlutterSoundPlayer? _audioPlayer;
@@ -133,17 +135,47 @@ class _MetronomePageState extends State<MetronomePage>
     _updatePendulumSpeed();
     _pendulumController.repeat(reverse: true);
 
-    final double intervalMs = 60000 / _bpm;
+    // 記錄起始時間和拍數
+    _metronomeStartTime = DateTime.now();
+    _beatCount = 0;
+    
+    final double intervalMs = 60000.0 / _bpm;
     _tick(); 
+    _scheduleNextBeat(intervalMs);
+  }
 
-    _metronomeTimer = Timer.periodic(Duration(milliseconds: intervalMs.round()), (timer) {
-      _tick();
+  void _scheduleNextBeat(double intervalMs) {
+    if (!_isPlaying || _metronomeStartTime == null) return;
+    
+    _beatCount++;
+    
+    // 計算理論上下一拍應該發生的時間
+    final targetTime = _metronomeStartTime!.add(
+      Duration(milliseconds: (_beatCount * intervalMs).round())
+    );
+    
+    // 計算實際需要等待的時間(補償累積誤差)
+    final now = DateTime.now();
+    final delay = targetTime.difference(now);
+    
+    // 如果延遲為負數(已經遲到),立即播放;否則按計算的延遲時間播放
+    final actualDelay = delay.isNegative 
+        ? Duration.zero 
+        : delay;
+    
+    _metronomeTimer = Timer(actualDelay, () {
+      if (_isPlaying && mounted) {
+        _tick();
+        _scheduleNextBeat(intervalMs);
+      }
     });
   }
 
   void _stopMetronome() {
     _metronomeTimer?.cancel();
     _metronomeTimer = null;
+    _metronomeStartTime = null;
+    _beatCount = 0;
 
     if (mounted) {
       setState(() {
@@ -185,12 +217,9 @@ class _MetronomePageState extends State<MetronomePage>
     });
 
     if (_isPlaying) {
-      _metronomeTimer?.cancel();
-      _updatePendulumSpeed();
-      final double intervalMs = 60000 / _bpm;
-      _metronomeTimer = Timer.periodic(Duration(milliseconds: intervalMs.round()), (timer) {
-        _tick();
-      });
+      // 重新啟動以使用新的 BPM
+      _stopMetronome();
+      _startMetronome();
     }
   }
 
