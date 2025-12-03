@@ -209,6 +209,36 @@ class UserDataSyncService extends ChangeNotifier {
     }
   }
 
+  /// 同步練習會話記錄到雲端
+  Future<void> syncPracticeSessions(List<Map<String, dynamic>> practiceSessions) async {
+    final user = _authService.currentUser;
+    if (user == null) {
+      debugPrint('用戶未登入，跳過練習會話同步');
+      return;
+    }
+
+    if (_isSyncing) {
+      debugPrint('正在同步中，跳過本次練習會話同步請求');
+      return;
+    }
+
+    _isSyncing = true;
+    notifyListeners();
+
+    try {
+      await _firestore.collection('users').doc(user.id).update({
+        'practiceSessions': practiceSessions,
+      });
+      debugPrint('✅ 成功同步練習會話記錄到雲端: ${practiceSessions.length} 條');
+    } catch (e) {
+      debugPrint('同步練習會話記錄到雲端失敗: $e');
+      rethrow;
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
+  }
+
   /// 從 Firestore 載入使用者數據
   Future<User?> loadUserData(String userId) async {
     try {

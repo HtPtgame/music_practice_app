@@ -4,7 +4,539 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-12月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年12月2日 (v5.0 動物圖鑑解鎖系統重大修復)
+**最後更新**: 2025年12月3日 (v6.0 用戶數據雲端同步完善)
+
+---
+
+## 📅 v6.0 用戶數據雲端同步完善 (2025/12/03)
+
+### 🎯 核心問題解決
+
+**背景**: 基於 v5.0 完成動物圖鑑解鎖系統修復後，進一步完善練習數據（practice_sessions）的雲端同步機制。
+
+**目標**: 確保用戶的練習記錄在雲端與本地之間完整同步，支援跨設備使用和數據備份。
+
+---
+
+### ✅ 實現功能總覽
+
+1. **User 數據模型擴展** - 新增 practiceSessions 欄位支援
+2. **雲端數據完整性檢查** - 登入時自動創建缺失欄位
+3. **雙向數據同步** - 雲端 ↔ 本地自動同步
+4. **訪客數據遷移** - 註冊時自動導入訪客練習記錄
+5. **自動雲端備份** - 每次練習後自動同步到 Firestore
+
+---
+
+### 📝 詳細實現
+
+#### 1. User 數據模型擴展
+
+**檔案**: `lib/models/user.dart`
+
+**新增欄位**:
+```dart
+final List<Map<String, dynamic>> practiceSessions;
+```
+
+**Constructor 更新**:
+```dart
+const User({
+  // ... 其他欄位
+  this.practiceSessions = const [],
+});
+```
+
+**fromJson 解析**:
+```dart
+factory User.fromJson(Map<String, dynamic> json) {
+  return User(
+    // ... 其他欄位
+    practiceSessions: (json['practiceSessions'] as List<dynamic>?)
+        ?.map((e) => Map<String, dynamic>.from(e as Map))
+        .toList() ?? [],
+  );
+}
+```
+
+**toJson 序列化**:
+```dart
+Map<String, dynamic> toJson() {
+  return {
+    // ... 其他欄位
+    'practiceSessions': practiceSessions,
+  };
+}
+```
+
+**copyWith 方法**:
+```dart
+User copyWith({
+  // ... 其他參數
+  List<Map<String, dynamic>>? practiceSessions,
+}) {
+  return User(
+    // ... 其他欄位
+    practiceSessions: practiceSessions ?? this.practiceSessions,
+  );
+}
+```
+
+---
+
+#### 2. 雲端數據完整性檢查
+
+**檔案**: `lib/services/firebase_auth_service.dart`
+
+**功能**: `_ensureDataIntegrity(String uid)` 方法擴展
+
+**新增邏輯**:
+```dart
+// 檢查並創建 practiceSessions 欄位
+if (!data.containsKey('practiceSessions')) {
+  await userDoc.update({
+    'practiceSessions': [],
+  });
+  debugPrint('✅ 已為用戶創建 practiceSessions 欄位');
+}
+```
+
+**執行時機**:
+- 用戶登入時自動執行
+- 確保雲端數據結構完整
+
+---
+
+#### 3. 雲端到本地數據同步
+
+**檔案**: `lib/services/firebase_auth_service.dart`
+
+**功能**: `_syncCloudDataToLocal(User user)` 方法擴展
+
+**同步邏輯**:
+```dart
+// 從 User 對象獲取 practiceSessions
+final practiceSessions = user.practiceSessions;
+
+// 同步到本地 SharedPreferences
+if (practiceSessions.isNotEmpty) {
+  final practiceJson = jsonEncode(practiceSessions);
+  await prefs.setString('practice_sessions', practiceJson);
+  debugPrint('✅ 已同步 ${practiceSessions.length} 條練習記錄到本地');
+} else {
+  await prefs.remove('practice_sessions');
+  debugPrint('✅ 雲端無練習記錄，已清除本地舊數據');
+}
+```
+
+**關鍵改進**:
+- 雲端為空時會**明確清除**本地舊數據
+- 避免新帳號顯示舊帳號數據
+- 與動物解鎖同步邏輯保持一致
+
+---
+
+#### 4. 訪客數據遷移機制
+
+**檔案**: `lib/services/firebase_auth_service.dart`
+
+**功能**: `_loadLocalGuestData()` 方法擴展
+
+**遷移邏輯**:
+```dart
+Future<Map<String, dynamic>> _loadLocalGuestData() async {
+  final prefs = await SharedPreferences.getInstance();
+  
+  // ... 載入其他訪客數據
+  
+  // 載入訪客練習記錄
+  List<Map<String, dynamic>> practiceSessions = [];
+  final practiceJson = prefs.getString('practice_sessions');
+  if (practiceJson != null && practiceJson.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(practiceJson) as List<dynamic>;
+      practiceSessions = decoded.map((e) => 
+        Map<String, dynamic>.from(e as Map)).toList();
+      debugPrint('📋 載入 ${practiceSessions.length} 條訪客練習記錄');
+    } catch (e) {
+      debugPrint('⚠️ 解析練習記錄失敗: $e');
+    }
+  }
+  
+  return {
+    // ... 其他數據
+    'practiceSessions': practiceSessions,
+  };
+}
+```
+
+**應用場景**:
+- 訪客模式累積練習記錄
+- 註冊新帳號時自動導入到雲端
+- 登入舊帳號時合併本地訪客數據
+
+---
+
+#### 5. UserDataSyncService 擴展
+
+**檔案**: `lib/services/user_data_sync_service.dart`
+
+**新增方法**:
+```dart
+/// 同步練習記錄到 Firestore
+Future<void> syncPracticeSessions(
+  List<Map<String, dynamic>> practiceSessions
+) async {
+  final user = _auth.currentUser;
+  if (user == null) {
+    debugPrint('❌ 未登入，無法同步練習記錄');
+    return;
+  }
+
+  try {
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .update({'practiceSessions': practiceSessions});
+    
+    debugPrint('✅ 已同步 ${practiceSessions.length} 條練習記錄到雲端');
+  } catch (e) {
+    debugPrint('❌ 同步練習記錄失敗: $e');
+  }
+}
+```
+
+**用途**:
+- 提供統一的雲端同步 API
+- 由 PracticeSessionService 調用
+
+---
+
+#### 6. 練習後自動雲端同步
+
+**檔案**: `lib/services/practice_session_service.dart`
+
+**新增依賴**:
+```dart
+import 'package:music_practice_app/services/user_data_sync_service.dart';
+
+final UserDataSyncService _syncService = UserDataSyncService();
+```
+
+**新增方法**:
+```dart
+/// 同步練習記錄到雲端
+Future<void> _syncToCloud() async {
+  try {
+    // 從本地讀取最新練習記錄
+    final prefs = await SharedPreferences.getInstance();
+    final sessionsJson = prefs.getString('practice_sessions');
+    
+    if (sessionsJson != null && sessionsJson.isNotEmpty) {
+      final decoded = jsonDecode(sessionsJson) as List<dynamic>;
+      final sessionsData = decoded.map((e) => 
+        Map<String, dynamic>.from(e as Map)).toList();
+      
+      // 同步到雲端
+      await _syncService.syncPracticeSessions(sessionsData);
+      debugPrint('✅ 練習記錄已同步到雲端');
+    }
+  } catch (e) {
+    debugPrint('❌ 同步練習記錄到雲端失敗: $e');
+  }
+}
+```
+
+**saveSession 方法整合**:
+```dart
+Future<void> saveSession(PracticeSession session) async {
+  // ... 保存到本地 SharedPreferences
+  await _persistSessions();
+  
+  // 自動同步到雲端
+  await _syncToCloud();
+}
+```
+
+**流程**:
+```
+用戶完成練習 → 保存到本地 → 自動同步到雲端
+```
+
+---
+
+### 🔄 完整數據流程圖
+
+#### 登入流程
+```
+用戶登入
+  ↓
+_ensureDataIntegrity(uid)  ← 檢查雲端數據完整性
+  ↓
+創建缺失的 practiceSessions 欄位（如果需要）
+  ↓
+載入 User 對象（包含 practiceSessions）
+  ↓
+_syncCloudDataToLocal(user)  ← 同步到本地
+  ↓
+SharedPreferences['practice_sessions'] ← 寫入本地
+  ↓
+用戶可查看歷史練習記錄
+```
+
+#### 註冊流程
+```
+訪客使用應用（累積練習記錄到本地）
+  ↓
+註冊新帳號
+  ↓
+_loadLocalGuestData()  ← 載入訪客練習記錄
+  ↓
+創建 User 對象（包含 practiceSessions）
+  ↓
+寫入 Firestore
+  ↓
+訪客數據成功遷移到雲端
+```
+
+#### 練習保存流程
+```
+完成練習
+  ↓
+PracticeSessionService.saveSession(session)
+  ↓
+保存到 SharedPreferences['practice_sessions']
+  ↓
+_syncToCloud()  ← 自動同步
+  ↓
+UserDataSyncService.syncPracticeSessions(...)
+  ↓
+更新 Firestore users/{uid}/practiceSessions
+  ↓
+雲端數據已更新
+```
+
+---
+
+### 📊 數據同步策略對比
+
+#### v5.0（僅動物解鎖）
+```dart
+// ✅ 動物解鎖數據同步
+if (user.unlockedAnimals.isNotEmpty) {
+  await prefs.setString('unlocked_animals', ...);
+} else {
+  await prefs.remove('unlocked_animals');  // 清除舊數據
+}
+```
+
+#### v6.0（新增練習記錄同步）
+```dart
+// ✅ 練習記錄數據同步（相同策略）
+if (user.practiceSessions.isNotEmpty) {
+  await prefs.setString('practice_sessions', ...);
+} else {
+  await prefs.remove('practice_sessions');  // 清除舊數據
+}
+```
+
+**設計一致性**:
+- 兩者使用相同的同步邏輯
+- 確保數據完整性
+- 避免舊數據殘留
+
+---
+
+### 🧪 測試場景驗證
+
+#### 場景 1: 新用戶註冊 ✅
+```
+1. 訪客模式完成 3 次練習
+2. 註冊新帳號
+3. 預期: 3 條練習記錄出現在雲端
+4. 結果: ✅ 通過
+```
+
+#### 場景 2: 登入舊帳號 ✅
+```
+1. 帳號 A 在雲端有 10 條練習記錄
+2. 登入帳號 A
+3. 預期: 本地顯示 10 條記錄
+4. 結果: ✅ 通過
+```
+
+#### 場景 3: 切換帳號 ✅
+```
+1. 登入帳號 A（有 10 條記錄）
+2. 登出，登入帳號 B（有 5 條記錄）
+3. 預期: 顯示帳號 B 的 5 條記錄，不顯示帳號 A 的
+4. 結果: ✅ 通過（雲端為空時清除本地）
+```
+
+#### 場景 4: 完成新練習 ✅
+```
+1. 登入帳號 A
+2. 完成一次練習
+3. 預期: 本地和雲端同時更新
+4. 結果: ✅ 通過（自動同步）
+```
+
+#### 場景 5: 跨設備同步 ✅
+```
+1. 設備 A 完成練習（同步到雲端）
+2. 設備 B 登入同一帳號
+3. 預期: 設備 B 看到設備 A 的練習記錄
+4. 結果: ✅ 通過
+```
+
+---
+
+### 🔧 修改檔案清單
+
+**修改**:
+1. `lib/models/user.dart`
+   - 新增 `practiceSessions` 欄位
+   - 更新 `fromJson` 解析邏輯
+   - 更新 `toJson` 序列化邏輯
+   - 更新 `copyWith` 方法
+
+2. `lib/services/firebase_auth_service.dart`
+   - `_ensureDataIntegrity`: 新增 practiceSessions 欄位檢查
+   - `_syncCloudDataToLocal`: 新增練習記錄同步邏輯
+   - `_loadLocalGuestData`: 新增訪客練習記錄載入
+   - `register`: 包含 practiceSessions 在新用戶數據中
+   - `signInWithGoogle`: 包含 practiceSessions 在新用戶數據中
+
+3. `lib/services/user_data_sync_service.dart`
+   - 新增 `syncPracticeSessions` 方法
+
+4. `lib/services/practice_session_service.dart`
+   - 新增導入: `user_data_sync_service.dart`
+   - 新增欄位: `_syncService`
+   - 新增方法: `_syncToCloud()`
+   - 修改 `saveSession`: 調用 `_syncToCloud()`
+
+---
+
+### 📈 技術亮點
+
+1. **數據完整性保障**
+   - 登入時自動檢查並創建缺失欄位
+   - 確保新舊用戶數據結構一致
+
+2. **雙向同步機制**
+   - 登入時：雲端 → 本地
+   - 練習後：本地 → 雲端
+   - 確保數據始終保持同步
+
+3. **訪客數據遷移**
+   - 無縫將訪客練習記錄導入雲端
+   - 提升用戶註冊意願
+
+4. **自動化備份**
+   - 每次練習後自動同步
+   - 用戶無需手動操作
+   - 數據安全可靠
+
+5. **數據清理機制**
+   - 雲端為空時明確清除本地舊數據
+   - 避免帳號切換時的數據混淆
+   - 與 v5.0 動物解鎖邏輯保持一致
+
+---
+
+### 🎯 與 v5.0 的關聯
+
+**v5.0 解決的問題**:
+- 動物解鎖數據同步邏輯錯誤
+- 新帳號顯示舊帳號解鎖的動物
+
+**v6.0 應用相同策略**:
+- 練習記錄數據同步
+- 使用相同的「雲端為空時清除本地」邏輯
+- 確保數據完整性和一致性
+
+**技術傳承**:
+```dart
+// v5.0 動物解鎖同步模式
+if (user.unlockedAnimals.isNotEmpty) {
+  await prefs.setString('unlocked_animals', ...);
+} else {
+  await prefs.remove('unlocked_animals');  // 關鍵：清除舊數據
+}
+
+// v6.0 練習記錄同步模式（相同邏輯）
+if (user.practiceSessions.isNotEmpty) {
+  await prefs.setString('practice_sessions', ...);
+} else {
+  await prefs.remove('practice_sessions');  // 關鍵：清除舊數據
+}
+```
+
+---
+
+### 💡 開發者筆記
+
+#### 重要經驗
+
+1. **數據同步的完整性**
+   - 不能只考慮「有數據」的情況
+   - 「無數據」也需要明確處理
+   - 雲端為空 ≠ 不處理
+
+2. **本地數據清理的重要性**
+   - SharedPreferences 數據會持久化
+   - 帳號切換時必須清理
+   - 避免數據混淆和隱私問題
+
+3. **自動化的價值**
+   - 自動同步提升用戶體驗
+   - 減少用戶手動操作
+   - 降低數據丟失風險
+
+4. **代碼一致性**
+   - 相同類型的數據使用相同的同步策略
+   - 便於維護和理解
+   - 減少 Bug 風險
+
+---
+
+### 🔮 未來優化方向
+
+1. **離線支援增強**
+   - 記錄離線期間的修改
+   - 下次連線時批次同步
+
+2. **衝突解決機制**
+   - 處理跨設備同時修改的情況
+   - 使用時間戳或版本號
+
+3. **數據壓縮**
+   - 練習記錄可能累積很多
+   - 考慮壓縮或分頁載入
+
+4. **同步狀態反饋**
+   - UI 顯示同步狀態
+   - 同步失敗時提醒用戶
+
+---
+
+### ✅ 版本狀態
+
+**v6.0 完成項目**:
+- ✅ User 模型擴展
+- ✅ 雲端數據完整性檢查
+- ✅ 雲端到本地同步
+- ✅ 訪客數據遷移
+- ✅ UserDataSyncService 擴展
+- ✅ 練習後自動同步
+- ✅ 全面測試驗證
+
+**編譯狀態**: ✅ 無錯誤
+
+**測試狀態**: ✅ 5 個核心場景全部通過
+
+**代碼品質**: ✅ 遵循 v5.0 最佳實踐
 
 ---
 

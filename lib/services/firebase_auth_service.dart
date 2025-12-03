@@ -115,6 +115,9 @@ class FirebaseAuthService extends ChangeNotifier {
         unlockedAnimals: importLocalData && localData != null
             ? (localData['unlockedAnimals'] as Map<String, String>)
             : {}, // 動物解鎖 0 隻
+        practiceSessions: importLocalData && localData != null
+            ? (localData['practiceSessions'] as List<Map<String, dynamic>>)
+            : [], // 練習會話記錄 0 筆
         settings: {
           // 音量設定預設值
           'masterVolume': 0.8, // 主音量 80%
@@ -242,6 +245,9 @@ class FirebaseAuthService extends ChangeNotifier {
           unlockedAnimals: importLocalData && localData != null
               ? (localData['unlockedAnimals'] as Map<String, String>)
               : {}, // 動物解鎖 0 隻
+          practiceSessions: importLocalData && localData != null
+              ? (localData['practiceSessions'] as List<Map<String, dynamic>>)
+              : [], // 練習會話記錄 0 筆
           settings: {
             // 音量設定預設值
             'masterVolume': 0.8, // 主音量 80%
@@ -593,6 +599,13 @@ class FirebaseAuthService extends ChangeNotifier {
       debugPrint('⚠️ 補全缺失欄位: musicNotes');
     }
 
+    // 檢查 practiceSessions（練習會話記錄）
+    if (!data.containsKey('practiceSessions')) {
+      updates['practiceSessions'] = [];
+      needsUpdate = true;
+      debugPrint('⚠️ 補全缺失欄位: practiceSessions');
+    }
+
     // 如果有缺失欄位，更新到 Firestore
     if (needsUpdate) {
       try {
@@ -722,6 +735,17 @@ class FirebaseAuthService extends ChangeNotifier {
         }
       }
 
+      // ✅ 同步練習會話記錄（直接覆蓋本地數據）
+      if (user.practiceSessions.isNotEmpty) {
+        final sessionsJson = jsonEncode(user.practiceSessions);
+        await prefs.setString('practice_sessions', sessionsJson);
+        debugPrint('已同步練習會話記錄到本地: ${user.practiceSessions.length} 條記錄');
+      } else {
+        // 雲端沒有練習會話記錄，清除本地舊數據
+        await prefs.remove('practice_sessions');
+        debugPrint('雲端無練習會話記錄，已清除本地舊數據');
+      }
+
       debugPrint('雲端數據已完整同步到本地');
     } catch (e) {
       debugPrint('同步雲端數據到本地失敗: $e');
@@ -768,13 +792,29 @@ class FirebaseAuthService extends ChangeNotifier {
         }
       }
 
+      // 讀取練習會話記錄
+      final localSessionsJson = prefs.getString('practice_sessions');
+      List<Map<String, dynamic>> practiceSessions = [];
+      if (localSessionsJson != null && localSessionsJson.isNotEmpty) {
+        try {
+          final List<dynamic> decoded = jsonDecode(localSessionsJson);
+          practiceSessions = decoded
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        } catch (e) {
+          debugPrint('解析本地練習會話記錄失敗: $e');
+        }
+      }
+
       return {
         'checkInDates': checkInDates,
         'practiceTime': practiceTime,
         'unlockedAnimals': unlockedAnimals,
+        'practiceSessions': practiceSessions,
         'hasData': checkInDates.isNotEmpty ||
             practiceTime.isNotEmpty ||
-            unlockedAnimals.isNotEmpty,
+            unlockedAnimals.isNotEmpty ||
+            practiceSessions.isNotEmpty,
       };
     } catch (e) {
       debugPrint('讀取本地數據失敗: $e');
@@ -782,6 +822,7 @@ class FirebaseAuthService extends ChangeNotifier {
         'checkInDates': <DateTime>[],
         'practiceTime': <String, int>{},
         'unlockedAnimals': <String, String>{},
+        'practiceSessions': <Map<String, dynamic>>[],
         'hasData': false,
       };
     }

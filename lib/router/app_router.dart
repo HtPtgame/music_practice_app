@@ -18,6 +18,7 @@ import 'package:music_practice_app/pages/login_page.dart';
 import 'package:music_practice_app/pages/register_page.dart';
 import 'package:music_practice_app/pages/profile_page.dart';
 import 'package:music_practice_app/pages/animal_collection_page.dart';
+import 'package:music_practice_app/pages/practice_stats_page.dart';
 import 'package:music_practice_app/models/sheet_annotation.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 import 'package:music_practice_app/features/lessons/pages/lesson_book_page.dart';
@@ -169,6 +170,14 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: LessonBookPage(),
+      ),
+    ),
+    // 練習統計報表頁面
+    GoRoute(
+      path: '/practice-stats',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: PracticeStatsPage(),
       ),
     ),
   ],

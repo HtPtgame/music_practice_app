@@ -1,10 +1,12 @@
 // lib/widgets/practice_timer_card.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
 import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:music_practice_app/services/practice_session_service.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -20,6 +22,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
     with WidgetsBindingObserver {
   final UserDataSyncService _syncService = UserDataSyncService();
   final PracticeTimerService _timerService = PracticeTimerService();
+  final PracticeSessionService _sessionService = PracticeSessionService();
 
   // 計時器狀態
   bool _isRunning = false;
@@ -32,11 +35,18 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
   Map<String, int> _weeklyPracticeData = {};
   bool _isLoading = true;
 
+  // 曲目相關
+  String? _currentPieceName; // 當前練習的曲目 (null = 日常練習)
+  DateTime? _sessionStartTime; // 本次計時開始時間
+  List<String> _availablePieces = []; // 可選曲目列表
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // 添加生命週期觀察者
     _loadPracticeData();
+    _loadAvailablePieces(); // 載入可選曲目
+    _sessionService.loadSessions(); // 載入練習會話
 
     // 監聽認證狀態變化,登入後刷新數據
     authService.addListener(_onAuthStateChanged);
@@ -200,14 +210,206 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
     }
   }
 
+  // 載入可選曲目列表（從樂譜目錄）
+  Future<void> _loadAvailablePieces() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? musicSheetsJson = prefs.getString('music_sheets');
+
+      if (musicSheetsJson != null && musicSheetsJson.isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(musicSheetsJson);
+        setState(() {
+          _availablePieces = jsonList
+              .map((json) => json['name'] as String)
+              .toList();
+        });
+        debugPrint('PracticeTimerCard: 載入 ${_availablePieces.length} 個可選曲目');
+      }
+    } catch (e) {
+      debugPrint('載入可選曲目失敗: $e');
+    }
+  }
+
+  // 顯示曲目選擇對話框
+  void _showPieceSelector() {
+    final l10n = AppLocalizations.of(context);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.dynamicCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 拖動條
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.dynamicTextLight.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // 標題
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n?.timerSelectPiece ?? '選擇練習曲目',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.dynamicTextDark,
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            // 日常練習選項
+            ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.dynamicAccent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.fitness_center,
+                  color: AppColors.dynamicTextLight,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                l10n?.timerDailyPractice ?? '日常練習',
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              subtitle: Text(
+                l10n?.timerDailyPracticeHint ?? '音階、練習曲等基礎練習',
+                style: TextStyle(
+                  color: AppColors.dynamicTextLight,
+                  fontSize: 12,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _selectPieceAndStart(null);
+              },
+            ),
+            const Divider(height: 1),
+            // 曲目列表
+            if (_availablePieces.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.library_music_outlined,
+                      size: 48,
+                      color: AppColors.dynamicTextLight.withOpacity(0.5),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n?.timerNoPieces ?? '尚無樂譜目錄',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextLight,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n?.timerNoPiecesHint ?? '請先在「樂譜筆記」新增曲目',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextLight.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: _availablePieces.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+                  itemBuilder: (context, index) {
+                    final piece = _availablePieces[index];
+                    return ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.dynamicPrimary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.music_note,
+                          color: AppColors.dynamicPrimary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        piece,
+                        style: TextStyle(
+                          color: AppColors.dynamicTextDark,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _selectPieceAndStart(piece);
+                      },
+                    );
+                  },
+                ),
+              ),
+            // 底部安全區域
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 選擇曲目並開始計時
+  void _selectPieceAndStart(String? pieceName) {
+    setState(() {
+      _currentPieceName = pieceName;
+      _sessionStartTime = DateTime.now();
+    });
+    _startTimerInternal();
+  }
+
   // 獲取今天的日期字符串
   String _getTodayString() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  // 開始計時
+  // 開始計時（顯示曲目選擇對話框）
   void _startTimer() {
+    // 重新載入可選曲目（可能有新增）
+    _loadAvailablePieces().then((_) {
+      _showPieceSelector();
+    });
+  }
+
+  // 內部開始計時邏輯
+  void _startTimerInternal() {
     // 檢查日期是否變化（跨日檢測）
     final today = _getTodayString();
     if (today != _lastDate) {
@@ -228,6 +430,8 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
     // 更新全局計時器狀態
     _timerService.setTimerRunning(true);
+
+    debugPrint('開始計時：${_currentPieceName ?? "日常練習"}');
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
@@ -260,19 +464,41 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
       await _savePracticeData();
 
+      // 保存練習會話記錄（用於曲目統計）
+      if (_sessionStartTime != null) {
+        final session = PracticeSession(
+          date: today,
+          pieceName: _currentPieceName,
+          durationSeconds: sessionSeconds,
+          startTime: _sessionStartTime!,
+          endTime: DateTime.now(),
+        );
+        await _sessionService.saveSession(session);
+      }
+
       if (mounted) {
+        // 構建 SnackBar 訊息，包含曲目名稱
+        final pieceInfo = _currentPieceName != null 
+            ? '【${_currentPieceName}】' 
+            : '';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                l10n?.timerRecordedMessage.replaceAll('{session}', _formatTime(sessionSeconds)).replaceAll('{total}', _formatTime(_elapsedSeconds)) ?? '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
+                l10n?.timerRecordedMessage.replaceAll('{session}', _formatTime(sessionSeconds)).replaceAll('{total}', _formatTime(_elapsedSeconds)) ?? '$pieceInfo 已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
             backgroundColor: AppColors.dynamicPrimary,
             duration: const Duration(seconds: 2),
           ),
         );
       }
 
-      debugPrint('本次練習: $sessionSeconds 秒, 今日累計: $_elapsedSeconds 秒');
+      debugPrint('本次練習: $sessionSeconds 秒, 曲目: ${_currentPieceName ?? "日常練習"}, 今日累計: $_elapsedSeconds 秒');
     }
+
+    // 重置曲目狀態
+    setState(() {
+      _currentPieceName = null;
+      _sessionStartTime = null;
+    });
   }
 
   // 格式化時間 (秒 -> HH:MM:SS)
@@ -381,17 +607,78 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       // 計時器顯示
-                      Text(
-                        _formatTime(_elapsedSeconds),
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.dynamicPrimary,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatTime(_elapsedSeconds),
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.dynamicPrimary,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          // 顯示當前練習曲目（如果正在計時）
+                          if (_isRunning && _currentPieceName != null)
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.dynamicPrimary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.music_note,
+                                    size: 12,
+                                    color: AppColors.dynamicPrimary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _currentPieceName!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.dynamicPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (_isRunning && _currentPieceName == null)
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.dynamicAccent.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.fitness_center,
+                                    size: 12,
+                                    color: AppColors.dynamicTextLight,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    l10n?.timerDailyPractice ?? '日常練習',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.dynamicTextLight,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
 
-                      // 控制按鈕 - 合併為單一按鈕
                       // 控制按鈕 - 單一開始/暫停按鈕
                       IconButton(
                         onPressed: _isRunning ? _pauseTimer : _startTimer,
@@ -477,6 +764,30 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
                   // 長條圖
                   _buildWeeklyChart(),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // 查看詳細報表按鈕
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        context.push('/practice-stats');
+                      },
+                      icon: Icon(
+                        Icons.analytics_outlined,
+                        size: 16,
+                        color: AppColors.dynamicPrimary,
+                      ),
+                      label: Text(
+                        l10n?.timerViewStats ?? '查看詳細報表',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.dynamicPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
       ),

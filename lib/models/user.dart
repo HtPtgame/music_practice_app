@@ -54,6 +54,7 @@ class User {
   final List<MusicNote> musicNotes; // 文字筆記
   final Map<String, String>
       unlockedAnimals; // 已解鎖動物 (animalId -> unlockedAtISO8601)
+  final List<Map<String, dynamic>> practiceSessions; // 練習會話記錄
 
   User({
     required this.id,
@@ -68,11 +69,13 @@ class User {
     Map<String, dynamic>? settings,
     List<MusicNote>? musicNotes,
     Map<String, String>? unlockedAnimals,
+    List<Map<String, dynamic>>? practiceSessions,
   })  : checkInDates = checkInDates ?? [],
         practiceTime = practiceTime ?? {},
         settings = settings ?? {},
         musicNotes = musicNotes ?? [],
-        unlockedAnimals = unlockedAnimals ?? {};
+        unlockedAnimals = unlockedAnimals ?? {},
+        practiceSessions = practiceSessions ?? [];
 
   /// 從 JSON 建立 User 物件
   factory User.fromJson(Map<String, dynamic> json) {
@@ -97,6 +100,9 @@ class User {
           .toList(),
       unlockedAnimals: (json['unlockedAnimals'] as Map<String, dynamic>?)
           ?.map((key, value) => MapEntry(key, value as String)),
+      practiceSessions: (json['practiceSessions'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
     );
   }
 
@@ -115,6 +121,7 @@ class User {
       'settings': settings,
       'musicNotes': musicNotes.map((e) => e.toJson()).toList(),
       'unlockedAnimals': unlockedAnimals,
+      'practiceSessions': practiceSessions,
     };
   }
 
@@ -132,6 +139,7 @@ class User {
     Map<String, dynamic>? settings,
     List<MusicNote>? musicNotes,
     Map<String, String>? unlockedAnimals,
+    List<Map<String, dynamic>>? practiceSessions,
   }) {
     return User(
       id: id ?? this.id,
@@ -146,6 +154,7 @@ class User {
       settings: settings ?? this.settings,
       musicNotes: musicNotes ?? this.musicNotes,
       unlockedAnimals: unlockedAnimals ?? this.unlockedAnimals,
+      practiceSessions: practiceSessions ?? this.practiceSessions,
     );
   }
 

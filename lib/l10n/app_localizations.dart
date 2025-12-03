@@ -124,6 +124,31 @@ class AppLocalizations {
   String get timerRecordedMessage => '已記錄本次練習 {session}，今日累計 {total}';
   String get timerTrendingUp => '本週平均';
   String get timerCalendarMonth => '本月累計';
+  String get timerSelectPiece => '選擇練習曲目';
+  String get timerDailyPractice => '日常練習';
+  String get timerDailyPracticeHint => '音階、練習曲等基礎練習';
+  String get timerNoPieces => '尚無樂譜目錄';
+  String get timerNoPiecesHint => '請先在「樂譜筆記」新增曲目';
+  String get timerViewStats => '查看詳細報表';
+  
+  // ========== 練習統計報表 ==========
+  String get statsTitle => '練習偵探報表';
+  String get statsWeekReport => '週報表';
+  String get statsMonthReport => '月報表';
+  String get statsThisWeek => '本週';
+  String get statsLastWeek => '上週';
+  String get statsThisMonth => '本月';
+  String get statsLastMonth => '上月';
+  String get statsHistory => '歷史紀錄';
+  String get statsWeeklyPractice => '本週練習';
+  String get statsMonthlyPractice => '本月練習';
+  String get statsPracticeDays => '練習天數';
+  String get statsTrend => '練習趨勢';
+  String get statsTopPieces => '最常練習曲目';
+  String get statsDailyDuration => '每日練習時長 (分鐘)';
+  String get statsWeeklyDuration => '每週練習時長 (分鐘)';
+  String get statsNoPieceData => '尚無曲目練習記錄';
+  String get statsNoPieceDataHint => '開始練習時選擇曲目即可記錄';
   
   // ========== 動物圖鑑 ==========
   String get animalCollectionTitle => '動物圖鑑';
@@ -903,6 +928,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timerTrendingUp => 'Week Average';
   @override
   String get timerCalendarMonth => 'Month Total';
+  @override
+  String get timerSelectPiece => 'Select Practice Piece';
+  @override
+  String get timerDailyPractice => 'Daily Practice';
+  @override
+  String get timerDailyPracticeHint => 'Scales, exercises, and basic practice';
+  @override
+  String get timerNoPieces => 'No sheet music yet';
+  @override
+  String get timerNoPiecesHint => 'Please add pieces in "Sheet Notes" first';
+  @override
+  String get timerViewStats => 'View Detailed Report';
+
+  @override
+  String get statsTitle => 'Practice Report';
+  @override
+  String get statsWeekReport => 'Weekly';
+  @override
+  String get statsMonthReport => 'Monthly';
+  @override
+  String get statsThisWeek => 'This Week';
+  @override
+  String get statsLastWeek => 'Last Week';
+  @override
+  String get statsThisMonth => 'This Month';
+  @override
+  String get statsLastMonth => 'Last Month';
+  @override
+  String get statsHistory => 'History';
+  @override
+  String get statsWeeklyPractice => 'Weekly Practice';
+  @override
+  String get statsMonthlyPractice => 'Monthly Practice';
+  @override
+  String get statsPracticeDays => 'Practice Days';
+  @override
+  String get statsTrend => 'Practice Trend';
+  @override
+  String get statsTopPieces => 'Most Practiced Pieces';
+  @override
+  String get statsDailyDuration => 'Daily Practice (minutes)';
+  @override
+  String get statsWeeklyDuration => 'Weekly Practice (minutes)';
+  @override
+  String get statsNoPieceData => 'No piece practice records yet';
+  @override
+  String get statsNoPieceDataHint => 'Select a piece when starting practice to record';
 
   @override
   String get animalCollectionTitle => 'Animal Collection';
