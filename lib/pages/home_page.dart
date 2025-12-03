@@ -139,6 +139,11 @@ class _HomePageContent extends StatelessWidget {
         // 家庭聯絡簿入口
         _LessonBookButton(),
 
+        const SizedBox(height: 12),
+
+        // 慢練 SOP 入口
+        _SlowPracticeButton(),
+
         const SizedBox(height: 100), // 底部間距
       ],
     );
@@ -187,6 +192,67 @@ class _LessonBookButton extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '記錄老師上課內容與練習建議',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.dynamicTextLight,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SlowPracticeButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.dynamicCard,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () => context.push('/slow-practice'),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Text(
+                  '🐢',
+                  style: TextStyle(fontSize: 22),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '慢練 SOP',
+                      style: TextStyle(
+                        color: AppColors.dynamicTextDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '建立正確動作，神經系統穩定記憶',
                       style: TextStyle(
                         color: AppColors.dynamicTextLight,
                         fontSize: 13,

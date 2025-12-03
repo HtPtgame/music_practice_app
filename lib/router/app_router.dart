@@ -22,6 +22,7 @@ import 'package:music_practice_app/pages/practice_stats_page.dart';
 import 'package:music_practice_app/models/sheet_annotation.dart';
 import 'package:music_practice_app/widgets/main_shell.dart';
 import 'package:music_practice_app/features/lessons/pages/lesson_book_page.dart';
+import 'package:music_practice_app/features/practice/pages/slow_practice_page.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -178,6 +179,14 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: PracticeStatsPage(),
+      ),
+    ),
+    // 慢速練習頁面
+    GoRoute(
+      path: '/slow-practice',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: SlowPracticePage(),
       ),
     ),
   ],
