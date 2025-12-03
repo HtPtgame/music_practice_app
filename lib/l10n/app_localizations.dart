@@ -57,7 +57,7 @@ class AppLocalizations {
   // ========== 底部導航欄 ==========
   String get navHome => '首頁';
   String get navLibrary => '音樂庫';
-  String get navPractice => '練習';
+  String get navPractice => '筆記';
   String get navSettings => '設定';
 
   // ========== 首頁 ==========
@@ -285,29 +285,32 @@ class AppLocalizations {
   String get uploadMidiSuccess => 'MIDI檔案已成功儲存到樂庫！';
   
   // 動物圖鑑
-  String get animalCat => '可愛貓咪';
-  String get animalDog => '忠誠小狗';
-  String get animalFox => '聰明狐狸';
-  String get animalPanda => '萌萌熊貓';
-  String get animalRabbit => '活潑兔子';
-  String get animalBear => '可愛熊熊';
-  String get animalDeer => '優雅小鹿';
-  String get animalPenguin => '企鵝寶寶';
-  String get animalKoala => '無尾熊';
-  String get animalRaccoon => '浣熊小可愛';
-  String get animalSquirrel => '松鼠';
-  String get animalHedgehog => '刺蝟';
-  String get animalSeal => '海豹';
-  String get animalSheep => '綿羊';
-  String get animalLion => '獅子王';
-  String get animalKangaroo => '袋鼠';
-  String get animalSloth => '樹懶';
-  String get animalGuineaPig => '天竺鼠';
-  String get animalPrairieDog => '土撥鼠';
-  String get animalQuokka => '短尾矮袋鼠';
-  String get animalFairy => '小精靈';
-  String get animalTaiwanBear => '台灣黑熊';
+  String get animalCat => '樂句 / Legato';
+  String get animalDog => '快板 / Allegro';
+  String get animalFox => '顫音 / Tremolo';
+  String get animalPanda => '圓舞曲 / Valse';
+  String get animalRabbit => '斷奏 / Staccato';
+  String get animalBear => '低音 / Basso';
+  String get animalDeer => '優美 / Dolce';
+  String get animalPenguin => '進行曲 / Marcia';
+  String get animalKoala => '慢板 / Adagio';
+  String get animalRaccoon => '夜曲 / Notturno';
+  String get animalSquirrel => '急板 / Presto';
+  String get animalHedgehog => '斷音 / Pizzicato';
+  String get animalSeal => '滑音 / Glissando';
+  String get animalSheep => '柔音 / Piano';
+  String get animalLion => '強音 / Forte';
+  String get animalKangaroo => '跳音 / Saltando';
+  String get animalSloth => '極慢板 / Grave';
+  String get animalGuineaPig => '顫音 / Vibrato';
+  String get animalPrairieDog => '合唱 / Coro';
+  String get animalQuokka => '小曲 / Scherzando';
+  String get animalFairy => '幻想曲 / Fantasia';
+  String get animalTaiwanBear => '雄壯 / Maestoso';
   String get animalUnknown => '???';
+  String get animalStatus => '狀態';
+  String get animalUnlockedValue => '已解鎖';
+  String get animalLockedValue => '未解鎖';
   String get animalStatusLocked => '狀態：未解鎖';
   String get animalStatusUnlocked => '狀態：已解鎖';
   String get animalUnlockCondition => '解鎖條件';
@@ -316,11 +319,37 @@ class AppLocalizations {
   String get animalProgressDays => '%d / %d 天';
   String get animalUnlockDate => '取得日期';
   String get animalDetailClose => 'Close';
+  String get animalNameReason => '命名理由';
+  
+  // 動物命名理由
+  String get animalReasonCat => '貓咪動作流暢優雅，如音樂中連貫不斷的樂句';
+  String get animalReasonDog => '小狗活潑好動，充滿快板般的歡快節奏';
+  String get animalReasonFox => '狐狸機敏靈動，像快速重複的顫音效果';
+  String get animalReasonPanda => '熊貓動作憙態可掬，如圓舞曲般優雅緩慢';
+  String get animalReasonRabbit => '兔子跳躍輕快，如短促分離的斷奏音符';
+  String get animalReasonBear => '熊體型龐大沉穩，如樂曲中的低音聲部';
+  String get animalReasonDeer => '小鹿姿態輕盈溫柔，如甜美柔和的音樂表情';
+  String get animalReasonPenguin => '企鵝搖擺步伐整齊，如軍隊行進的進行曲';
+  String get animalReasonKoala => '無尾熊動作緩慢悠閑，如舒緩的慢板樂章';
+  String get animalReasonRaccoon => '浣熊夜行性動物，如寧靜神秘的夜曲';
+  String get animalReasonSquirrel => '松鼠動作敏捷快速，如極快速的急板樂段';
+  String get animalReasonHedgehog => '刺蝟渾身尖刺，如撥弦產生的斷續音效';
+  String get animalReasonSeal => '海豹在水中滑行流暢，如音高連續滑動';
+  String get animalReasonSheep => '綿羊溫順安靜，如輕柔的弱音演奏';
+  String get animalReasonLion => '獅子威武雄壯，如響亮有力的強音';
+  String get animalReasonKangaroo => '袋鼠擅長跳躍，如彈跳般的音樂奏法';
+  String get animalReasonSloth => '樹懶行動極其緩慢，如莊嚴緩慢的極慢板';
+  String get animalReasonGuineaPig => '天竺鼠叫聲連續顫動，如聲音的輕微震盪';
+  String get animalReasonPrairieDog => '草原犬鼠群居互動，如多聲部的合唱效果';
+  String get animalReasonQuokka => '短尾矮袋鼠表情可愛俴皮，如詼諧輕快的小曲';
+  String get animalReasonFairy => '精靈神秘夢幻，如自由即興的幻想曲';
+  String get animalReasonTaiwanBear => '台灣黑熊威嚴莊重，如莊嚴宏偉的音樂風格';
   
   // 動物解鎖動畫
   String get animalUnlockCongrats => '🎉 恭喜獲得 🎉';
   String get animalUnlockCheckInDays => '打卡 %d 天解鎖';
   String get animalUnlockGreat => '太好了！';
+  String get animalUnlockGoToCollection => '前往圖鑑';
   
   // 計時器警告
   String get timerRunningTitle => '計時器運行中';
@@ -1162,51 +1191,57 @@ class AppLocalizationsEn extends AppLocalizations {
   
   // Animal Collection
   @override
-  String get animalCat => 'Cute Cat';
+  String get animalCat => 'Legato';
   @override
-  String get animalDog => 'Loyal Dog';
+  String get animalDog => 'Allegro';
   @override
-  String get animalFox => 'Smart Fox';
+  String get animalFox => 'Tremolo';
   @override
-  String get animalPanda => 'Cute Panda';
+  String get animalPanda => 'Valse';
   @override
-  String get animalRabbit => 'Lively Rabbit';
+  String get animalRabbit => 'Staccato';
   @override
-  String get animalBear => 'Adorable Bear';
+  String get animalBear => 'Basso';
   @override
-  String get animalDeer => 'Elegant Deer';
+  String get animalDeer => 'Dolce';
   @override
-  String get animalPenguin => 'Baby Penguin';
+  String get animalPenguin => 'Marcia';
   @override
-  String get animalKoala => 'Koala';
+  String get animalKoala => 'Adagio';
   @override
-  String get animalRaccoon => 'Cute Raccoon';
+  String get animalRaccoon => 'Notturno';
   @override
-  String get animalSquirrel => 'Squirrel';
+  String get animalSquirrel => 'Presto';
   @override
-  String get animalHedgehog => 'Hedgehog';
+  String get animalHedgehog => 'Pizzicato';
   @override
-  String get animalSeal => 'Seal';
+  String get animalSeal => 'Glissando';
   @override
-  String get animalSheep => 'Sheep';
+  String get animalSheep => 'Piano';
   @override
-  String get animalLion => 'Lion King';
+  String get animalLion => 'Forte';
   @override
-  String get animalKangaroo => 'Kangaroo';
+  String get animalKangaroo => 'Saltando';
   @override
-  String get animalSloth => 'Sloth';
+  String get animalSloth => 'Grave';
   @override
-  String get animalGuineaPig => 'Guinea Pig';
+  String get animalGuineaPig => 'Vibrato';
   @override
-  String get animalPrairieDog => 'Prairie Dog';
+  String get animalPrairieDog => 'Coro';
   @override
-  String get animalQuokka => 'Quokka';
+  String get animalQuokka => 'Scherzando';
   @override
-  String get animalFairy => 'Fairy';
+  String get animalFairy => 'Fantasia';
   @override
-  String get animalTaiwanBear => 'Taiwan Black Bear';
+  String get animalTaiwanBear => 'Maestoso';
   @override
   String get animalUnknown => '???';
+  @override
+  String get animalStatus => 'Status';
+  @override
+  String get animalUnlockedValue => 'Unlocked';
+  @override
+  String get animalLockedValue => 'Locked';
   @override
   String get animalStatusLocked => 'Status: Locked';
   @override
@@ -1223,6 +1258,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animalUnlockDate => 'Unlock Date';
   @override
   String get animalDetailClose => 'Close';
+  @override
+  String get animalNameReason => 'Naming Reason';
+  
+  // Animal Naming Reasons
+  @override
+  String get animalReasonCat => 'Cats move smoothly and gracefully, like continuous musical phrases';
+  @override
+  String get animalReasonDog => 'Dogs are lively and energetic, full of allegro-like cheerful rhythm';
+  @override
+  String get animalReasonFox => 'Foxes are agile and nimble, like rapid repeated tremolo effects';
+  @override
+  String get animalReasonPanda => 'Pandas move adorably and slowly, like the elegant grace of a waltz';
+  @override
+  String get animalReasonRabbit => 'Rabbits hop lightly and quickly, like short separated staccato notes';
+  @override
+  String get animalReasonBear => 'Bears are large and steady, like the bass section in music';
+  @override
+  String get animalReasonDeer => 'Deer are graceful and gentle, like sweet and soft musical expression';
+  @override
+  String get animalReasonPenguin => 'Penguins waddle in unison, like a military march';
+  @override
+  String get animalReasonKoala => 'Koalas move slowly and leisurely, like a soothing adagio movement';
+  @override
+  String get animalReasonRaccoon => 'Raccoons are nocturnal animals, like peaceful and mysterious nocturnes';
+  @override
+  String get animalReasonSquirrel => 'Squirrels move swiftly and quickly, like extremely fast presto passages';
+  @override
+  String get animalReasonHedgehog => 'Hedgehogs are covered in spikes, like the staccato sound of plucked strings';
+  @override
+  String get animalReasonSeal => 'Seals glide smoothly in water, like continuous pitch sliding';
+  @override
+  String get animalReasonSheep => 'Sheep are gentle and quiet, like soft piano playing';
+  @override
+  String get animalReasonLion => 'Lions are majestic and powerful, like loud and strong forte';
+  @override
+  String get animalReasonKangaroo => 'Kangaroos excel at jumping, like bouncing musical articulation';
+  @override
+  String get animalReasonSloth => 'Sloths move extremely slowly, like solemn and slow grave tempo';
+  @override
+  String get animalReasonGuineaPig => 'Guinea pigs make continuous trembling sounds, like slight voice vibrato';
+  @override
+  String get animalReasonPrairieDog => 'Prairie dogs live in groups and interact, like multi-part choral effects';
+  @override
+  String get animalReasonQuokka => 'Quokkas look cute and playful, like humorous and light scherzando';
+  @override
+  String get animalReasonFairy => 'Fairies are mysterious and dreamy, like free improvisational fantasia';
+  @override
+  String get animalReasonTaiwanBear => 'Taiwan black bears are dignified and majestic, like grand and solemn musical style';
   
   // Animal Unlock Animation
   @override
@@ -1231,6 +1314,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animalUnlockCheckInDays => 'Unlocked by %d days check-in';
   @override
   String get animalUnlockGreat => 'Awesome!';
+  @override
+  String get animalUnlockGoToCollection => 'Go to Collection';
   
   // Timer Warning
   @override

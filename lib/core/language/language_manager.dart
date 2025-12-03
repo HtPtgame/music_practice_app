@@ -13,22 +13,16 @@ class LanguageManager extends ChangeNotifier {
   static const List<Locale> supportedLocales = [
     Locale('zh', 'TW'),
     Locale('en', 'US'),
-    Locale('zh', 'CN'),
-    Locale('ja', 'JP'),
   ];
 
   static const Map<String, Locale> localeMap = {
     'zh_TW': Locale('zh', 'TW'),
     'en_US': Locale('en', 'US'),
-    'zh_CN': Locale('zh', 'CN'),
-    'ja_JP': Locale('ja', 'JP'),
   };
 
   static const Map<String, String> languageNames = {
     'zh_TW': '繁體中文（台灣）',
     'en_US': 'English (US)',
-    'zh_CN': '简体中文（中国）',
-    'ja_JP': '日本語（日本）',
   };
 
   Future<void> initialize() async {

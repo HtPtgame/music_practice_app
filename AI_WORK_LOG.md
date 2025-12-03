@@ -2,9 +2,445 @@
 
 **專案名稱**: music_practice_app  
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
-**開發期間**: 2025年9月-11月  
+**開發期間**: 2025年9月-12月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年11月29日 (v4.8 SNR 自適應閾值系統)
+**最後更新**: 2025年12月2日 (v5.0 動物圖鑑解鎖系統重大修復)
+
+---
+
+## 📅 v5.0 動物圖鑑解鎖系統重大修復 (2025/12/02)
+
+### 🐛 重大 Bug 修復
+
+#### 問題 1: 新帳號創建後動物錯誤解鎖
+**問題描述**：
+- 用戶創建新帳號後，貓咪（樂句/Legato）直接處於解鎖狀態
+- 即使刪除雲端數據庫記錄重新登入，仍然保持解鎖狀態
+- 其他動物（14天狗、21天狐狸等）也可能有類似問題
+
+**根本原因分析**：
+
+發現兩個關鍵 Bug：
+
+**Bug 1 - 數據同步邏輯錯誤** (`lib/services/firebase_auth_service.dart`):
+```dart
+// ❌ 舊代碼 (第 655-659 行)
+if (user.unlockedAnimals.isNotEmpty) {
+    final unlockedJson = jsonEncode(user.unlockedAnimals);
+    await prefs.setString('unlocked_animals', unlockedJson);
+}
+// 問題：當雲端為空時，不會清除本地舊數據！
+```
+
+**影響**：
+- 新帳號註冊時 `unlockedAnimals` 是空的 `{}`
+- 但代碼只在 `isNotEmpty` 時才寫入
+- 如果本地 SharedPreferences 有訪客模式或其他帳號的舊數據，這些數據不會被清除
+- 導致新帳號顯示舊帳號的解鎖動物
+
+**Bug 2 - 載入邏輯錯誤** (`lib/pages/animal_collection_page.dart`):
+```dart
+// ❌ 舊代碼 (第 197 行)
+if (user != null && user.unlockedAnimals.isNotEmpty) {
+    // 從雲端載入
+    _collectionService.loadUnlockedAnimals(user.unlockedAnimals);
+} else {
+    // 從本地載入 <- 即使已登入，雲端為空時也會執行這裡！
+    final unlockedJson = prefs.getString('unlocked_animals');
+    // ...載入本地舊數據
+}
+```
+
+**影響**：
+- 新帳號登入後，因為 `unlockedAnimals` 為空，進入 else 分支
+- 從本地 SharedPreferences 載入舊數據
+- 導致新帳號顯示舊帳號的解鎖動物
+
+---
+
+#### 問題 2: 打卡解鎖邏輯嚴重錯誤
+**問題描述**：
+- 打卡第 14 天時，貓（7天）和狗（14天）都會被加入解鎖列表
+- 但只顯示第一個（貓）的解鎖動畫
+- 狗會被靜默解鎖，用戶看不到動畫
+
+**根本原因** (`lib/widgets/check_in_card.dart`):
+```dart
+// ❌ 舊邏輯 (第 230-239 行)
+for (var animal in allAnimals) {
+    if (newTotalDays >= animal.requiredCheckInDays) {
+        potentialUnlocks.add(animal.copyWith(unlockedAt: dateOnly));
+    }
+}
+// 然後只顯示 potentialUnlocks.first
+```
+
+**影響**：
+- 會把所有已達到條件的動物都加入列表
+- 只顯示第一個動物的解鎖動畫
+- 後續動物被保存為已解鎖但沒有動畫
+- **這是最嚴重的用戶體驗問題！**
+
+---
+
+### ✅ 解決方案
+
+#### 修復 1: 同步邏輯完善
+**檔案**: `lib/services/firebase_auth_service.dart`
+
+```dart
+// ✅ 新代碼 (第 655-663 行)
+if (user.unlockedAnimals.isNotEmpty) {
+    final unlockedJson = jsonEncode(user.unlockedAnimals);
+    await prefs.setString('unlocked_animals', unlockedJson);
+    debugPrint('已同步動物解鎖數據到本地: ${user.unlockedAnimals.length} 隻');
+} else {
+    // 雲端沒有解鎖動物，清除本地舊數據
+    await prefs.remove('unlocked_animals');
+    debugPrint('雲端無解鎖動物，已清除本地舊數據');
+}
+```
+
+**改進**：
+- 雲端為空時會明確清除本地數據
+- 確保新帳號不會顯示舊數據
+- 添加詳細的除錯日誌
+
+---
+
+#### 修復 2: 載入邏輯優化
+**檔案**: `lib/pages/animal_collection_page.dart`
+
+```dart
+// ✅ 新代碼 (第 191-221 行)
+if (user != null) {
+    // 已登入用戶：從雲端數據載入（即使為空也要載入，避免使用本地舊數據）
+    debugPrint('🐾 從雲端載入: ${user.unlockedAnimals}');
+    _collectionService.loadUnlockedAnimals(user.unlockedAnimals);
+} else {
+    // 訪客模式：從本地 SharedPreferences 載入
+    final prefs = await SharedPreferences.getInstance();
+    final unlockedJson = prefs.getString('unlocked_animals');
+    
+    if (unlockedJson != null && unlockedJson.isNotEmpty) {
+        // 載入本地數據
+        _collectionService.loadUnlockedAnimals(unlockedAnimals);
+    } else {
+        // 本地無數據，載入空數據
+        _collectionService.loadUnlockedAnimals({});
+    }
+}
+```
+
+**改進**：
+- 已登入用戶只從雲端載入（不再依賴本地）
+- 訪客模式才使用本地數據
+- 確保數據來源清晰明確
+
+---
+
+#### 修復 3: 打卡解鎖邏輯重構
+**檔案**: `lib/widgets/check_in_card.dart`
+
+```dart
+// ✅ 新邏輯 (第 220-268 行)
+Future<void> _checkAndShowUnlockedAnimals() async {
+    // 載入已解鎖的動物記錄
+    final unlockedJson = prefs.getString('unlocked_animals');
+    Map<String, String> unlockedAnimals = {};
+    // ... 解析現有解鎖數據
+    
+    // ✅ 找出今天新解鎖的動物（只解鎖今天剛達到條件的）
+    final newUnlocks = <AnimalCollection>[];
+    
+    for (var animal in allAnimals) {
+        // 檢查：1) 今天達到解鎖條件 2) 之前未解鎖過
+        if (newTotalDays >= animal.requiredCheckInDays && 
+            !unlockedAnimals.containsKey(animal.id)) {
+            newUnlocks.add(animal.copyWith(unlockedAt: dateOnly));
+            // 立即標記為已解鎖（避免重複顯示）
+            unlockedAnimals[animal.id] = dateOnly.toIso8601String();
+        }
+    }
+    
+    // 顯示所有新解鎖動物的動畫（按順序）
+    for (var animal in newUnlocks) {
+        await showDialog(...);
+    }
+}
+```
+
+**改進**：
+- 只解鎖今天新達成條件的動物
+- 檢查之前是否已解鎖，避免重複
+- 顯示**所有**新解鎖動物的動畫（而非只顯示第一個）
+- 移除廢棄的 `_verifyAndShowUnlocks` 方法
+
+---
+
+### 🧪 測試場景驗證
+
+#### 場景 1: 新帳號註冊 ✅
+- 打卡天數：0
+- 預期：所有動物未解鎖
+- 結果：✅ 通過
+
+#### 場景 2: 首次打卡 7 天 ✅
+- 打卡天數：7
+- 預期：解鎖貓咪，顯示動畫
+- 結果：✅ 通過
+
+#### 場景 3: 打卡 14 天（關鍵測試）✅
+- 打卡天數：14
+- 預期：只解鎖狗狗，只顯示狗的動畫
+- 舊版錯誤：會嘗試解鎖貓+狗，只顯示貓的動畫
+- 結果：✅ 修復成功
+
+#### 場景 4: 打卡 21 天 ✅
+- 打卡天數：21
+- 預期：只解鎖狐狸，顯示狐狸動畫
+- 結果：✅ 通過
+
+#### 場景 5: 數據同步 ✅
+- 刪除雲端數據重新登入
+- 預期：動物正確清空
+- 結果：✅ 通過
+
+---
+
+### 📊 所有動物解鎖驗證（22 隻）
+
+| 動物 | ID | 天數 | 狀態 |
+|------|-------|------|------|
+| 貓 (樂句/Legato) | cat | 7 | ✅ 正常 |
+| 狗 (快板/Allegro) | dog | 14 | ✅ **已修復** |
+| 狐狸 (顫音/Tremolo) | fox | 21 | ✅ **已修復** |
+| 熊貓 (圓舞曲/Valse) | panda | 28 | ✅ 正常 |
+| 兔子 (斷奏/Staccato) | rabbit | 35 | ✅ 正常 |
+| 熊 (低音/Basso) | bear | 42 | ✅ 正常 |
+| 鹿 (優美/Dolce) | deer | 49 | ✅ 正常 |
+| 企鵝 (進行曲/Marcia) | penguin | 56 | ✅ 正常 |
+| 無尾熊 (慢板/Adagio) | koala | 63 | ✅ 正常 |
+| 浣熊 (夜曲/Notturno) | raccoon | 70 | ✅ 正常 |
+| 松鼠 (急板/Presto) | squirrel | 77 | ✅ 正常 |
+| 刺蝟 (斷音/Pizzicato) | hedgehog | 84 | ✅ 正常 |
+| 海豹 (滑音/Glissando) | seal | 91 | ✅ 正常 |
+| 綿羊 (柔音/Piano) | sheep | 98 | ✅ 正常 |
+| 獅子 (強音/Forte) | lion | 105 | ✅ 正常 |
+| 袋鼠 (跳音/Saltando) | kangaroo | 112 | ✅ 正常 |
+| 樹懶 (極慢板/Grave) | sloth | 119 | ✅ 正常 |
+| 天竺鼠 (顫音/Vibrato) | guinea_pig | 126 | ✅ 正常 |
+| 土撥鼠 (合唱/Coro) | prairie_dog | 133 | ✅ 正常 |
+| 短尾矮袋鼠 (小曲/Scherzando) | quokka | 140 | ✅ 正常 |
+| 小精靈 (幻想曲/Fantasia) | fairy | 147 | ✅ 正常 |
+| 台灣黑熊 (雄壯/Maestoso) | taiwanbear | 154 | ✅ 正常 |
+
+---
+
+### 🎨 UI/UX 優化
+
+#### 1. 音效系統整合
+**新增檔案**: `lib/services/sound_effect_service.dart`
+
+```dart
+class SoundEffectService {
+  static final SoundEffectService _instance = SoundEffectService._internal();
+  factory SoundEffectService() => _instance;
+  
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  
+  /// 播放新動物解鎖音效
+  Future<void> playNewAnimalSound() async {
+    await _audioPlayer.play(AssetSource('new_animal.mp3'));
+  }
+  
+  /// 播放解鎖音效
+  Future<void> playUnlockSound() async {
+    await _audioPlayer.play(AssetSource('unlock.mp3'));
+  }
+}
+```
+
+**新增資源**:
+- `assets/new_animal.mp3` (188 KB)
+- `assets/unlock.mp3` (65 KB)
+
+**依賴更新** (`pubspec.yaml`):
+```yaml
+dependencies:
+  audioplayers: ^6.1.0
+```
+
+---
+
+#### 2. 打卡卡片優化
+**檔案**: `lib/widgets/check_in_card.dart`
+
+**改進**:
+- 解鎖新動物時立即播放音效（不等待異步操作）
+- 優化解鎖動畫顯示邏輯
+- 改善錯誤處理和回滾機制
+
+---
+
+#### 3. 解鎖動畫對話框增強
+**檔案**: `lib/widgets/unlock_animation_dialog.dart`
+
+**新增功能**:
+- 更豐富的視覺效果
+- 音樂術語翻譯顯示
+- 命名理由說明
+
+---
+
+### 🌐 多語言支援優化
+
+**檔案**: `lib/l10n/app_localizations.dart`
+
+**新增翻譯條目**（共 175 處更新）:
+- 22 種動物的中英文名稱
+- 22 條動物命名理由
+- 動物圖鑑相關 UI 文本
+- 打卡系統相關提示
+
+**支援語言**:
+- 繁體中文（zh_TW）
+- 英文（en）
+
+---
+
+### 🏗️ 架構改進
+
+#### 1. 語言管理器重構
+**變更**: `lib/utils/language_manager.dart` → `lib/core/language/language_manager.dart`
+
+**改進**:
+- 更清晰的專案結構
+- 符合 Clean Architecture 原則
+- 便於未來擴展
+
+---
+
+#### 2. 路由系統優化
+**檔案**: `lib/router/app_router.dart`
+
+**改進**:
+- 移除未使用的導入
+- 優化路由配置
+- 改善導航體驗
+
+---
+
+#### 3. 主殼層優化
+**檔案**: `lib/widgets/main_shell.dart`
+
+**改進**:
+- 底部導航欄邏輯優化
+- 更好的狀態管理
+- 改善頁面切換體驗
+
+---
+
+### 🔧 技術債務清理
+
+#### 1. 未使用導入移除
+**檔案**: `lib/pages/note_page.dart`
+
+移除 4 個未使用的導入:
+- `dart:io`
+- `package:file_picker/file_picker.dart`
+- `package:path_provider/path_provider.dart`
+- `package:music_practice_app/widgets/annotatable_image_viewer.dart`
+
+---
+
+#### 2. 平台支援更新
+
+**Linux 平台** (`linux/flutter/`):
+- 更新 `generated_plugin_registrant.cc`
+- 更新 `generated_plugins.cmake`
+- 新增 `audioplayers` 插件支援
+
+**macOS 平台** (`macos/Flutter/`):
+- 更新 `GeneratedPluginRegistrant.swift`
+- 新增音頻播放支援
+
+**Windows 平台** (`windows/flutter/`):
+- 更新 `generated_plugin_registrant.cc`
+- 更新 `generated_plugins.cmake`
+- 新增音頻播放支援
+
+---
+
+### 📦 依賴更新
+
+**檔案**: `pubspec.lock`
+
+主要更新:
+- `audioplayers`: 新增 ^6.1.0
+- 相關平台插件自動更新（76 處變更）
+
+---
+
+### 🎯 Git 提交記錄
+
+**提交**: `4357b4e` (2025/12/02 20:10:54)  
+**訊息**: "1202臨時"  
+**影響檔案**: 22 個檔案  
+**變更統計**: +1241 行, -382 行
+
+**主要變更**:
+1. 動物圖鑑系統重大修復 (3 個核心 Bug)
+2. 音效系統整合
+3. 多語言支援優化（175 處更新）
+4. UI/UX 改進
+5. 架構優化
+6. 跨平台支援完善
+
+---
+
+### 📝 開發者筆記
+
+#### 重要教訓
+
+1. **數據同步的隱性問題**
+   - 空數據也需要明確處理
+   - 不能假設「不寫入」等於「清空」
+   - 需要明確的數據來源優先級
+
+2. **邏輯判斷的完整性**
+   - `if (condition)` 的 else 分支同樣重要
+   - 需要考慮所有可能的數據狀態
+   - 邊界條件測試至關重要
+
+3. **用戶體驗的細節**
+   - 動畫缺失會嚴重影響滿意度
+   - 音效增強沉浸感
+   - 每個解鎖都應該被慶祝
+
+4. **除錯日誌的價值**
+   - 詳細的日誌幫助快速定位問題
+   - 關鍵數據流轉點都應記錄
+   - Emoji 標記提高可讀性（🐾🦁✅❌）
+
+---
+
+### 🔮 後續優化方向
+
+1. **數據一致性監控**
+   - 添加雲端/本地數據一致性檢查
+   - 自動修復數據不一致問題
+   - 提供手動同步功能
+
+2. **解鎖體驗優化**
+   - 更豐富的解鎖動畫
+   - 社交分享功能
+   - 成就系統整合
+
+3. **測試覆蓋提升**
+   - 單元測試：解鎖邏輯
+   - 整合測試：數據同步
+   - E2E 測試：完整打卡流程
 
 ---
 

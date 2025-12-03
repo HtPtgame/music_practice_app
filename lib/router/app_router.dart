@@ -24,11 +24,11 @@ import 'package:music_practice_app/features/lessons/pages/lesson_book_page.dart'
 import 'package:music_practice_app/features/practice/pages/slow_practice_page.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // 這是 appRouter 的定義
 final GoRouter appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/',
   routes: [
     // ShellRoute 會作為底下 routes 的 UI 外殼，讓底部導覽列常駐
@@ -102,7 +102,7 @@ final GoRouter appRouter = GoRouter(
     // 獨立的全螢幕頁面 (不會顯示底部導覽列)
     GoRoute(
       path: '/playback',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) {
         final file = state.extra as PlatformFile?;
         return NoTransitionPage(
@@ -112,14 +112,14 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/analysis',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: AnalysisPage(),
       ),
     ),
     GoRoute(
       path: '/upload2',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: UploadPage2(),
       ),
@@ -127,21 +127,21 @@ final GoRouter appRouter = GoRouter(
     // 使用者認證頁面
     GoRoute(
       path: '/login',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: LoginPage(),
       ),
     ),
     GoRoute(
       path: '/register',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: RegisterPage(),
       ),
     ),
     GoRoute(
       path: '/profile',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: ProfilePage(),
       ),
@@ -149,7 +149,7 @@ final GoRouter appRouter = GoRouter(
     // 動物圖鑑頁面
     GoRoute(
       path: '/animal-collection',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: AnimalCollectionPage(),
       ),
@@ -157,7 +157,7 @@ final GoRouter appRouter = GoRouter(
     // 練習頁面 (演奏偵錯)
     GoRoute(
       path: '/practice',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) {
         final file = state.extra as PlatformFile?;
         return NoTransitionPage(
@@ -167,7 +167,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/lessons',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: LessonBookPage(),
       ),

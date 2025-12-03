@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/animal_collection.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import '../services/user_data_sync_service.dart';
+import '../services/sound_effect_service.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 // import '../widgets/unlock_animation_dialog.dart';
 
@@ -19,29 +20,67 @@ class AnimalCollectionPage extends StatefulWidget {
 /// 根據動物ID獲取翻譯後的名稱（靜態輔助方法）
 String getAnimalName(String animalId, AppLocalizations? l10n) {
   switch (animalId) {
-    case 'cat': return l10n?.animalCat ?? '可愛貓咪';
-    case 'dog': return l10n?.animalDog ?? '忠誠小狗';
-    case 'fox': return l10n?.animalFox ?? '聰明狐狸';
-    case 'panda': return l10n?.animalPanda ?? '萌萌熊貓';
-    case 'rabbit': return l10n?.animalRabbit ?? '活潑兔子';
-    case 'bear': return l10n?.animalBear ?? '可愛熊熊';
-    case 'deer': return l10n?.animalDeer ?? '優雅小鹿';
-    case 'penguin': return l10n?.animalPenguin ?? '企鵝寶寶';
-    case 'koala': return l10n?.animalKoala ?? '無尾熊';
-    case 'raccoon': return l10n?.animalRaccoon ?? '浣熊小可愛';
-    case 'squirrel': return l10n?.animalSquirrel ?? '松鼠';
-    case 'hedgehog': return l10n?.animalHedgehog ?? '刺蝟';
-    case 'seal': return l10n?.animalSeal ?? '海豹';
-    case 'sheep': return l10n?.animalSheep ?? '綿羊';
-    case 'lion': return l10n?.animalLion ?? '獅子王';
-    case 'kangaroo': return l10n?.animalKangaroo ?? '袋鼠';
-    case 'sloth': return l10n?.animalSloth ?? '樹懶';
-    case 'guinea_pig': return l10n?.animalGuineaPig ?? '天竺鼠';
-    case 'prairie_dog': return l10n?.animalPrairieDog ?? '土撥鼠';
-    case 'quokka': return l10n?.animalQuokka ?? '短尾矮袋鼠';
-    case 'fairy': return l10n?.animalFairy ?? '小精靈';
-    case 'taiwanbear': return l10n?.animalTaiwanBear ?? '台灣黑熊';
+    case 'cat': return l10n?.animalCat ?? '樂句 / Legato';
+    case 'dog': return l10n?.animalDog ?? '快板 / Allegro';
+    case 'fox': return l10n?.animalFox ?? '顫音 / Tremolo';
+    case 'panda': return l10n?.animalPanda ?? '圓舞曲 / Valse';
+    case 'rabbit': return l10n?.animalRabbit ?? '斷奏 / Staccato';
+    case 'bear': return l10n?.animalBear ?? '低音 / Basso';
+    case 'deer': return l10n?.animalDeer ?? '優美 / Dolce';
+    case 'penguin': return l10n?.animalPenguin ?? '進行曲 / Marcia';
+    case 'koala': return l10n?.animalKoala ?? '慢板 / Adagio';
+    case 'raccoon': return l10n?.animalRaccoon ?? '夜曲 / Notturno';
+    case 'squirrel': return l10n?.animalSquirrel ?? '急板 / Presto';
+    case 'hedgehog': return l10n?.animalHedgehog ?? '斷音 / Pizzicato';
+    case 'seal': return l10n?.animalSeal ?? '滑音 / Glissando';
+    case 'sheep': return l10n?.animalSheep ?? '柔音 / Piano';
+    case 'lion': return l10n?.animalLion ?? '強音 / Forte';
+    case 'kangaroo': return l10n?.animalKangaroo ?? '跳音 / Saltando';
+    case 'sloth': return l10n?.animalSloth ?? '極慢板 / Grave';
+    case 'guinea_pig': return l10n?.animalGuineaPig ?? '顫音 / Vibrato';
+    case 'prairie_dog': return l10n?.animalPrairieDog ?? '合唱 / Coro';
+    case 'quokka': return l10n?.animalQuokka ?? '小曲 / Scherzando';
+    case 'fairy': return l10n?.animalFairy ?? '幻想曲 / Fantasia';
+    case 'taiwanbear': return l10n?.animalTaiwanBear ?? '雄壯 / Maestoso';
     default: return '???';
+  }
+}
+
+/// 分離中英文名稱（返回 ['中文', '英文']）
+List<String> splitAnimalName(String fullName) {
+  if (fullName.contains(' / ')) {
+    final parts = fullName.split(' / ');
+    return [parts[0].trim(), parts[1].trim()];
+  }
+  return [fullName, '']; // 如果沒有 / 分隔，僅返回單一名稱
+}
+
+/// 根據動物ID獲取命名理由（靜態輔助方法）
+String getAnimalReason(String animalId, AppLocalizations? l10n) {
+  switch (animalId) {
+    case 'cat': return l10n?.animalReasonCat ?? '貓咪動作流暢優雅，如音樂中連貫不斷的樂句';
+    case 'dog': return l10n?.animalReasonDog ?? '小狗活潑好動，充滿快板般的歡快節奏';
+    case 'fox': return l10n?.animalReasonFox ?? '狐狸機敏靈動，像快速重複的顫音效果';
+    case 'panda': return l10n?.animalReasonPanda ?? '熊貓動作憙態可掬，如圓舞曲般優雅緩慢';
+    case 'rabbit': return l10n?.animalReasonRabbit ?? '兔子跳躍輕快，如短促分離的斷奏音符';
+    case 'bear': return l10n?.animalReasonBear ?? '熊體型龐大沉穩，如樂曲中的低音聲部';
+    case 'deer': return l10n?.animalReasonDeer ?? '小鹿姿態輕盈溫柔，如甜美柔和的音樂表情';
+    case 'penguin': return l10n?.animalReasonPenguin ?? '企鵝搖擺步伐整齊，如軍隊行進的進行曲';
+    case 'koala': return l10n?.animalReasonKoala ?? '無尾熊動作緩慢悠閑，如舒緩的慢板樂章';
+    case 'raccoon': return l10n?.animalReasonRaccoon ?? '浣熊夜行性動物，如寧靜神秘的夜曲';
+    case 'squirrel': return l10n?.animalReasonSquirrel ?? '松鼠動作敏捷快速，如極快速的急板樂段';
+    case 'hedgehog': return l10n?.animalReasonHedgehog ?? '刺蝟渾身尖刺，如撥弦產生的斷續音效';
+    case 'seal': return l10n?.animalReasonSeal ?? '海豹在水中滑行流暢，如音高連續滑動';
+    case 'sheep': return l10n?.animalReasonSheep ?? '綿羊溫順安靜，如輕柔的弱音演奏';
+    case 'lion': return l10n?.animalReasonLion ?? '獅子威武雄壯，如響亮有力的強音';
+    case 'kangaroo': return l10n?.animalReasonKangaroo ?? '袋鼠擅長跳躍，如彈跳般的音樂奏法';
+    case 'sloth': return l10n?.animalReasonSloth ?? '樹懶行動極其緩慢，如莊嚴緩慢的極慢板';
+    case 'guinea_pig': return l10n?.animalReasonGuineaPig ?? '天竺鼠叫聲連續顫動，如聲音的輕微震盪';
+    case 'prairie_dog': return l10n?.animalReasonPrairieDog ?? '草原犬鼠群居互動，如多聲部的合唱效果';
+    case 'quokka': return l10n?.animalReasonQuokka ?? '短尾矮袋鼠表情可愛俴皮，如詼諧輕快的小曲';
+    case 'fairy': return l10n?.animalReasonFairy ?? '精靈神秘夢幻，如自由即興的幻想曲';
+    case 'taiwanbear': return l10n?.animalReasonTaiwanBear ?? '台灣黑熊威嚴莊重，如莊嚴宏偉的音樂風格';
+    default: return '';
   }
 }
 
@@ -110,12 +149,14 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
       setState(() {
         _checkedDates = checkedDatesJson.toSet();
         _consecutiveDays = consecutiveDays;
-        // 根據打卡天數解鎖動物
+        // ✅ 根據打卡天數檢查並補救漏解鎖的動物
+        // 這是一個安全機制：如果之前因為某些原因（如 App 崩潰）沒有解鎖應該解鎖的動物，
+        // 這裡會補救。但不會重複解鎖已經解鎖的動物（checkAndUnlockAnimals 內部會檢查）
         _collectionService.checkAndUnlockAnimals(_checkedDates.length);
         _isLoading = false;
       });
 
-      // 檢查是否有新解鎖的動物
+      // 檢查是否有新解鎖的動物（補救機制觸發時才會有）
       final newUnlockedAnimals = _collectionService.unlockedAnimals
           .where((a) => !oldUnlockedIds.contains(a.id))
           .toList();
@@ -154,17 +195,17 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
     debugPrint('🐾 載入動物解鎖數據...');
     debugPrint('🐾 目前使用者: ${user?.email ?? "訪客"}');
     
-    if (user != null && user.unlockedAnimals.isNotEmpty) {
-      // 從雲端數據載入
+    if (user != null) {
+      // 已登入用戶：從雲端數據載入（即使為空也要載入，避免使用本地舊數據）
       debugPrint('🐾 從雲端載入: ${user.unlockedAnimals}');
       _collectionService.loadUnlockedAnimals(user.unlockedAnimals);
     } else {
-      // 從本地 SharedPreferences 載入（訪客模式）
+      // 訪客模式：從本地 SharedPreferences 載入
       final prefs = await SharedPreferences.getInstance();
       final unlockedJson = prefs.getString('unlocked_animals');
       debugPrint('🐾 本地數據: $unlockedJson');
       
-      if (unlockedJson != null) {
+      if (unlockedJson != null && unlockedJson.isNotEmpty) {
         try {
           final Map<String, dynamic> decoded =
               Map<String, dynamic>.from(jsonDecode(unlockedJson));
@@ -174,7 +215,13 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
           _collectionService.loadUnlockedAnimals(unlockedAnimals);
         } catch (e) {
           debugPrint('載入本地動物解鎖數據失敗: $e');
+          // 載入失敗時，確保載入空數據
+          _collectionService.loadUnlockedAnimals({});
         }
+      } else {
+        // 本地無數據，載入空數據
+        debugPrint('🐾 本地無數據，載入空解鎖列表');
+        _collectionService.loadUnlockedAnimals({});
       }
     }
   }
@@ -378,18 +425,19 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
             ),
           ],
         ),
-        body: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            // 統計資訊卡片(可滑動)
-            SliverToBoxAdapter(
-              child: _buildStatsCard(l10n),
-            ),
+        body: SafeArea(
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // 統計資訊卡片(可滑動)
+              SliverToBoxAdapter(
+                child: _buildStatsCard(l10n),
+              ),
 
-            // 動物卡片網格
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverGrid(
+              // 動物卡片網格
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 12,
@@ -419,6 +467,7 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -621,17 +670,58 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
               // 動物名稱
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  widget.isUnlocked ? getAnimalName(widget.animal.id, widget.l10n) : (widget.l10n?.animalUnknown ?? '???'),
-                  style: TextStyle(
-                    fontSize: 13, // 縮小字體
-                    fontWeight: FontWeight.bold,
-                    color: widget.isUnlocked ? Colors.black87 : Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1, // 限制單行
-                  overflow: TextOverflow.ellipsis, // 超出顯示省略號
-                ),
+                child: widget.isUnlocked
+                    ? () {
+                        final fullName = getAnimalName(widget.animal.id, widget.l10n);
+                        final nameParts = splitAnimalName(fullName);
+                        final hasBothNames = nameParts[1].isNotEmpty;
+                        
+                        return Column(
+                          children: [
+                            // 中文名稱
+                            Text(
+                              hasBothNames ? nameParts[0] : fullName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            // 英文名稱（使用 FittedBox 自動縮放）
+                            if (hasBothNames)
+                              SizedBox(
+                                height: 16,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    nameParts[1],
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[700],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }()
+                    : Text(
+                        widget.l10n?.animalUnknown ?? '???',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
               ),
 
               const SizedBox(height: 6),
@@ -732,10 +822,43 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                widget.isUnlocked ? getAnimalName(widget.animal.id, widget.l10n) : (widget.l10n?.animalUnknown ?? '???'),
-                style: const TextStyle(fontSize: 20),
-              ),
+              child: widget.isUnlocked
+                  ? () {
+                      final fullName = getAnimalName(widget.animal.id, widget.l10n);
+                      final nameParts = splitAnimalName(fullName);
+                      final hasBothNames = nameParts[1].isNotEmpty;
+                      
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            hasBothNames ? nameParts[0] : fullName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (hasBothNames)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                nameParts[1],
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    }()
+                  : Text(
+                      widget.l10n?.animalUnknown ?? '???',
+                      style: const TextStyle(fontSize: 20),
+                    ),
             ),
           ],
         ),
@@ -754,7 +877,7 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
 
             // 詳細資訊
             if (widget.isUnlocked) ...[
-              _buildInfoRow(Icons.verified, '${widget.l10n?.animalStatusUnlocked ?? '狀態：已解鎖'}', '', Colors.green),
+              _buildInfoRow(Icons.verified, widget.l10n?.animalStatus ?? '狀態', widget.l10n?.animalUnlockedValue ?? '已解鎖', Colors.green),
               const SizedBox(height: 12),
               _buildInfoRow(
                   Icons.calendar_today,
@@ -766,8 +889,11 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
               const SizedBox(height: 12),
               _buildInfoRow(Icons.emoji_events, widget.l10n?.animalUnlockCondition ?? '解鎖條件',
                   '${widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天'}', Colors.orange),
+              const SizedBox(height: 12),
+              // 命名理由
+              _buildReasonSection(widget.animal.id, widget.l10n),
             ] else ...[
-              _buildInfoRow(Icons.lock, '${widget.l10n?.animalStatusLocked ?? '狀態：未解鎖'}', '', Colors.grey),
+              _buildInfoRow(Icons.lock, widget.l10n?.animalStatus ?? '狀態', widget.l10n?.animalLockedValue ?? '未解鎖', Colors.grey),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.emoji_events, widget.l10n?.animalUnlockCondition ?? '解鎖條件',
                   '${widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天'}', Colors.orange),
@@ -833,13 +959,54 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildReasonSection(String animalId, AppLocalizations? l10n) {
+    final reason = getAnimalReason(animalId, l10n);
+    if (reason.isEmpty) return const SizedBox.shrink();
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.lightbulb_outline,
+          color: Colors.amber[700],
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${l10n?.animalNameReason ?? '命名理由'}:',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                reason,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -869,7 +1036,7 @@ class _MagicParticleOverlay extends StatefulWidget {
 class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     with TickerProviderStateMixin {
   late AnimationController _controller;
-  late AnimationController _burstController; // 新增爆炸動畫控制器
+  late AnimationController _burstController;
   late Animation<double> _progressAnimation;
   
   // 隨機路徑控制點
@@ -877,22 +1044,23 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
   bool _isInitialized = false;
   bool _hasUnlocked = false;
   
-  // 亮粉拖尾
-  final List<_TrailParticle> _trail = [];
+  // 預先生成的拖尾粒子（優化：避免在 build 中創建）
+  final List<_TrailParticle> _preGeneratedTrail = [];
+  int _trailIndex = 0;
   
-  // 爆炸粒子
-  final List<_BurstParticle> _burstParticles = [];
+  // 預先生成的爆炸粒子
+  late List<_BurstParticle> _burstParticles;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500), // 稍微加快飛行速度
+      duration: const Duration(milliseconds: 1200), // 加快飛行速度
       vsync: this,
     );
 
     _burstController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600), // 加快爆炸速度
       vsync: this,
     );
 
@@ -900,16 +1068,16 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
       parent: _controller,
       curve: Curves.easeInOutCubic,
     );
+    
+    // 預先生成拖尾粒子（避免在動畫中分配記憶體）
+    for (int i = 0; i < 80; i++) {
+      _preGeneratedTrail.add(_TrailParticle(Offset.zero));
+    }
+    
+    // 預先生成爆炸粒子（增加數量讓效果更震撼）
+    _burstParticles = List.generate(35, (_) => _BurstParticle(Offset.zero));
 
-    _controller.addListener(() {
-      // 當動畫接近尾聲時觸發解鎖
-      if (_controller.value > 0.95 && !_hasUnlocked) {
-        _hasUnlocked = true;
-        widget.onUnlock();
-        _spawnBurst();
-        _burstController.forward(); // 啟動爆炸動畫
-      }
-    });
+    _controller.addListener(_onAnimationUpdate);
 
     _burstController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -918,9 +1086,26 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     });
   }
   
-  void _spawnBurst() {
-    for (int i = 0; i < 30; i++) { // 增加粒子數量
-      _burstParticles.add(_BurstParticle(widget.targetPosition));
+  bool _soundPlayed = false; // 音效是否已播放
+  
+  void _onAnimationUpdate() {
+    // 當動畫接近 80% 時提前播放音效（在爆破前更早）
+    if (_controller.value > 0.80 && !_soundPlayed) {
+      _soundPlayed = true;
+      SoundEffectService().playUnlockSound();
+    }
+    
+    // 當動畫接近尾聲時觸發解鎖
+    if (_controller.value > 0.95 && !_hasUnlocked) {
+      _hasUnlocked = true;
+      widget.onUnlock();
+      
+      // 更新爆炸粒子的初始位置
+      final targetPos = widget.targetPosition;
+      for (var p in _burstParticles) {
+        p.initialPosition = targetPos;
+      }
+      _burstController.forward();
     }
   }
 
@@ -930,42 +1115,33 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     if (!_isInitialized) {
       final screenSize = MediaQuery.of(context).size;
       _generatePath(screenSize);
-      
       _controller.forward();
       _isInitialized = true;
     }
   }
   
   void _generatePath(Size screenSize) {
-    // 生成隨機路徑
     final random = Random();
-    
     final start = widget.startPosition;
     final end = widget.targetPosition;
     
-    // 限制範圍函數
-    final padding = 40.0; // 邊界保留距離
+    final padding = 40.0;
     double clampX(double x) => x.clamp(padding, screenSize.width - padding);
     double clampY(double y) => y.clamp(padding, screenSize.height - padding);
     
-    // 隨機偏移量
-    final rangeX = screenSize.width * 0.5;
-    final rangeY = screenSize.height * 0.5;
+    final rangeX = screenSize.width * 0.4;
+    final rangeY = screenSize.height * 0.4;
     
-    // 生成3個控制點以增加曲線複雜度 (Quartic Bezier)
-    // P1
     final p1 = Offset(
       clampX(start.dx + (end.dx - start.dx) * 0.25 + (random.nextDouble() - 0.5) * rangeX),
       clampY(start.dy + (end.dy - start.dy) * 0.25 + (random.nextDouble() - 0.5) * rangeY),
     );
 
-    // P2
     final p2 = Offset(
       clampX(start.dx + (end.dx - start.dx) * 0.50 + (random.nextDouble() - 0.5) * rangeX),
       clampY(start.dy + (end.dy - start.dy) * 0.50 + (random.nextDouble() - 0.5) * rangeY),
     );
 
-    // P3
     final p3 = Offset(
       clampX(start.dx + (end.dx - start.dx) * 0.75 + (random.nextDouble() - 0.5) * rangeX),
       clampY(start.dy + (end.dy - start.dy) * 0.75 + (random.nextDouble() - 0.5) * rangeY),
@@ -976,6 +1152,7 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
 
   @override
   void dispose() {
+    _controller.removeListener(_onAnimationUpdate);
     _controller.dispose();
     _burstController.dispose();
     super.dispose();
@@ -983,97 +1160,33 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_controller, _burstController]),
-      builder: (context, child) {
-        final t = _progressAnimation.value;
-        final burstT = _burstController.value;
-        final currentPos = _calculateBezierPoint(t, _pathPoints);
-        
-        // 產生亮粉 (直到爆炸開始前)
-        if (!_hasUnlocked) {
-           // 每次增加粒子
-           for(int i=0; i<2; i++) {
-             _trail.add(_TrailParticle(currentPos));
-           }
-           // 限制數量
-           if (_trail.length > 80) {
-             _trail.removeRange(0, _trail.length - 80);
-           }
-        }
-        
-        return Stack(
-          children: [
-            // 繪製拖尾亮粉
-            for (var i = 0; i < _trail.length; i++)
-              Positioned(
-                left: _trail[i].position.dx + _trail[i].jitter.dx,
-                top: _trail[i].position.dy + _trail[i].jitter.dy,
-                child: Opacity(
-                  // 拖尾隨爆炸進度淡出，而不是隨飛行進度淡出
-                  opacity: (i / _trail.length).clamp(0.0, 1.0) * (1.0 - burstT).clamp(0.0, 1.0),
-                  child: Container(
-                    width: _trail[i].size,
-                    height: _trail[i].size,
-                    decoration: BoxDecoration(
-                      color: _trail[i].color,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _trail[i].color.withOpacity(0.8),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        )
-                      ]
-                    ),
-                  ),
-                ),
-              ),
-              
-            // 繪製爆炸粒子
-            if (_hasUnlocked)
-              for (var p in _burstParticles)
-                Positioned(
-                  left: p.initialPosition.dx + p.velocity.dx * burstT * 150, // 擴散半徑
-                  top: p.initialPosition.dy + p.velocity.dy * burstT * 150 + (50 * burstT * burstT), // 加上重力效果
-                  child: Opacity(
-                    opacity: (1.0 - burstT).clamp(0.0, 1.0),
-                    child: Transform.scale(
-                      scale: 1.0 - burstT * 0.5, // 隨時間變小
-                      child: Container(
-                        width: p.size,
-                        height: p.size,
-                        decoration: BoxDecoration(
-                          color: p.color,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: p.color.withOpacity(0.8),
-                              blurRadius: 6,
-                              spreadRadius: 2,
-                            )
-                          ]
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-            // 主體星星 (到達終點後消失)
-            if (!_hasUnlocked)
-              Positioned(
-                left: currentPos.dx - 20,
-                top: currentPos.dy - 20,
-                child: Transform.rotate(
-                  angle: t * 6 * pi, // 旋轉3圈
-                  child: IgnorePointer(
-                    child: _buildParticle(),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
+    // 使用 CustomPaint 取代 Stack + Positioned，大幅提升效能
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_controller, _burstController]),
+        builder: (context, child) {
+          final t = _progressAnimation.value;
+          final currentPos = _calculateBezierPoint(t, _pathPoints);
+          
+          // 更新拖尾位置（重用現有物件）
+          if (!_hasUnlocked && _trailIndex < _preGeneratedTrail.length) {
+            _preGeneratedTrail[_trailIndex].position = currentPos;
+            _trailIndex++;
+          }
+          
+          return CustomPaint(
+            size: MediaQuery.of(context).size,
+            painter: _MagicParticlePainter(
+              progress: t,
+              burstProgress: _burstController.value,
+              currentPosition: currentPos,
+              trail: _preGeneratedTrail.sublist(0, _trailIndex),
+              burstParticles: _hasUnlocked ? _burstParticles : [],
+              hasUnlocked: _hasUnlocked,
+            ),
+          );
+        },
+      ),
     );
   }
   
@@ -1081,7 +1194,6 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     if (points.isEmpty) return Offset.zero;
     if (points.length == 1) return points.first;
     
-    // De Casteljau's algorithm for arbitrary number of points
     List<Offset> tempPoints = List.from(points);
     int n = tempPoints.length - 1;
     
@@ -1095,62 +1207,204 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     }
     return tempPoints[0];
   }
+}
+
+/// 使用 CustomPainter 繪製粒子效果（比 Stack + Container 高效得多）
+class _MagicParticlePainter extends CustomPainter {
+  final double progress;
+  final double burstProgress;
+  final Offset currentPosition;
+  final List<_TrailParticle> trail;
+  final List<_BurstParticle> burstParticles;
+  final bool hasUnlocked;
   
-  Widget _buildParticle() {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            Colors.white,
-            Colors.yellow.withOpacity(0.9),
-            Colors.orange.withOpacity(0.0),
-          ],
-          stops: const [0.2, 0.5, 1.0],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.yellow.withOpacity(0.8),
-            blurRadius: 20,
-            spreadRadius: 5,
-          ),
+  _MagicParticlePainter({
+    required this.progress,
+    required this.burstProgress,
+    required this.currentPosition,
+    required this.trail,
+    required this.burstParticles,
+    required this.hasUnlocked,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 繪製拖尾光暈（外層）
+    final glowPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    final fadeMultiplier = (1.0 - burstProgress).clamp(0.0, 1.0);
+    
+    for (int i = 0; i < trail.length; i++) {
+      final particle = trail[i];
+      final opacity = ((i + 1) / trail.length * fadeMultiplier).clamp(0.0, 1.0);
+      
+      // 繪製外層光暈
+      glowPaint.color = particle.color.withOpacity(opacity * 0.4);
+      canvas.drawCircle(
+        particle.position + particle.jitter,
+        particle.size * 0.8,
+        glowPaint,
+      );
+    }
+    
+    // 繪製拖尾核心（內層，更亮）
+    final trailPaint = Paint()..style = PaintingStyle.fill;
+    for (int i = 0; i < trail.length; i++) {
+      final particle = trail[i];
+      final opacity = ((i + 1) / trail.length * fadeMultiplier).clamp(0.0, 1.0);
+      
+      trailPaint.color = particle.color.withOpacity(opacity);
+      canvas.drawCircle(
+        particle.position + particle.jitter,
+        particle.size / 2,
+        trailPaint,
+      );
+    }
+    
+    // 繪製爆炸粒子
+    if (hasUnlocked) {
+      // 繪製中央閃光
+      if (burstProgress < 0.3) {
+        final flashOpacity = (1.0 - burstProgress / 0.3).clamp(0.0, 1.0);
+        final flashPaint = Paint()
+          ..style = PaintingStyle.fill
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+        flashPaint.color = Colors.white.withOpacity(flashOpacity * 0.8);
+        canvas.drawCircle(burstParticles.isNotEmpty ? burstParticles.first.initialPosition : Offset.zero, 50 * (1.0 - burstProgress), flashPaint);
+      }
+      
+      // 繪製爆炸粒子外層光暈
+      final burstGlowPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      final burstOpacity = (1.0 - burstProgress).clamp(0.0, 1.0);
+      final burstScale = 1.0 - burstProgress * 0.3;
+      
+      for (var p in burstParticles) {
+        final pos = Offset(
+          p.initialPosition.dx + p.velocity.dx * burstProgress * 180,
+          p.initialPosition.dy + p.velocity.dy * burstProgress * 180 + (60 * burstProgress * burstProgress),
+        );
+        
+        // 外層光暈
+        burstGlowPaint.color = p.color.withOpacity(burstOpacity * 0.5);
+        canvas.drawCircle(pos, p.size * burstScale, burstGlowPaint);
+      }
+      
+      // 繪製爆炸粒子核心
+      final burstPaint = Paint()..style = PaintingStyle.fill;
+      for (var p in burstParticles) {
+        final pos = Offset(
+          p.initialPosition.dx + p.velocity.dx * burstProgress * 180,
+          p.initialPosition.dy + p.velocity.dy * burstProgress * 180 + (60 * burstProgress * burstProgress),
+        );
+        
+        burstPaint.color = p.color.withOpacity(burstOpacity);
+        canvas.drawCircle(pos, p.size / 2 * burstScale, burstPaint);
+      }
+    }
+    
+    // 繪製主體星星
+    if (!hasUnlocked) {
+      _drawMainStar(canvas, currentPosition, progress);
+    }
+  }
+  
+  void _drawMainStar(Canvas canvas, Offset position, double t) {
+    canvas.save();
+    canvas.translate(position.dx, position.dy);
+    canvas.rotate(t * 6 * pi);
+    
+    // 繪製外層大光暈（更明顯）
+    final outerGlowPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
+    outerGlowPaint.color = Colors.amber.withOpacity(0.6);
+    canvas.drawCircle(Offset.zero, 35, outerGlowPaint);
+    
+    // 繪製內層光暈
+    final glowPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white,
+          Colors.yellow.withOpacity(0.9),
+          Colors.orange.withOpacity(0.0),
         ],
-      ),
-      child: const Icon(Icons.star, color: Colors.white, size: 24),
-    );
+        stops: const [0.2, 0.5, 1.0],
+      ).createShader(const Rect.fromLTWH(-30, -30, 60, 60));
+    
+    canvas.drawCircle(Offset.zero, 30, glowPaint);
+    
+    // 繪製星星圖標（稍大一點）
+    final starPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    
+    _drawStar(canvas, Offset.zero, 14, 7, 5, starPaint);
+    
+    canvas.restore();
+  }
+  
+  void _drawStar(Canvas canvas, Offset center, double outerRadius, double innerRadius, int points, Paint paint) {
+    final path = Path();
+    final angle = pi / points;
+    
+    for (int i = 0; i < points * 2; i++) {
+      final r = i.isEven ? outerRadius : innerRadius;
+      final x = center.dx + r * cos(i * angle - pi / 2);
+      final y = center.dy + r * sin(i * angle - pi / 2);
+      
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MagicParticlePainter oldDelegate) {
+    return progress != oldDelegate.progress || 
+           burstProgress != oldDelegate.burstProgress;
   }
 }
 
 class _BurstParticle {
-  final Offset initialPosition;
+  Offset initialPosition;
   final Offset velocity;
   final double size;
   final Color color;
   
   _BurstParticle(this.initialPosition) 
-    : velocity = Offset.fromDirection(Random().nextDouble() * 2 * pi, 0.5 + Random().nextDouble() * 1.5),
-      size = 4.0 + Random().nextDouble() * 8.0,
+    : velocity = Offset.fromDirection(Random().nextDouble() * 2 * pi, 0.6 + Random().nextDouble() * 1.8),
+      size = 6.0 + Random().nextDouble() * 10.0,
       color = [
         Colors.amber,
+        Colors.yellow,
+        Colors.orangeAccent,
         Colors.yellowAccent,
         Colors.white,
-      ][Random().nextInt(3)];
+      ][Random().nextInt(5)];
 }
 
 class _TrailParticle {
-  final Offset position;
+  Offset position;
   final Offset jitter;
   final double size;
   final Color color;
   
   _TrailParticle(this.position) 
     : jitter = Offset((Random().nextDouble() - 0.5) * 20, (Random().nextDouble() - 0.5) * 20),
-      size = 3.5 + Random().nextDouble() * 4.5,
+      size = 5.0 + Random().nextDouble() * 6.0,
       color = [
-        Colors.amber,        // 深一點的黃色
-        Colors.yellowAccent, // 原本的黃色
-        Colors.yellow[100]!, // 淺黃
-      ][Random().nextInt(3)];
+        Colors.amber,
+        Colors.yellow,
+        Colors.orangeAccent,
+        Colors.yellowAccent,
+        Colors.white,
+      ][Random().nextInt(5)];
 }
