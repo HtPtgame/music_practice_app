@@ -189,6 +189,13 @@ class SlowPracticeService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 清除所有練習記錄
+  Future<void> clearAllTasks() async {
+    _tasks.clear();
+    await _saveTasks();
+    notifyListeners();
+  }
+
   /// 增加練習時間
   Future<void> addPracticeTime(String taskId, int seconds) async {
     final index = _tasks.indexWhere((t) => t.id == taskId);

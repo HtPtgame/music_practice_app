@@ -235,7 +235,7 @@ class _SlowPracticeButton extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Text(
-                  '🐢',
+                  '🏰',
                   style: TextStyle(fontSize: 22),
                 ),
               ),

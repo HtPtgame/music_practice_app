@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 
-/// 共用的節拍器服務，避免重複創建音訊播放器
+/// 共用的節拍器服務，使用 Isolate 確保穩定計時
 class MetronomeService {
   static final MetronomeService _instance = MetronomeService._internal();
   factory MetronomeService() => _instance;
@@ -14,6 +15,17 @@ class MetronomeService {
   bool _audioPlayerReady = false;
   Uint8List? _beepBuffer;
   int _activeListeners = 0;
+  
+  // Isolate 相關
+  Isolate? _timerIsolate;
+  ReceivePort? _receivePort;
+  SendPort? _sendPort;
+  StreamSubscription? _subscription;
+  
+  // 回調
+  VoidCallback? _onBeat;
+  bool _isRunning = false;
+  int _currentBpm = 100;
 
   Future<void> initialize() async {
     if (_audioPlayer != null && _audioPlayerReady) return;
@@ -23,7 +35,7 @@ class MetronomeService {
       _audioPlayer = FlutterSoundPlayer();
       _audioPlayer!.setLogLevel(Level.error);
       await _audioPlayer!.openPlayer();
-      await _audioPlayer!.setVolume(0.4);
+      await _audioPlayer!.setVolume(0.5);
       _audioPlayerReady = true;
       _activeListeners++;
     } catch (e) {
@@ -32,6 +44,103 @@ class MetronomeService {
       _audioPlayerReady = false;
     }
   }
+  
+  /// 開始節拍器 (使用 Isolate 確保穩定)
+  Future<void> startMetronome(int bpm, {VoidCallback? onBeat}) async {
+    if (_isRunning) {
+      stopMetronome();
+    }
+    
+    _currentBpm = bpm;
+    _onBeat = onBeat;
+    _isRunning = true;
+    
+    // 建立接收 Port
+    _receivePort = ReceivePort();
+    
+    // 監聽 Isolate 發來的拍子訊號
+    _subscription = _receivePort!.listen((message) {
+      if (message is String && message == 'beat' && _isRunning) {
+        playBeat();
+        _onBeat?.call();
+      } else if (message is SendPort) {
+        _sendPort = message;
+        // 發送 BPM 給 Isolate 開始計時
+        _sendPort!.send(_currentBpm);
+      }
+    });
+    
+    // 啟動 Isolate
+    _timerIsolate = await Isolate.spawn(
+      _metronomeIsolateEntry,
+      _receivePort!.sendPort,
+    );
+  }
+  
+  /// 停止節拍器
+  void stopMetronome() {
+    _isRunning = false;
+    _sendPort?.send('stop');
+    _subscription?.cancel();
+    _subscription = null;
+    _receivePort?.close();
+    _receivePort = null;
+    _timerIsolate?.kill(priority: Isolate.immediate);
+    _timerIsolate = null;
+    _sendPort = null;
+    _onBeat = null;
+  }
+  
+  /// 更新 BPM (不需要重啟)
+  void updateBpm(int bpm) {
+    _currentBpm = bpm;
+    _sendPort?.send(bpm);
+  }
+  
+  /// Isolate 入口點 - 在獨立線程中運行高精度計時
+  static void _metronomeIsolateEntry(SendPort mainSendPort) {
+    final receivePort = ReceivePort();
+    mainSendPort.send(receivePort.sendPort);
+    
+    int bpm = 100;
+    bool running = true;
+    Stopwatch? stopwatch;
+    int lastBeatCount = 0;
+    
+    receivePort.listen((message) {
+      if (message is int) {
+        bpm = message;
+        // 重置計時
+        stopwatch = Stopwatch()..start();
+        lastBeatCount = 0;
+        // 立即發送第一拍
+        mainSendPort.send('beat');
+      } else if (message == 'stop') {
+        running = false;
+        stopwatch?.stop();
+        receivePort.close();
+      }
+    });
+    
+    // 高精度計時循環
+    Timer.periodic(const Duration(microseconds: 500), (timer) {
+      if (!running) {
+        timer.cancel();
+        return;
+      }
+      
+      if (stopwatch != null && stopwatch!.isRunning) {
+        final intervalMs = 60000.0 / bpm;
+        final elapsedMs = stopwatch!.elapsedMilliseconds;
+        final expectedBeats = (elapsedMs / intervalMs).floor();
+        
+        if (expectedBeats > lastBeatCount) {
+          lastBeatCount = expectedBeats;
+          mainSendPort.send('beat');
+        }
+      }
+    });
+  }
 
   Future<void> playBeat() async {
     if (!_audioPlayerReady || _beepBuffer == null || _audioPlayer == null) {
@@ -39,7 +148,7 @@ class MetronomeService {
     }
 
     try {
-      // 不需要等待完成，讓音訊重疊播放
+      // 使用 fire-and-forget 方式播放，避免阻塞
       _audioPlayer!.startPlayer(
         fromDataBuffer: _beepBuffer!,
         codec: Codec.pcm16WAV,
@@ -52,10 +161,10 @@ class MetronomeService {
   }
 
   void release() {
+    stopMetronome();
     _activeListeners--;
     if (_activeListeners <= 0) {
       _activeListeners = 0;
-      // 延遲清理，避免頻繁創建/銷毀
       Future.delayed(const Duration(seconds: 5), () {
         if (_activeListeners == 0) {
           _cleanup();

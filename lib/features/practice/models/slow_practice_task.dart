@@ -135,8 +135,12 @@ class SlowPracticeTask {
 
   /// 計算整體進度 (0.0 - 1.0)
   double get overallProgress {
-    // 簡單計算：步驟進度 / 總步驟數
-    return currentStep / 3.0;
+    // 已完成的任務直接返回 100%
+    if (status == SlowPracticeStatus.completed) {
+      return 1.0;
+    }
+    // 進行中：(當前步驟 + 1) / 總步驟數，因為 currentStep 是 0-based
+    return (currentStep + 1) / 3.0;
   }
 
   Map<String, dynamic> toJson() => {

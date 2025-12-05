@@ -98,43 +98,37 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1), // 溫暖的米黃色背景
+      backgroundColor: AppColors.dynamicBackground, // 使用 App 主題背景色
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🐢', style: TextStyle(fontSize: 24)),
+            const Text('🏰', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
                 l10n?.slowPracticeTitle ?? '慢練魔法屋',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  color: Color(0xFF5D4037),
+                  fontSize: 22,
+                  color: AppColors.dynamicTextDark, // 使用 App 主題文字色
+                  letterSpacing: 1.2,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        backgroundColor: const Color(0xFFFFF8E1),
-        foregroundColor: const Color(0xFF5D4037),
+        backgroundColor: AppColors.dynamicBackground,
+        foregroundColor: AppColors.dynamicTextDark,
         elevation: 0,
         centerTitle: true,
         actions: [
           if (_service.tasks.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFCC80),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                onPressed: _showHistorySheet,
-                icon: const Icon(Icons.history, color: Color(0xFF5D4037)),
-                tooltip: l10n?.slowPracticeHistory ?? '練習紀錄',
-              ),
+            IconButton(
+              onPressed: _showHistorySheet,
+              icon: Icon(Icons.history_rounded, color: AppColors.dynamicTextDark),
+              tooltip: l10n?.slowPracticeHistory ?? '練習紀錄',
             ),
         ],
       ),
@@ -146,61 +140,60 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
 
   Widget _buildBody(AppLocalizations? l10n) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
       children: [
         _buildHeroCard(),
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
         // 選擇練習標題
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFAB91),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFFF7043), width: 3),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🎯', style: TextStyle(fontSize: 24)),
-              const SizedBox(width: 8),
-              Text(
-                l10n?.slowPracticeSelectPoint ?? '選擇要練的重點',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF5D4037),
-                ),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.dynamicAccent, // 使用 App 主題強調色
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.dynamicAccent.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            ],
-          ),
+              child: const Text('✨', style: TextStyle(fontSize: 20)),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              l10n?.slowPracticeSelectPoint ?? '選擇要練的重點',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.dynamicTextDark,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         if (_slowPracticePoints.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFB2DFDB),
-              borderRadius: BorderRadius.circular(12),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('📚', style: TextStyle(fontSize: 16)),
+                Icon(Icons.book_rounded, size: 18, color: AppColors.dynamicTextLight),
                 const SizedBox(width: 6),
                 Text(
                   l10n?.lessonBookFromLessonBook ?? '來自家庭聯絡簿',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF00695C),
+                    color: AppColors.dynamicTextLight,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
           ..._slowPracticePoints.map((point) => _buildLessonPointCard(point)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
         _buildManualInputCard(),
         const SizedBox(height: 32),
@@ -210,183 +203,160 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
 
   Widget _buildHeroCard() {
     final stepColors = [
-      const Color(0xFFFFCDD2), // 粉紅
-      const Color(0xFFB3E5FC), // 淺藍
-      const Color(0xFFC8E6C9), // 淺綠
+      const Color(0xFFFF8A80), // 鮮豔紅
+      const Color(0xFF4FC3F7), // 鮮豔藍
+      const Color(0xFF66BB6A), // 鮮豔綠
     ];
+    
+    final stepIcons = ['🎯', '🕵️', '🏆'];
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE1F5FE), Color(0xFFFCE4EC)],
-        ),
+        color: AppColors.dynamicCard, // 使用卡片背景色，不再是漸層
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF81D4FA), width: 4),
+        border: Border.all(color: AppColors.dynamicAccent, width: 2), // 加個邊框像佈告欄
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // 標題區域
-            Row(
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
               children: [
-                // 可愛的烏龜動畫容器
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF81C784),
-                    borderRadius: BorderRadius.circular(20),
-                    border:
-                        Border.all(color: const Color(0xFF4CAF50), width: 3),
-                  ),
-                  child: const Center(
-                    child: Text('🐢', style: TextStyle(fontSize: 36)),
-                  ),
+                // 標題區域
+                Row(
+                  children: [
+                    // 烏龜圖示
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.dynamicAccent, width: 2),
+                      ),
+                      child: const Text('🐢', style: TextStyle(fontSize: 32)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context);
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n?.slowPracticeTip ?? '慢練小秘訣',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.dynamicTextDark,
+                                ),
+                              ),
+                              Text(
+                                '跟著步驟一起練習吧！',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.dynamicTextLight,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    // 詳細說明按鈕 (改成小圖示)
+                    IconButton(
+                      onPressed: _showFullSopDialog,
+                      icon: Icon(Icons.info_outline_rounded, color: AppColors.dynamicPrimary),
+                      tooltip: '查看詳細說明',
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      final l10n = AppLocalizations.of(context);
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n?.slowPracticeTip ?? '慢練小秘訣',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF37474F),
+                const SizedBox(height: 20),
+                // 三個步驟的可愛卡片
+                Builder(
+                  builder: (context) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (int i = 0; i < 3; i++) ...[
+                          if (i > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 14),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: AppColors.dynamicPrimary.withValues(alpha: 0.6),
+                                size: 24,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n?.slowPracticeTipQuote ?? '「慢慢來，比較快！」',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.brown.shade400,
-                              fontStyle: FontStyle.italic,
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: stepColors[i].withValues(alpha: 0.3), width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: stepColors[i].withValues(alpha: 0.1),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(stepIcons[i], style: const TextStyle(fontSize: 24)),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  i == 0 ? '設定目標' : (i == 1 ? '慢練偵探' : '最終挑戰'),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.dynamicTextDark,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      );
-                    },
-                  ),
-                ),
-                // 詳細按鈕
-                Builder(
-                  builder: (context) {
-                    final l10n = AppLocalizations.of(context);
-                    return GestureDetector(
-                      onTap: _showFullSopDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD54F),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: const Color(0xFFFFC107), width: 2),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.lightbulb,
-                                color: Color(0xFF5D4037), size: 18),
-                            const SizedBox(width: 4),
-                            Text(
-                              l10n?.slowPracticeViewDetail ?? '看詳細',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF5D4037),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     );
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            // 三個步驟的可愛卡片
-            Builder(
-              builder: (context) {
-                final l10n = AppLocalizations.of(context);
-                final isEnglish = l10n?.locale.languageCode == 'en';
-                
-                return Row(
-                  children: List.generate(3, (index) {
-                    final step = SlowPracticeSteps.all[index];
-                    final stepTitle = step.getTitle(isEnglish);
-                    // 顯示標題的第一個詞（英文用空格分割，中文取前兩個字）
-                    final displayTitle = isEnglish 
-                        ? stepTitle.split(' ')[0]
-                        : stepTitle.split(' ')[0].substring(0, min(2, stepTitle.split(' ')[0].length));
-                    
-                    return Expanded(
-                      child: Container(
-                        margin: EdgeInsets.only(right: index < 2 ? 10 : 0),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: stepColors[index],
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: stepColors[index].withValues(alpha: 0.8),
-                            width: 2,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(step.icon, style: const TextStyle(fontSize: 28)),
-                            const SizedBox(height: 6),
-                            Text(
-                              displayTitle,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF37474F),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                );
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLessonPointCard(LessonPoint point) {
+    // 隨機選擇一個可愛的音樂相關圖示
+    final icons = ['🎹', '🎻', '🎺', '🎸', '🥁', '🎷', '🎼', '🎵'];
+    final iconIndex = (point.hashCode) % icons.length;
+    final icon = icons[iconIndex];
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFCE93D8), width: 3),
+        color: AppColors.dynamicCard.withValues(alpha: 0.3), // 淺色卡片背景
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.dynamicCard, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withValues(alpha: 0.1),
-            blurRadius: 8,
+            color: AppColors.dynamicPrimary.withValues(alpha: 0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -395,30 +365,35 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _startPracticeFromPoint(point),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 // 可愛的鋼琴圖示
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFE1BEE7), Color(0xFFCE93D8)],
+                      colors: [AppColors.dynamicCard, AppColors.dynamicAccent],
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: const Color(0xFFAB47BC), width: 2),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.dynamicAccent.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Center(
-                    child: Text('🎹', style: TextStyle(fontSize: 28)),
+                  child: Center(
+                    child: Text(icon, style: const TextStyle(fontSize: 30)),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,20 +401,20 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                       if (point.relatedPieceName != null)
                         Text(
                           point.relatedPieceName!,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF37474F),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 17,
+                            color: AppColors.dynamicTextDark,
                           ),
                         ),
+                      const SizedBox(height: 6),
                       if (point.measureRange != null)
                         Container(
-                          margin: const EdgeInsets.only(top: 4),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF9C4),
-                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.white.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Builder(
                             builder: (context) {
@@ -448,9 +423,9 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                                 l10n?.slowPracticeMeasure.replaceAll(
                                         '{range}', point.measureRange!) ??
                                     '第 ${point.measureRange} 小節',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFFFF8F00),
+                                  color: AppColors.dynamicPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               );
@@ -459,42 +434,46 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                         ),
                       if (point.content.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.only(top: 6),
                           child: Text(
                             point.content,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF78909C),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.dynamicTextLight,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 // 開始按鈕
                 Builder(
                   builder: (context) {
                     final l10n = AppLocalizations.of(context);
                     return Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                          horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF66BB6A), Color(0xFF43A047)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: const Color(0xFF2E7D32), width: 2),
+                        color: AppColors.dynamicPrimary,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.dynamicPrimary.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: Text(
                         l10n?.slowPracticeStart ?? '開始',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
                         ),
                       ),
                     );
@@ -512,12 +491,12 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFFB74D), width: 3),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.dynamicAccent, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.15),
-            blurRadius: 8,
+            color: AppColors.dynamicAccent.withValues(alpha: 0.15),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -526,30 +505,35 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: _showManualInputDialog,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 // 可愛的鉛筆圖示
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFE082), Color(0xFFFFB74D)],
+                      colors: [AppColors.dynamicCard, AppColors.dynamicAccent],
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: const Color(0xFFFF9800), width: 2),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.dynamicAccent.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: const Center(
-                    child: Text('✏️', style: TextStyle(fontSize: 28)),
+                    child: Text('✏️', style: TextStyle(fontSize: 30)),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Builder(
                     builder: (context) {
@@ -559,19 +543,19 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                         children: [
                           Text(
                             l10n?.slowPracticeCustomRange ?? '自己選要練哪裡',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Color(0xFF37474F),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 17,
+                              color: AppColors.dynamicTextDark,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             l10n?.slowPracticeCustomRangeHint ?? '輸入小節範圍開始練習！',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFFFF8F00),
-                              fontWeight: FontWeight.w500,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.dynamicPrimary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
@@ -580,15 +564,15 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.dynamicBackground,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: Color(0xFFFF9800),
-                    size: 20,
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppColors.dynamicPrimary,
+                    size: 24,
                   ),
                 ),
               ],
@@ -811,6 +795,26 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                       ),
                     ),
                     const Spacer(),
+                    // 清除按鈕
+                    if (_service.tasks.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () => _confirmClearAllHistory(context),
+                        icon: Icon(
+                          Icons.delete_sweep_rounded,
+                          size: 18,
+                          color: Colors.red.shade400,
+                        ),
+                        label: Text(
+                          '清除全部',
+                          style: TextStyle(
+                            color: Colors.red.shade400,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        ),
+                      ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),
@@ -843,41 +847,189 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
     );
   }
 
+  /// 確認清除所有練習記錄
+  void _confirmClearAllHistory(BuildContext sheetContext) {
+    showDialog(
+      context: sheetContext,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.warning_rounded, color: Colors.orange.shade400),
+              const SizedBox(width: 8),
+              const Text('確認清除'),
+            ],
+          ),
+          content: const Text(
+            '確定要清除所有練習紀錄嗎？\n此操作無法復原。',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                '取消',
+                style: TextStyle(color: AppColors.dynamicTextLight),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext); // 關閉對話框
+                Navigator.pop(sheetContext);  // 關閉 bottom sheet
+                await _service.clearAllTasks();
+                setState(() {});
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('已清除所有練習紀錄'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green.shade400,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade400,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('清除'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildHistorySection(String title, List<SlowPracticeTask> tasks) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: AppColors.dynamicTextDark,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              color: AppColors.dynamicTextDark,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
         ...tasks.map((task) {
           return Builder(
             builder: (context) {
               final l10n = AppLocalizations.of(context);
-              return Card(
-                color: AppColors.dynamicCard,
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _openPracticeSession(task);
-                  },
-                  title: Text(
-                      task.pieceName ?? (l10n?.slowPracticePractice ?? '練習')),
-                  subtitle: Text(l10n?.slowPracticeMeasure
-                          .replaceAll('{range}', task.measureRange ?? '?') ??
-                      '第 ${task.measureRange ?? "?"} 小節'),
-                  trailing: Text(
-                    '${(task.overallProgress * 100).toInt()}%',
-                    style: TextStyle(
-                      color: AppColors.dynamicPrimary,
-                      fontWeight: FontWeight.bold,
+              final dateToShow = task.completedAt ?? task.createdAt;
+              final dateStr = '${dateToShow.year}/${dateToShow.month}/${dateToShow.day}';
+              final isCompleted = task.status == SlowPracticeStatus.completed;
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.dynamicPrimary.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _openPracticeSession(task);
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          children: [
+                            // 左側色條
+                            Container(
+                              width: 6,
+                              color: isCompleted ? const Color(0xFF66BB6A) : const Color(0xFF42A5F5),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            task.pieceName ?? (l10n?.slowPracticePractice ?? '練習'),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: AppColors.dynamicTextDark,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.dynamicBackground,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            dateStr,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.dynamicTextLight,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.music_note_rounded, size: 14, color: AppColors.dynamicPrimary),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          l10n?.slowPracticeMeasure.replaceAll('{range}', task.measureRange ?? '?') ??
+                                          '第 ${task.measureRange ?? "?"} 小節',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: AppColors.dynamicTextLight,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          '${(task.overallProgress * 100).toInt()}%',
+                                          style: TextStyle(
+                                            color: isCompleted ? const Color(0xFF66BB6A) : const Color(0xFF42A5F5),
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -891,17 +1043,56 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
 
   void _showFullSopDialog() {
     final l10n = AppLocalizations.of(context);
+    
+    final steps = [
+      {
+        'icon': '🎯', 
+        'title': '1. 設定 & 拆解',
+        'desc': '想一想自己現在要練什麼，設定小目標',
+        'color': const Color(0xFFFF8A80),
+      },
+      {
+        'icon': '🕵️',
+        'title': '2. 慢練小偵探',
+        'desc': '每次練習時，心中自己檢查一下：\n• 有沒有彈錯音？\n• 有用對指法嗎？\n• 耳朵有沒有在聽節拍器？\n\n不要讓自己養成錯誤的壞習慣，讓自己全神貫注！',
+        'color': const Color(0xFF4FC3F7),
+      },
+      {
+        'icon': '🏆',
+        'title': '3. 最終挑戰',
+        'desc': '到了最後一步不要鬆懈，繼續保持！',
+        'color': const Color(0xFF66BB6A),
+      },
+    ];
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        titlePadding: const EdgeInsets.all(24),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+        actionsPadding: const EdgeInsets.all(24),
         title: Row(
           children: [
-            const Text('🐢 ', style: TextStyle(fontSize: 24)),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Text('✨', style: TextStyle(fontSize: 24)),
+            ),
+            const SizedBox(width: 12),
             Flexible(
               child: Text(
-                l10n?.slowPracticeSopTitle ?? '慢練 SOP',
-                style: TextStyle(color: AppColors.dynamicTextDark),
-                overflow: TextOverflow.ellipsis,
+                l10n?.slowPracticeSopTitle ?? '慢練小秘訣',
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark, 
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                ),
               ),
             ),
           ],
@@ -909,67 +1100,125 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: SlowPracticeSteps.all
-                .map((step) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              for (int i = 0; i < steps.length; i++) ...[
+                if (i > 0)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Icon(Icons.arrow_downward_rounded, 
+                      color: AppColors.dynamicPrimary.withValues(alpha: 0.3), 
+                      size: 28
+                    ),
+                  ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: (steps[i]['color'] as Color).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: (steps[i]['color'] as Color).withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text(step.icon, style: const TextStyle(fontSize: 20)),
+                          Text(
+                            steps[i]['icon'] as String,
+                            style: const TextStyle(fontSize: 28),
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${step.step + 1}. ${_getStepTitle(l10n, step.step)}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  _getStepDesc(l10n, step.step),
-                                  style: TextStyle(
-                                    color: AppColors.dynamicPrimary,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              steps[i]['title'] as String,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                color: AppColors.dynamicTextDark,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ))
-                .toList(),
+                      const SizedBox(height: 12),
+                      Text(
+                        steps[i]['desc'] as String,
+                        style: TextStyle(
+                          color: AppColors.dynamicTextDark,
+                          fontSize: 15,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.dynamicAccent,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.dynamicAccent.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Text('💪', style: TextStyle(fontSize: 24)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '練習從來不輕鬆，但只要每天堅持，就會變得很厲害！',
+                        style: TextStyle(
+                          color: AppColors.dynamicTextDark,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n?.slowPracticeUnderstand ?? '了解'),
+          Center(
+            child: SizedBox(
+              width: 200,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.dynamicPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  l10n?.slowPracticeUnderstand ?? '我知道了！', 
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
-  }
-  
-  /// 獲取步驟標題
-  String _getStepTitle(AppLocalizations? l10n, int stepIndex) {
-    switch (stepIndex) {
-      case 0: return l10n?.slowPracticeStep1Title ?? '設定 & 拆解';
-      case 1: return l10n?.slowPracticeStep2Title ?? '慢速迭代';
-      case 2: return l10n?.slowPracticeStep3Title ?? '完整演練';
-      default: return '';
-    }
-  }
-  
-  /// 獲取步驟描述
-  String _getStepDesc(AppLocalizations? l10n, int stepIndex) {
-    switch (stepIndex) {
-      case 0: return l10n?.slowPracticeStep1Desc ?? '設定速度 & 拆解方式';
-      case 1: return l10n?.slowPracticeStep2Desc ?? '從初始速度到 100%';
-      case 2: return l10n?.slowPracticeStep3Desc ?? '連續 5 次全對';
-      default: return '';
-    }
   }
 }
 
@@ -1009,9 +1258,6 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
   bool _metronomeEnabled = false;
   bool _metronomeInitialized = false;
   bool _isDisposed = false; // 追蹤 dispose 狀態
-  Timer? _metronomeTimer;
-  DateTime? _metronomeStartTime; // 記錄節拍器開始時間
-  int _beatCount = 0; // 記錄拍數
   final ValueNotifier<bool> _beatFlashNotifier = ValueNotifier<bool>(false);
 
   // Step 1 State
@@ -1091,49 +1337,23 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
     });
 
     int bpm = _currentStepIndex == 0 ? _task.targetBpm : _task.currentBpm;
-    final double intervalMs = 60000.0 / bpm;
-
-    // 記錄起始時間和拍數
-    _metronomeStartTime = DateTime.now();
-    _beatCount = 0;
-
-    // 立即播放第一拍
-    _playMetronomeBeat();
-
-    // 使用精確的時間計算來避免累積誤差
-    _scheduleNextBeat(intervalMs);
-  }
-
-  void _scheduleNextBeat(double intervalMs) {
-    if (!_metronomeEnabled || _metronomeStartTime == null || _isDisposed)
-      return;
-
-    _beatCount++;
-
-    // 計算理論上下一拍應該發生的時間
-    final targetTime = _metronomeStartTime!
-        .add(Duration(milliseconds: (_beatCount * intervalMs).round()));
-
-    // 計算實際需要等待的時間(補償累積誤差)
-    final now = DateTime.now();
-    final delay = targetTime.difference(now);
-
-    // 如果延遲為負數(已經遲到),立即播放;否則按計算的延遲時間播放
-    final actualDelay = delay.isNegative ? Duration.zero : delay;
-
-    _metronomeTimer = Timer(actualDelay, () {
-      if (_metronomeEnabled && !_isDisposed && mounted) {
-        _playMetronomeBeat();
-        _scheduleNextBeat(intervalMs);
+    
+    // 使用 Isolate 版本的節拍器，不受 UI 線程阻塞影響
+    _metronomeService.startMetronome(bpm, onBeat: () {
+      if (!_isDisposed && mounted) {
+        // 視覺效果
+        _beatFlashNotifier.value = true;
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (!_isDisposed && mounted) {
+            _beatFlashNotifier.value = false;
+          }
+        });
       }
     });
   }
 
   void _stopMetronome() {
-    _metronomeTimer?.cancel();
-    _metronomeTimer = null;
-    _metronomeStartTime = null;
-    _beatCount = 0;
+    _metronomeService.stopMetronome();
 
     if (mounted && !_isDisposed) {
       setState(() {
@@ -1141,24 +1361,6 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
       });
       _beatFlashNotifier.value = false;
     }
-  }
-
-  void _playMetronomeBeat() {
-    if (!mounted || _isDisposed) return;
-
-    // 播放聲音
-    if (_metronomeInitialized) {
-      _metronomeService.playBeat();
-    }
-
-    // 視覺效果 - 使用 mounted 檢查避免 disposed 後更新
-    _beatFlashNotifier.value = true;
-    Future.delayed(const Duration(milliseconds: 100), () {
-      // 雙重檢查狀態
-      if (!_isDisposed && mounted) {
-        _beatFlashNotifier.value = false;
-      }
-    });
   }
 
   @override
@@ -1417,15 +1619,33 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFBDE0E6),
+      backgroundColor: AppColors.dynamicBackground, // 使用 App 主題背景色
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: Text(_task.pieceName ?? (l10n?.slowPracticePractice ?? '慢練練習')),
-        backgroundColor: const Color(0xFFBDE0E6),
-        foregroundColor: Colors.black87,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _currentStepIndex == 0
+                  ? Icons.tune_rounded
+                  : (_currentStepIndex == 1 ? Icons.search_rounded : Icons.emoji_events_rounded),
+              color: AppColors.dynamicTextDark,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _currentStepIndex == 0
+                  ? '設定 & 拆解'
+                  : (_currentStepIndex == 1 ? '慢練小偵探' : '最終挑戰'),
+              style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.dynamicTextDark),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.dynamicBackground,
+        foregroundColor: AppColors.dynamicTextDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close_rounded),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -1437,19 +1657,26 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
               valueListenable: _beatFlashNotifier,
               builder: (context, isFlashing, child) {
                 return Container(
-                  margin: const EdgeInsets.only(right: 8),
+                  margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isFlashing
-                        ? Colors.amber.withOpacity(0.3)
-                        : Colors.transparent,
+                        ? AppColors.dynamicAccent.withValues(alpha: 0.3)
+                        : Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: IconButton(
                     icon: Icon(
                       _metronomeEnabled
-                          ? Icons.music_note
+                          ? Icons.music_note_rounded
                           : Icons.music_note_outlined,
-                      color: _metronomeEnabled ? Colors.amber : Colors.black54,
+                      color: _metronomeEnabled ? AppColors.dynamicPrimary : AppColors.dynamicTextLight,
                     ),
                     onPressed: _toggleMetronome,
                     tooltip: _metronomeEnabled
@@ -1484,9 +1711,9 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
   Widget _buildStepIndicator() {
     final l10n = AppLocalizations.of(context);
     const stepIcons = [
-      Icons.settings,
-      Icons.speed,
-      Icons.emoji_events,
+      Icons.settings_rounded,
+      Icons.speed_rounded,
+      Icons.emoji_events_rounded,
     ];
     final stepLabels = l10n?.slowPracticeStepLabels ?? ['設定', '慢練', '挑戰'];
 
@@ -1502,7 +1729,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
               isActive: i == _currentStepIndex,
             ),
             if (i < SlowPracticeSteps.all.length - 1)
-              const Icon(Icons.arrow_forward, size: 16, color: Colors.black26),
+              Icon(Icons.arrow_forward_rounded, size: 20, color: AppColors.dynamicPrimary.withValues(alpha: 0.2)),
           ],
         ],
       ),
@@ -1516,36 +1743,44 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
   }) {
     return Column(
       children: [
-        Container(
-          width: 52,
-          height: 52,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
             color: isActive
-                ? const Color(0xFF81C7D4)
-                : Colors.white.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(14),
+                ? AppColors.dynamicPrimary
+                : Colors.white,
+            borderRadius: BorderRadius.circular(20),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: AppColors.dynamicPrimary.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : [
+                    BoxShadow(
+                      color: AppColors.dynamicPrimary.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     )
-                  ]
-                : [],
+                  ],
+            border: isActive ? null : Border.all(color: AppColors.dynamicPrimary.withValues(alpha: 0.1), width: 2),
           ),
           child: Icon(
             icon,
-            color: isActive ? Colors.white : Colors.black26,
-            size: 26,
+            color: isActive ? Colors.white : AppColors.dynamicPrimary.withValues(alpha: 0.5),
+            size: 28,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: Colors.black45,
+            color: isActive ? AppColors.dynamicTextDark : AppColors.dynamicTextLight,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1554,50 +1789,13 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
   }
 
   Widget _buildStepContent(SlowPracticeStepInfo step) {
-    final l10n = AppLocalizations.of(context);
-    final isEnglish = l10n?.locale.languageCode == 'en';
-    
-    // 移除英文 Step X，改為純圖示與標題
-    final titleWidget = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _currentStepIndex == 0
-                ? Icons.settings_rounded
-                : _currentStepIndex == 1
-                    ? Icons.speed_rounded
-                    : Icons.emoji_events_rounded,
-            size: 32,
-            color: const Color(0xFF455A64),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              step.getTitle(isEnglish),
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 24,
-                color: Color(0xFF455A64),
-                letterSpacing: 1.2,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-
     // Step 1 使用固定底部的按鈕佈局
     if (_currentStepIndex == 0) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            titleWidget,
+            const SizedBox(height: 16),
             Expanded(child: _buildStep1Setup()),
           ],
         ),
@@ -1609,8 +1807,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          titleWidget,
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (_currentStepIndex == 1) _buildStep2Iteration(),
           if (_currentStepIndex == 2) _buildStep3FullRehearsal(),
           const SizedBox(height: 20),
@@ -2234,6 +2431,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                 child: _buildActionButton(
                   icon: Icons.check_circle_rounded,
                   label: l10n?.slowPracticePerfect ?? '完美 (+1)',
+
                   color: const Color(0xFF26A69A), // 湖水綠 (Teal 400)
                   bgColor: const Color(0xFFE0F2F1), // 淡湖水綠背景
                   onTap: () => _recordFinalChallenge(true),
