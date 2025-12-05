@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:music_practice_app/services/practice_timer_service.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 
 class MainShell extends StatelessWidget {
@@ -158,55 +157,13 @@ class MainShell extends StatelessWidget {
     return 0;
   }
 
-  void _onItemTapped(int index, BuildContext context) async {
-    // 檢查計時器是否運行中
-    final timerService = PracticeTimerService();
+  void _onItemTapped(int index, BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
 
     // 如果已經在目標頁面，不需要切換
     if (index == currentIndex) return;
 
-    // 如果計時器正在運行，彈出警告
-    if (timerService.isTimerRunning) {
-      final l10n = AppLocalizations.of(context);
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.blue, size: 28),
-              const SizedBox(width: 8),
-              Text(l10n?.timerRunningTitle ?? '計時器運行中'),
-            ],
-          ),
-          content: Text(
-            l10n?.timerRunningMessage ?? '練習計時器正在運行中。\n\n切換頁面將自動暫停計時並保存當前記錄。\n\n確定要離開此頁面嗎？',
-            style: const TextStyle(fontSize: 15),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n?.timerStayOnPage ?? '留在此頁', style: const TextStyle(fontSize: 16)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n?.timerLeavePage ?? '確定離開', style: const TextStyle(fontSize: 16)),
-            ),
-          ],
-        ),
-      );
-
-      // 如果用戶取消切換，直接返回
-      if (confirmed != true) return;
-
-      // 用戶確認離開，請求暫停並保存
-      timerService.requestPauseAndSave();
-
-      // 給一點時間讓計時器組件處理保存
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
-    // 執行頁面切換
+    // 直接執行頁面切換（計時器現在可以跨頁面運行）
     switch (index) {
       case 0:
         context.go('/');

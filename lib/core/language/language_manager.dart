@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:music_practice_app/services/practice_timer_service.dart';
 
 class LanguageManager extends ChangeNotifier {
   static final LanguageManager _instance = LanguageManager._internal();
@@ -29,6 +30,8 @@ class LanguageManager extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString('selectedLanguage') ?? 'zh_TW';
     _currentLocale = localeMap[languageCode] ?? const Locale('zh', 'TW');
+    // 同步更新計時器服務的語言
+    PracticeTimerService().setLanguage(currentLanguageCode);
     notifyListeners();
   }
 
@@ -38,6 +41,8 @@ class LanguageManager extends ChangeNotifier {
       _currentLocale = locale;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selectedLanguage', languageCode);
+      // 同步更新計時器服務的語言
+      PracticeTimerService().setLanguage(currentLanguageCode);
       notifyListeners();
     }
   }

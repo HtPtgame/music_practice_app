@@ -14,9 +14,31 @@ class ResponsiveUtils {
     return MediaQuery.of(context).size.height;
   }
 
+  /// 獲取可用高度（扣除鍵盤高度）
+  static double availableHeight(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    return screenHeight - keyboardHeight;
+  }
+
+  /// 獲取鍵盤高度
+  static double keyboardHeight(BuildContext context) {
+    return MediaQuery.of(context).viewInsets.bottom;
+  }
+
+  /// 判斷鍵盤是否顯示
+  static bool isKeyboardVisible(BuildContext context) {
+    return MediaQuery.of(context).viewInsets.bottom > 0;
+  }
+
   /// 獲取安全區域內邊距
   static EdgeInsets safeAreaPadding(BuildContext context) {
     return MediaQuery.of(context).padding;
+  }
+
+  /// 獲取底部安全區域高度
+  static double safeAreaBottom(BuildContext context) {
+    return MediaQuery.of(context).padding.bottom;
   }
 
   /// 判斷是否為小螢幕設備 (寬度 < 360)
@@ -285,5 +307,77 @@ class ResponsiveBuilder extends StatelessWidget {
       return (medium ?? small)(context);
     }
     return small(context);
+  }
+}
+
+/// 響應式 BottomSheet 幫助類
+/// 自動處理鍵盤彈出和安全區域
+class ResponsiveBottomSheet {
+  /// 顯示響應式 BottomSheet
+  /// 自動處理鍵盤彈出時的佈局問題
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required Widget Function(BuildContext context, double bottomInset) builder,
+    double maxHeightRatio = 0.9,
+    Color? backgroundColor,
+    BorderRadius? borderRadius,
+  }) {
+    return showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final maxHeight = screenHeight * maxHeightRatio;
+        
+        return Container(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          decoration: BoxDecoration(
+            color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: borderRadius ?? const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: builder(context, bottomInset),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 鍵盤安全 Scaffold 包裝器
+/// 自動處理鍵盤彈出時的佈局問題
+class KeyboardSafeScaffold extends StatelessWidget {
+  final PreferredSizeWidget? appBar;
+  final Widget body;
+  final Widget? bottomNavigationBar;
+  final Widget? floatingActionButton;
+  final Color? backgroundColor;
+  final bool resizeToAvoidBottomInset;
+
+  const KeyboardSafeScaffold({
+    super.key,
+    this.appBar,
+    required this.body,
+    this.bottomNavigationBar,
+    this.floatingActionButton,
+    this.backgroundColor,
+    this.resizeToAvoidBottomInset = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: appBar,
+      backgroundColor: backgroundColor,
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
+      body: SafeArea(child: body),
+      bottomNavigationBar: bottomNavigationBar != null
+          ? SafeArea(child: bottomNavigationBar!)
+          : null,
+      floatingActionButton: floatingActionButton,
+    );
   }
 }

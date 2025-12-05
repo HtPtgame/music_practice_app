@@ -4,7 +4,362 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-12月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年12月3日 (v6.0 用戶數據雲端同步完善)
+**最後更新**: 2025年12月5日 (v6.2 計時器狀態同步修復)
+
+---
+
+## 📅 v6.2 計時器狀態同步修復 (2025/12/05)
+
+### 🎯 核心問題修復
+
+**背景**: v6.1 計時器功能上線後，發現多個跨頁面狀態同步問題。
+
+**問題清單**:
+1. ❌ 浮動視窗暫停後消失
+2. ❌ 從浮動視窗暫停時數據未保存
+3. ❌ 從浮動視窗按「繼續」後 UI 未更新
+4. ❌ 返回首頁時計時器顯示異常
+5. ❌ 從浮動視窗按「停止」後浮動視窗未消失
+
+---
+
+### ✅ 修復方案總覽
+
+#### 1. 浮動視窗暫停後消失問題
+
+**根本原因**: `main.dart` 的浮動視窗渲染條件只檢查 `isRunning`，未檢查 `isPaused`
+
+**修復位置**: `lib/main.dart`
+
+**修復前**:
+```dart
+if (PracticeTimerService().isRunning && 
+    PracticeTimerService().showFloatingTimer)
+  const FloatingTimerWidget(),
+```
+
+**修復後**:
+```dart
+final shouldShowTimer = (timerService.isRunning || timerService.isPaused) && 
+                        timerService.showFloatingTimer;
+if (shouldShowTimer)
+  const FloatingTimerWidget(),
+```
+
+---
+
+#### 2. 暫停時數據未保存問題
+
+**根本原因**: `PracticeTimerCard._onTimerServiceChanged()` 只同步 UI 狀態，未保存數據
+
+**修復位置**: `lib/widgets/practice_timer_card.dart`
+
+**新增邏輯**:
+```dart
+if (!serviceRunning && _timerService.isPaused && _isRunning) {
+  // 同步本地狀態
+  final sessionSeconds = _timerService.getElapsedSeconds();
+  setState(() {
+    _isRunning = false;
+    _elapsedSeconds = _sessionStartSeconds + sessionSeconds;
+  });
+  
+  // 保存練習數據（從浮動視窗暫停時也需要保存）
+  if (sessionSeconds > 0) {
+    final today = _getTodayString();
+    _weeklyPracticeData[today] = _elapsedSeconds;
+    _savePracticeData();
+  }
+}
+```
+
+---
+
+#### 3. 繼續按鈕後 UI Timer 未恢復
+
+**根本原因**: 從浮動視窗按「繼續」時，本地 UI 更新 Timer 未重新啟動
+
+**修復位置**: `lib/widgets/practice_timer_card.dart`
+
+**改進方式**:
+- 抽取 `_startUIUpdateTimer()` 獨立方法
+- 在恢復狀態時調用此方法
+
+```dart
+void _startUIUpdateTimer() {
+  _timer?.cancel();
+  _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    if (!_timerService.isRunning) {
+      timer.cancel();
+      return;
+    }
+    final sessionSeconds = _timerService.getElapsedSeconds();
+    if (mounted) {
+      setState(() {
+        _elapsedSeconds = _sessionStartSeconds + sessionSeconds;
+      });
+    }
+  });
+}
+```
+
+---
+
+#### 4. 返回首頁時計時器顯示異常
+
+**根本原因**: `_loadPracticeData()` 覆蓋正在運行/暫停的計時器狀態
+
+**修復位置**: `lib/widgets/practice_timer_card.dart`
+
+**新增邏輯**:
+```dart
+// 檢查計時器服務是否正在運行或暫停
+if (_timerService.isRunning || _timerService.isPaused) {
+  // 計時器正在運行/暫停，恢復狀態
+  final sessionSeconds = _timerService.getElapsedSeconds();
+  final previousSeconds = _timerService.todayPreviousSeconds;
+  
+  setState(() {
+    _sessionStartSeconds = previousSeconds;
+    _elapsedSeconds = previousSeconds + sessionSeconds;
+    _isRunning = _timerService.isRunning;
+  });
+  
+  // 如果正在運行，啟動 UI 更新 Timer
+  if (_timerService.isRunning) {
+    _startUIUpdateTimer();
+  }
+}
+```
+
+**新增 Getters**:
+- `PracticeTimerService.isPaused` - 判斷是否在暫停狀態
+- `PracticeTimerService.todayPreviousSeconds` - 獲取今日之前累計秒數
+
+---
+
+#### 5. 停止按鈕後浮動視窗未消失
+
+**根本原因**: 按「停止」後調用 `_pauseTimer()`，保留了 `_accumulatedSeconds`，導致 `isPaused` 仍為 `true`
+
+**修復位置**: `lib/widgets/practice_timer_card.dart`
+
+**新增方法**: `_stopAndSaveTimer()` - 完全重置計時器狀態
+
+```dart
+Future<void> _stopAndSaveTimer() async {
+  _timer?.cancel();
+  final sessionSeconds = _elapsedSeconds - _sessionStartSeconds;
+  
+  setState(() {
+    _isRunning = false;
+  });
+  
+  // 使用全局計時器服務重置（完全停止，不保留暫停狀態）
+  _timerService.reset();
+  
+  // 保存數據並重置 sessionStartSeconds
+  if (sessionSeconds > 0) {
+    final today = _getTodayString();
+    _weeklyPracticeData[today] = _elapsedSeconds;
+    await _savePracticeData();
+  }
+  
+  _sessionStartSeconds = _elapsedSeconds;
+}
+```
+
+**調用位置**:
+```dart
+if (_timerService.stopRequested && _isRunning) {
+  _timerService.clearStopRequest();
+  _stopAndSaveTimer();  // 使用停止方法而非暫停
+  return;
+}
+```
+
+---
+
+### 🔧 技術改進
+
+#### 程式碼品質優化
+1. **抽取重複邏輯**: `_startUIUpdateTimer()` 方法避免程式碼重複
+2. **明確職責分離**: 區分「暫停」（可繼續）和「停止」（完全重置）
+3. **狀態一致性**: 確保服務層和 UI 層狀態同步
+
+#### 新增 API
+- `bool get isPaused => !_isRunning && _accumulatedSeconds > 0;`
+- `int get todayPreviousSeconds => _todayPreviousSeconds;`
+- `bool get hasAccumulatedTime => _accumulatedSeconds > 0;`
+
+---
+
+### 🧪 測試驗證
+
+**測試場景**:
+1. ✅ 首頁開始計時 → 切換頁面 → 返回首頁（時間正確顯示）
+2. ✅ 浮動視窗按暫停 → 浮動視窗保持顯示 → 數據已保存
+3. ✅ 浮動視窗按繼續 → 計時繼續 → 首頁 Timer 同步更新
+4. ✅ 浮動視窗按停止 → 數據保存 → 浮動視窗消失
+5. ✅ 通知欄按鈕操作 → 正確同步到 UI
+
+---
+
+### 📊 影響檔案
+
+| 檔案 | 變更類型 | 說明 |
+|------|---------|------|
+| `lib/main.dart` | 修復 | 浮動視窗渲染條件加入 `isPaused` 檢查 |
+| `lib/widgets/practice_timer_card.dart` | 重構 | 新增 `_startUIUpdateTimer()` 和 `_stopAndSaveTimer()` |
+| `lib/widgets/practice_timer_card.dart` | 修復 | `_onTimerServiceChanged()` 暫停時保存數據 |
+| `lib/widgets/practice_timer_card.dart` | 修復 | `_loadPracticeData()` 恢復計時器狀態邏輯 |
+| `lib/services/practice_timer_service.dart` | 新增 | `isPaused`, `todayPreviousSeconds` getters |
+
+---
+
+## 📅 v6.1 練習計時器優化 + 報表改進 (2025/12/04)
+
+### 🎯 核心功能更新
+
+**背景**: 基於 v6.0 完成雲端同步後，優化練習計時器體驗和報表顯示。
+
+**目標**: 
+1. 移除詳細報表中的「最常練習曲目」
+2. 優化練習計時器，支援跨頁面背景運行
+3. 採用 ISO 8601 標準優化月報表週次顯示
+
+---
+
+### ✅ 實現功能總覽
+
+1. **移除最常練習曲目** - 從統計頁面移除熱門曲目排行榜
+2. **全局浮動計時器** - 在所有頁面顯示可拖曳的計時器
+3. **背景計時優化** - 智慧背景暫停偵測（2分鐘閾值）
+4. **計時器設定** - 新增設定頁面控制項
+5. **ISO 8601 週次** - 月報表使用國際標準週次顯示
+
+---
+
+### 📝 詳細實現
+
+#### 1. 移除最常練習曲目
+
+**檔案**: `lib/pages/practice_stats_page.dart`
+
+**移除內容**:
+- `_buildSongRankingCard()` 方法
+- `_buildSongRow()` 方法  
+- `_getPieceRanking()` 方法
+- 月報表中的「熱門曲目排行榜」區塊
+
+---
+
+#### 2. 全局浮動計時器
+
+**新增檔案**: `lib/widgets/floating_timer_widget.dart`
+
+**功能特點**:
+- 可拖曳定位
+- 摺疊/展開兩種模式
+- 摺疊時只顯示 "⏱ 15:30" 格式
+- 展開時顯示暫停/停止控制按鈕
+- 自動跟隨 `PracticeTimerService` 狀態更新
+
+**實現方式**:
+```dart
+class FloatingTimerWidget extends StatefulWidget {
+  // 使用 Positioned + GestureDetector 實現拖曳
+  // 監聽 PracticeTimerService 狀態變化
+}
+```
+
+---
+
+#### 3. PracticeTimerService 重構
+
+**檔案**: `lib/services/practice_timer_service.dart`
+
+**新增功能**:
+- `WidgetsBindingObserver` 監聽 App 生命週期
+- 背景時間追蹤（`_backgroundTime`）
+- 可配置暫停閾值（預設 2 分鐘）
+- `syncElapsedSeconds()` 與 `PracticeTimerCard` 同步時間
+
+**背景暫停邏輯**:
+```dart
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  if (state == AppLifecycleState.paused) {
+    _backgroundTime = DateTime.now();
+  } else if (state == AppLifecycleState.resumed && _backgroundTime != null) {
+    final duration = now.difference(_backgroundTime!).inSeconds;
+    if (duration > _pauseThresholdSeconds) {
+      // 超過閾值，不計入背景時間
+      _startTime = now;
+    }
+  }
+}
+```
+
+---
+
+#### 4. 計時器設定頁面
+
+**檔案**: `lib/pages/settings_page.dart`
+
+**新增設定項**:
+- 浮動計時器開關
+- 背景通知開關（僅 Android）
+- 背景暫停閾值選擇（2分鐘/5分鐘/10分鐘/永不暫停）
+
+**iOS 限制提示**:
+- 顯示橘色提示框說明 iOS 背景計時限制
+
+---
+
+#### 5. ISO 8601 週次優化
+
+**檔案**: `lib/pages/practice_stats_page.dart`
+
+**新增方法**:
+```dart
+/// 計算 ISO 週次
+int _getISOWeekNumber(DateTime date) {
+  final dayOfYear = date.difference(DateTime(date.year, 1, 1)).inDays + 1;
+  final weekday = date.weekday; // 1=Monday, 7=Sunday
+  return ((dayOfYear - weekday + 10) / 7).floor();
+}
+
+/// 獲取月份中的所有 ISO 週
+List<Map<String, dynamic>> _getISOWeeksInMonth(int year, int month)
+```
+
+**顯示格式**:
+- 圖表標籤: "W1", "W2", "W3"...
+- 日期範圍: "12/2-8"（月/日-日）
+
+---
+
+### 📂 修改檔案清單
+
+| 檔案 | 變更類型 | 說明 |
+|------|----------|------|
+| `lib/main.dart` | 修改 | 初始化 PracticeTimerService，整合浮動計時器 |
+| `lib/pages/practice_stats_page.dart` | 修改 | 移除曲目排行，ISO 8601 週次 |
+| `lib/pages/settings_page.dart` | 修改 | 新增計時器設定區塊 |
+| `lib/services/practice_timer_service.dart` | 重構 | 全局計時器服務 |
+| `lib/widgets/floating_timer_widget.dart` | 新增 | 浮動計時器元件 |
+| `lib/widgets/practice_timer_card.dart` | 修改 | 同步時間到全局服務 |
+
+---
+
+### 🔧 SharedPreferences 儲存鍵值
+
+| Key | 類型 | 預設值 | 說明 |
+|-----|------|--------|------|
+| `timer_show_floating` | bool | true | 是否顯示浮動計時器 |
+| `timer_show_notification` | bool | false | 是否顯示背景通知 |
+| `timer_pause_threshold` | int | 120 | 背景暫停閾值（秒），-1=永不 |
 
 ---
 

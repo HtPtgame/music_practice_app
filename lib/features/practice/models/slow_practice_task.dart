@@ -200,22 +200,31 @@ class SlowPracticeSteps {
     SlowPracticeStepInfo(
       step: 0,
       title: '設定 & 拆解',
+      titleEn: 'Setup & Decompose',
       shortDesc: '設定速度 & 拆解方式',
+      shortDescEn: 'Set speed & decomposition method',
       fullDesc: '設定目標原速，並選擇拆解方式（例如「左手單獨」或「節奏拆解」），強迫大腦先處理簡單的資訊。',
+      fullDescEn: 'Set target tempo and choose a decomposition method (e.g., "Left Hand Only" or "Rhythm Breakdown") to force the brain to process simpler information first.',
       icon: '⚙️',
     ),
     SlowPracticeStepInfo(
       step: 1,
-      title: '慢速迭代 (Slow Iteration)',
+      title: '慢速迭代',
+      titleEn: 'Slow Iteration',
       shortDesc: '從初始速度到 100%',
+      shortDescEn: 'From initial speed to 100%',
       fullDesc: '從初始速度開始練習到 100% 原速。必須按下綠色的「成功」按鈕 3 次，速度條才會往右跳一格。按紅色「失誤」則當前級距歸零。',
+      fullDescEn: 'Practice from initial speed to 100% tempo. Press the green "Success" button 3 times to advance. Red "Fail" resets current progress.',
       icon: '🐢',
     ),
     SlowPracticeStepInfo(
       step: 2,
-      title: '完整演練 (Full Rehearsal)',
+      title: '完整演練',
+      titleEn: 'Full Rehearsal',
       shortDesc: '連續 5 次全對',
+      shortDescEn: '5 consecutive successes',
       fullDesc: '最後的考驗。每次成功點亮一個綠燈，只要按一次「中斷/失敗」，所有綠燈歸零。確保肌肉記憶穩固。',
+      fullDescEn: 'The final test. Each success lights up a green light. Any failure resets all lights. Ensure muscle memory is solid.',
       icon: '🏆',
     ),
   ];
@@ -224,15 +233,30 @@ class SlowPracticeSteps {
 class SlowPracticeStepInfo {
   final int step;
   final String title;
+  final String titleEn;
   final String shortDesc;
+  final String shortDescEn;
   final String fullDesc;
+  final String fullDescEn;
   final String icon;
 
   const SlowPracticeStepInfo({
     required this.step,
     required this.title,
+    this.titleEn = '',
     required this.shortDesc,
+    this.shortDescEn = '',
     required this.fullDesc,
+    this.fullDescEn = '',
     required this.icon,
   });
+  
+  /// 根據語言獲取標題
+  String getTitle(bool isEnglish) => isEnglish && titleEn.isNotEmpty ? titleEn : title;
+  
+  /// 根據語言獲取簡短描述
+  String getShortDesc(bool isEnglish) => isEnglish && shortDescEn.isNotEmpty ? shortDescEn : shortDesc;
+  
+  /// 根據語言獲取完整描述
+  String getFullDesc(bool isEnglish) => isEnglish && fullDescEn.isNotEmpty ? fullDescEn : fullDesc;
 }

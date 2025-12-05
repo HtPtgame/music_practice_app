@@ -79,6 +79,8 @@ class AppLocalizations {
   String get homeAverage => '平均';
   String get homeTotal => '總計';
   String get homePerDay => '/天';
+  String get homePageLessonBookDesc => '記錄老師上課內容與練習建議';
+  String get homePageSlowPracticeDesc => '建立正確動作，神經系統穩定記憶';
   
   // ========== 打卡 ==========
   String get checkInSuccess => '打卡成功！';
@@ -130,6 +132,9 @@ class AppLocalizations {
   String get timerNoPieces => '尚無樂譜目錄';
   String get timerNoPiecesHint => '請先在「樂譜筆記」新增曲目';
   String get timerViewStats => '查看詳細報表';
+  String get timerContinue => '繼續';
+  String get timerStop => '結束';
+  String get timerTodayPractice => '今日練習';
   
   // ========== 練習統計報表 ==========
   String get statsTitle => '練習偵探報表';
@@ -601,6 +606,106 @@ class AppLocalizations {
   String get suggestionTendencyRushing => '⏩ 有搶拍傾向,可以放鬆一點,不要太急';
   String get suggestionTendencyDragging => '⏸️ 有拖拍傾向,可能需要加強節奏訓練';
   
+  // ========== 家庭聯絡簿 ==========
+  String get lessonBookTitle => '家庭聯絡簿';
+  String get lessonBookEmpty => '還沒有上課紀錄';
+  String get lessonBookEmptyHint => '點擊右下角 + 新增老師上課內容';
+  String get lessonBookFromLessonBook => '來自家庭聯絡簿';
+  String get lessonBookConfirmDelete => '確認刪除';
+  String get lessonBookConfirmDeleteMessage => '確定要刪除這筆上課紀錄嗎？';
+  String get lessonBookToday => '今天';
+  String get lessonBookYesterday => '昨天';
+  String get lessonBookAddRecord => '新增上課紀錄';
+  String get lessonBookEditRecord => '編輯上課紀錄';
+  String get lessonBookAddPoint => '新增重點';
+  String get lessonBookPointLabel => '重點';
+  String get lessonBookInputHint => '輸入上課內容...';
+  String get lessonBookSheetHint => '樂譜';
+  String get lessonBookMeasureHint => '小節';
+  String get lessonBookNoAssociate => '不關聯';
+  String get lessonBookPointsCount => '則';
+  String get lessonBookSave => '儲存';
+  String get lessonBookAtLeastOnePoint => '請至少輸入一則上課內容';
+  List<String> get lessonBookWeekdays => ['一', '二', '三', '四', '五', '六', '日'];
+  String lessonBookWeekdayLabel(int weekday) => '週${lessonBookWeekdays[weekday - 1]}';
+  // 課堂分類
+  String get lessonBookCategorySlowPractice => '慢練';
+  String get lessonBookCategoryTechnique => '技巧';
+  String get lessonBookCategoryTone => '音色';
+  String get lessonBookCategoryOther => '其他';
+  
+  // ========== 慢練SOP ==========
+  String get slowPracticeTitle => '慢練魔法屋';
+  String get slowPracticeHistory => '練習紀錄';
+  String get slowPracticeSelectPoint => '選擇要練的重點';
+  String get slowPracticeTip => '慢練小秘訣';
+  String get slowPracticeTipQuote => '「慢慢來，比較快！」';
+  String get slowPracticeViewDetail => '看詳細';
+  String get slowPracticeMeasure => '第 {range} 小節';
+  String get slowPracticeStart => '開始';
+  String get slowPracticeCustomRange => '自己選要練哪裡';
+  String get slowPracticeCustomRangeHint => '輸入小節範圍開始練習！';
+  String get slowPracticeCustomRangeTitle => '自訂練習範圍';
+  String get slowPracticeSheetOptional => '樂譜（可選）';
+  String get slowPracticeSelectSheet => '選擇樂譜';
+  String get slowPracticeNoSelect => '不選擇';
+  String get slowPracticeMeasureRequired => '練習小節 *';
+  String get slowPracticeMeasureExample => '例如：12-16';
+  String get slowPracticeNote => '備註';
+  String get slowPracticeNoteHint => '需要注意的地方...';
+  String get slowPracticePleaseInputMeasure => '請輸入練習小節';
+  String get slowPracticeStartPractice => '開始練習';
+  String get slowPracticeInProgress => '🎹 進行中';
+  String get slowPracticeCompleted => '✅ 已完成';
+  String get slowPracticePractice => '練習';
+  String get slowPracticeSopTitle => '慢練 SOP';
+  String get slowPracticeUnderstand => '了解';
+  String get slowPracticeChallengeSuccess => '太棒了！挑戰成功！';
+  String get slowPracticeAllComplete => '你已經完成了所有的練習！';
+  String get slowPracticeComplete => '完成';
+  String get slowPracticeToggleMetronome => '開啟節拍器';
+  String get slowPracticeToggleMetronomeOff => '關閉節拍器';
+  List<String> get slowPracticeStepLabels => ['設定', '慢練', '挑戰'];
+  String get slowPracticeStep1Title => '設定 & 拆解';
+  String get slowPracticeStep2Title => '慢速迭代';
+  String get slowPracticeStep3Title => '完整演練';
+  String get slowPracticeStep1Desc => '設定速度 & 拆解方式';
+  String get slowPracticeStep2Desc => '從初始速度到 100%';
+  String get slowPracticeStep3Desc => '連續 5 次全對';
+  String get slowPracticeSetTargetBpm => '設定目標原速';
+  String get slowPracticeSpeed => '速度';
+  String get slowPracticeSelectDecomposition => '選擇拆解方式';
+  String get slowPracticeInitialSpeed => '初始練習速度';
+  String get slowPracticeSpeedValue => '= {bpm} 速度';
+  String get slowPracticeSpeedSuggestion => '建議從 40-60% 開始';
+  String get slowPracticeReady => '準備好了，出發！';
+  String get slowPracticeCurrentSpeed => '目前速度';
+  String get slowPracticeTarget => '目標: {bpm}';
+  String get slowPracticeConsecutiveSuccess => '連續成功 3 次就加速！';
+  String get slowPracticeFail => '失誤 (歸零)';
+  String get slowPracticeSuccess => '成功 (+1)';
+  String get slowPracticeFinalChallenge => '最終挑戰！';
+  String get slowPracticeOops => '哎呀 (重來)';
+  String get slowPracticePerfect => '完美 (+1)';
+  List<String> get slowPracticeDecompositions => ['左手單獨', '右手單獨', '節奏拆解', '只彈重拍', '唱譜', '不踩踏板'];
+  
+  // ========== 計時器設定 ==========
+  String get timerSettingsTitle => '計時器設定';
+  String get timerSettingsFloatingTimer => '浮動計時器';
+  String get timerSettingsFloatingTimerOn => '練習時會顯示浮動計時器';
+  String get timerSettingsFloatingTimerOff => '已關閉浮動計時器';
+  String get timerSettingsBackgroundNotification => '背景通知';
+  String get timerSettingsBackgroundNotificationOn => '離開 App 時會顯示通知';
+  String get timerSettingsBackgroundNotificationOff => '不顯示背景通知';
+  String get timerSettingsNotificationPermission => '需要通知權限才能顯示背景通知';
+  String get timerSettingsOpenSettings => '設定';
+  String get timerSettingsIosLimitation => 'iOS 系統限制：背景計時將在 App 進入背景後暫停。';
+  
+  // ========== 練習報表 - 星期/週數 ==========
+  List<String> get statsWeekdays => ['一', '二', '三', '四', '五', '六', '日'];
+  List<String> get statsWeekLabels => ['', '第一週', '第二週', '第三週', '第四週', '第五週', '第六週'];
+  String statsWeekLabel(int weekNum) => '第$weekNum週';
+  
   // ========== 節拍器 ==========
   String get metronomeTitle => '節拍器';
   String get metronomeBPM => '速度 (BPM)';
@@ -844,6 +949,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeTotal => 'Total';
   @override
   String get homePerDay => '/day';
+  @override
+  String get homePageLessonBookDesc => 'Record teacher notes and practice tips';
+  @override
+  String get homePageSlowPracticeDesc => 'Build correct habits, strengthen neural memory';
 
   @override
   String get checkInSuccess => 'Check-in successful!';
@@ -940,6 +1049,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timerNoPiecesHint => 'Please add pieces in "Sheet Notes" first';
   @override
   String get timerViewStats => 'View Detailed Report';
+  @override
+  String get timerContinue => 'Resume';
+  @override
+  String get timerStop => 'End';
+  @override
+  String get timerTodayPractice => 'Today\'s Practice';
 
   @override
   String get statsTitle => 'Practice Report';
@@ -2074,6 +2189,197 @@ class AppLocalizationsEn extends AppLocalizations {
   String get successUploaded => 'Uploaded successfully';
   @override
   String get successUpdated => 'Updated successfully';
+
+  // ========== Lesson Book (家庭聯絡簿) ==========
+  @override
+  String get lessonBookTitle => 'Lesson Book';
+  @override
+  String get lessonBookEmpty => 'No lesson records yet';
+  @override
+  String get lessonBookEmptyHint => 'Tap + to add lesson content from teacher';
+  @override
+  String get lessonBookFromLessonBook => 'From Lesson Book';
+  @override
+  String get lessonBookConfirmDelete => 'Confirm Delete';
+  @override
+  String get lessonBookConfirmDeleteMessage => 'Are you sure you want to delete this lesson record?';
+  @override
+  String get lessonBookToday => 'Today';
+  @override
+  String get lessonBookYesterday => 'Yesterday';
+  @override
+  String get lessonBookAddRecord => 'Add Lesson Record';
+  @override
+  String get lessonBookEditRecord => 'Edit Lesson Record';
+  @override
+  String get lessonBookAddPoint => 'Add Point';
+  @override
+  String get lessonBookPointLabel => 'Point';
+  @override
+  String get lessonBookInputHint => 'Enter lesson content...';
+  @override
+  String get lessonBookSheetHint => 'Sheet';
+  @override
+  String get lessonBookMeasureHint => 'Measure';
+  @override
+  String get lessonBookNoAssociate => 'No Association';
+  @override
+  String get lessonBookPointsCount => 'points';
+  @override
+  String get lessonBookSave => 'Save';
+  @override
+  String get lessonBookAtLeastOnePoint => 'Please enter at least one lesson point';
+  @override
+  List<String> get lessonBookWeekdays => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  @override
+  String lessonBookWeekdayLabel(int weekday) => lessonBookWeekdays[weekday - 1];
+  // Lesson categories
+  @override
+  String get lessonBookCategorySlowPractice => 'Slow Practice';
+  @override
+  String get lessonBookCategoryTechnique => 'Technique';
+  @override
+  String get lessonBookCategoryTone => 'Tone';
+  @override
+  String get lessonBookCategoryOther => 'Other';
+
+  // ========== Slow Practice SOP (慢練SOP) ==========
+  @override
+  String get slowPracticeTitle => 'Slow Practice Studio';
+  @override
+  String get slowPracticeHistory => 'Practice History';
+  @override
+  String get slowPracticeSelectPoint => 'Select Practice Focus';
+  @override
+  String get slowPracticeTip => 'Slow Practice Tips';
+  @override
+  String get slowPracticeTipQuote => '"Slow and steady wins the race!"';
+  @override
+  String get slowPracticeViewDetail => 'View Details';
+  @override
+  String get slowPracticeMeasure => 'Measure {range}';
+  @override
+  String get slowPracticeStart => 'Start';
+  @override
+  String get slowPracticeCustomRange => 'Choose Your Own Section';
+  @override
+  String get slowPracticeCustomRangeHint => 'Enter measure range to start practicing!';
+  @override
+  String get slowPracticeCustomRangeTitle => 'Custom Practice Range';
+  @override
+  String get slowPracticeSheetOptional => 'Sheet (Optional)';
+  @override
+  String get slowPracticeSelectSheet => 'Select Sheet';
+  @override
+  String get slowPracticeNoSelect => 'None';
+  @override
+  String get slowPracticeMeasureRequired => 'Measure Range *';
+  @override
+  String get slowPracticeMeasureExample => 'e.g., 12-16';
+  @override
+  String get slowPracticeNote => 'Notes';
+  @override
+  String get slowPracticeNoteHint => 'Things to pay attention to...';
+  @override
+  String get slowPracticePleaseInputMeasure => 'Please enter measure range';
+  @override
+  String get slowPracticeStartPractice => 'Start Practice';
+  @override
+  String get slowPracticeInProgress => '🎹 In Progress';
+  @override
+  String get slowPracticeCompleted => '✅ Completed';
+  @override
+  String get slowPracticePractice => 'Practice';
+  @override
+  String get slowPracticeSopTitle => 'Slow Practice SOP';
+  @override
+  String get slowPracticeUnderstand => 'Got It';
+  @override
+  String get slowPracticeChallengeSuccess => 'Awesome! Challenge Complete!';
+  @override
+  String get slowPracticeAllComplete => 'You have completed all practices!';
+  @override
+  String get slowPracticeComplete => 'Complete';
+  @override
+  String get slowPracticeToggleMetronome => 'Turn On Metronome';
+  @override
+  String get slowPracticeToggleMetronomeOff => 'Turn Off Metronome';
+  @override
+  List<String> get slowPracticeStepLabels => ['Setup', 'Slow', 'Challenge'];
+  @override
+  String get slowPracticeStep1Title => 'Setup & Decompose';
+  @override
+  String get slowPracticeStep2Title => 'Slow Iteration';
+  @override
+  String get slowPracticeStep3Title => 'Full Rehearsal';
+  @override
+  String get slowPracticeStep1Desc => 'Set speed & decomposition method';
+  @override
+  String get slowPracticeStep2Desc => 'From initial speed to 100%';
+  @override
+  String get slowPracticeStep3Desc => '5 consecutive successes';
+  @override
+  String get slowPracticeSetTargetBpm => 'Set Target BPM';
+  @override
+  String get slowPracticeSpeed => 'Speed';
+  @override
+  String get slowPracticeSelectDecomposition => 'Select Decomposition Method';
+  @override
+  String get slowPracticeInitialSpeed => 'Initial Practice Speed';
+  @override
+  String get slowPracticeSpeedValue => '= {bpm} BPM';
+  @override
+  String get slowPracticeSpeedSuggestion => 'Recommended: Start at 40-60%';
+  @override
+  String get slowPracticeReady => "Ready, Let's Go!";
+  @override
+  String get slowPracticeCurrentSpeed => 'Current Speed';
+  @override
+  String get slowPracticeTarget => 'Target: {bpm}';
+  @override
+  String get slowPracticeConsecutiveSuccess => '3 consecutive successes to speed up!';
+  @override
+  String get slowPracticeFail => 'Fail (Reset)';
+  @override
+  String get slowPracticeSuccess => 'Success (+1)';
+  @override
+  String get slowPracticeFinalChallenge => 'Final Challenge!';
+  @override
+  String get slowPracticeOops => 'Oops (Restart)';
+  @override
+  String get slowPracticePerfect => 'Perfect (+1)';
+  @override
+  List<String> get slowPracticeDecompositions => ['Left Hand Only', 'Right Hand Only', 'Rhythm Breakdown', 'Accents Only', 'Sing Along', 'No Pedal'];
+
+  // ========== Timer Settings (計時器設定) ==========
+  @override
+  String get timerSettingsTitle => 'Timer Settings';
+  @override
+  String get timerSettingsFloatingTimer => 'Floating Timer';
+  @override
+  String get timerSettingsFloatingTimerOn => 'Floating timer shown during practice';
+  @override
+  String get timerSettingsFloatingTimerOff => 'Floating timer disabled';
+  @override
+  String get timerSettingsBackgroundNotification => 'Background Notification';
+  @override
+  String get timerSettingsBackgroundNotificationOn => 'Notification shown when app is in background';
+  @override
+  String get timerSettingsBackgroundNotificationOff => 'Background notification disabled';
+  @override
+  String get timerSettingsNotificationPermission => 'Notification permission required for background notification';
+  @override
+  String get timerSettingsOpenSettings => 'Settings';
+  @override
+  String get timerSettingsIosLimitation => 'iOS limitation: Background timer will pause when app goes to background.';
+
+  // ========== Practice Stats - Weekdays/Weeks (練習報表 - 星期/週數) ==========
+  @override
+  List<String> get statsWeekdays => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  @override
+  List<String> get statsWeekLabels => ['', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'];
+  @override
+  String statsWeekLabel(int weekNum) => 'Week $weekNum';
 }
 
 /// 簡體中文（中國）- 保留占位，暫不翻譯

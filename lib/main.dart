@@ -7,6 +7,8 @@ import 'package:music_practice_app/core/language/language_manager.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:music_practice_app/core/services/settings_service.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
+import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:music_practice_app/widgets/floating_timer_widget.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -28,6 +30,9 @@ void main() async {
 
   // 初始化認證服務
   await authService.initialize();
+  
+  // 初始化練習計時器服務
+  await PracticeTimerService().initialize();
 
   // 鎖定螢幕方向為直立模式，防止旋轉破圖
   await SystemChrome.setPreferredOrientations([
@@ -103,35 +108,54 @@ class _MyAppState extends State<MyApp> {
 
     final themeColors = ThemeManager.instance.currentColors;
 
-    return MaterialApp.router(
-      title: 'Sound Spirit Detective',
-      
-      // 多語言支援
-      locale: LanguageManager.instance.currentLocale,
-      supportedLocales: LanguageManager.supportedLocales,
-      localizationsDelegates: const [
-        AppLocalizationsDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: themeColors['primary']!,
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: themeColors['background'],
-        cardColor: themeColors['card'],
-        appBarTheme: AppBarTheme(
-          backgroundColor: themeColors['primary'],
-          foregroundColor: Colors.white,
-        ),
-      ),
-      routerConfig: appRouter,
-      debugShowCheckedModeBanner: false,
+    return ListenableBuilder(
+      listenable: PracticeTimerService(),
+      builder: (context, _) {
+        return MaterialApp.router(
+          title: 'Sound Spirit Detective',
+          
+          // 多語言支援
+          locale: LanguageManager.instance.currentLocale,
+          supportedLocales: LanguageManager.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizationsDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: themeColors['primary']!,
+              brightness: Brightness.light,
+            ),
+            scaffoldBackgroundColor: themeColors['background'],
+            cardColor: themeColors['card'],
+            appBarTheme: AppBarTheme(
+              backgroundColor: themeColors['primary'],
+              foregroundColor: Colors.white,
+            ),
+          ),
+          routerConfig: appRouter,
+          debugShowCheckedModeBanner: false,
+          builder: (context, child) {
+            // 使用 Stack 包裝，在最上層顯示浮動計時器
+            final timerService = PracticeTimerService();
+            // 當計時器正在運行或暫停時，且設定為顯示時，才顯示浮動計時器
+            final shouldShowTimer = (timerService.isRunning || timerService.isPaused) && 
+                                    timerService.showFloatingTimer;
+            return Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                if (shouldShowTimer)
+                  const FloatingTimerWidget(),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

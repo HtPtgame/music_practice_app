@@ -1,6 +1,8 @@
 // lib/pages/settings_page.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/core/theme/theme_manager.dart';
 import 'package:music_practice_app/core/language/language_manager.dart';
@@ -9,6 +11,7 @@ import 'package:music_practice_app/core/services/settings_service.dart';
 import 'package:music_practice_app/services/haptic_service.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:music_practice_app/services/practice_timer_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -21,6 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final SettingsService _settingsService = SettingsService();
   final HapticService _hapticService = HapticService();
   final UserDataSyncService _syncService = UserDataSyncService();
+  final PracticeTimerService _timerService = PracticeTimerService();
 
   String _selectedLanguage = 'zh_TW'; // 預設選擇繁體中文
 
@@ -31,6 +35,10 @@ class _SettingsPageState extends State<SettingsPage> {
   double _metronomeVolume = 0.6; // 節拍器音量
   bool _soundEnabled = true; // 是否啟用音效
   bool _vibrationEnabled = true; // 是否啟用震動
+  
+  // 練習計時器設定
+  bool _showFloatingTimer = true; // 是否顯示浮動計時器
+  bool _showNotification = false; // 是否顯示通知 (僅 Android)
 
   // 防止重複顯示 SnackBar
   bool _isShowingSnackBar = false;
@@ -43,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _loadSettings();
 
-    // 監聽認證狀態變化,登入後刷新數據
+    // 監聯認證狀態變化,登入後刷新數據
     authService.addListener(_onAuthStateChanged);
   }
 
@@ -81,6 +89,11 @@ class _SettingsPageState extends State<SettingsPage> {
           _soundEnabled = settings['soundEnabled'] as bool;
           _vibrationEnabled = settings['vibrationEnabled'] as bool;
           _selectedLanguage = settings['selectedLanguage'] as String;
+          
+          // 載入計時器設定
+          _showFloatingTimer = _timerService.showFloatingTimer;
+          _showNotification = _timerService.showNotification;
+          
           _isLoading = false;
         });
       }
@@ -180,6 +193,12 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionTitle(l10n?.settingsAudio ?? '音效設定'),
             const SizedBox(height: 16),
             _buildSoundSettingsCard(),
+            const SizedBox(height: 32),
+            
+            // 練習計時器設定區塊
+            _buildSectionTitle(l10n?.timerSettingsTitle ?? '計時器設定'),
+            const SizedBox(height: 16),
+            _buildTimerSettingsCard(),
             const SizedBox(height: 32),
 
             // 其他設定區塊
@@ -481,6 +500,126 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  /// 建立練習計時器設定卡片
+  Widget _buildTimerSettingsCard() {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      color: AppColors.dynamicCard,
+      elevation: 2,
+      shadowColor: const Color(0x196A5AE0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 標題
+            Row(
+              children: [
+                Icon(Icons.timer, color: AppColors.dynamicPrimary, size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  l10n?.timerSettingsTitle ?? '計時器設定',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.dynamicTextDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 浮動計時器開關
+            _buildSwitchTile(
+              icon: Icons.picture_in_picture_alt,
+              title: l10n?.timerSettingsFloatingTimer ?? '浮動計時器',
+              subtitle: _showFloatingTimer 
+                  ? (l10n?.timerSettingsFloatingTimerOn ?? '練習時會顯示浮動計時器')
+                  : (l10n?.timerSettingsFloatingTimerOff ?? '已關閉浮動計時器'),
+              value: _showFloatingTimer,
+              onChanged: (value) async {
+                setState(() => _showFloatingTimer = value);
+                await _timerService.setShowFloatingTimer(value);
+                _hapticService.lightImpact();
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            // 通知設定 (僅 Android)
+            if (Platform.isAndroid) ...[
+              _buildSwitchTile(
+                icon: Icons.notifications_active,
+                title: l10n?.timerSettingsBackgroundNotification ?? '背景通知',
+                subtitle: _showNotification 
+                    ? (l10n?.timerSettingsBackgroundNotificationOn ?? '離開 App 時會顯示通知')
+                    : (l10n?.timerSettingsBackgroundNotificationOff ?? '不顯示背景通知'),
+                value: _showNotification,
+                onChanged: (value) async {
+                  if (value) {
+                    // 開啟通知時，請求通知權限
+                    final status = await Permission.notification.status;
+                    if (status.isDenied || status.isPermanentlyDenied) {
+                      final result = await Permission.notification.request();
+                      if (!result.isGranted) {
+                        // 權限被拒絕，提示用戶
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n?.timerSettingsNotificationPermission ?? '需要通知權限才能顯示背景通知'),
+                              action: SnackBarAction(
+                                label: l10n?.timerSettingsOpenSettings ?? '設定',
+                                onPressed: () => openAppSettings(),
+                              ),
+                            ),
+                          );
+                        }
+                        return; // 不開啟功能
+                      }
+                    }
+                  }
+                  setState(() => _showNotification = value);
+                  await _timerService.setShowNotification(value);
+                  _hapticService.lightImpact();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            // iOS 提示
+            if (Platform.isIOS)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, 
+                           color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n?.timerSettingsIosLimitation ?? 'iOS 系統限制：背景計時將在 App 進入背景後暫停。',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 重置所有音量到預設值
   Future<void> _resetVolumesToDefault() async {
     try {
@@ -634,26 +773,10 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
-          icon: Icons.notifications,
-          title: l10n?.settingsNotifications ?? '通知設定',
-          subtitle: l10n?.settingsNotificationsDesc ?? '管理應用程式通知',
-          onTap: () => _showFeatureNotAvailable(l10n?.settingsNotifications ?? '通知設定'),
-        ),
-        const SizedBox(height: 12),
-        _buildSettingCard(
           icon: Icons.palette,
           title: l10n?.settingsThemeTitle ?? '主題設定',
           subtitle: l10n?.settingsThemeDesc ?? '選擇應用程式主題顏色',
           onTap: () => _showThemeDialog(),
-        ),
-        const SizedBox(height: 12),
-        _buildSettingCard(
-          icon: Icons.info,
-          title: l10n?.settingsAboutTitle ?? '關於應用程式',
-          subtitle: l10n?.settingsAboutDesc ?? '版本資訊和開發團隊',
-          onTap: () {
-            _showAboutDialog();
-          },
         ),
       ],
     );
@@ -908,26 +1031,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showFeatureNotAvailable(String featureName) {
-    if (_isShowingSnackBar) return; // 防止重複顯示
-
-    _isShowingSnackBar = true;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName功能開發中'),
-        backgroundColor: Colors.orange,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // 使用 Timer 來重置狀態，而不是依賴 .closed
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        _isShowingSnackBar = false;
-      }
-    });
-  }
-
   void _showSuccessMessage(String message) {
     if (_isShowingSnackBar) return; // 防止重複顯示
 
@@ -946,72 +1049,5 @@ class _SettingsPageState extends State<SettingsPage> {
         _isShowingSnackBar = false;
       }
     });
-  }
-
-  void _showAboutDialog() {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.dynamicCard,
-          title: Text(
-            l10n?.aboutAppTitle ?? '關於音樂練習應用程式',
-            style: TextStyle(
-              color: AppColors.dynamicTextDark,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${l10n?.aboutAppVersion ?? '版本'}：1.0.0',
-                style: TextStyle(
-                  color: AppColors.dynamicTextDark,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n?.aboutAppDescription ?? '這是一個音樂練習應用程式，提供MIDI播放、錄音練習和音樂庫管理功能。',
-                style: TextStyle(
-                  color: AppColors.dynamicTextDark,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n?.aboutAppFeatures ?? '',
-                style: TextStyle(
-                  color: AppColors.dynamicTextDark,
-                  fontSize: 13,
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n?.aboutAppTeam ?? '開發團隊：Music Practice Team',
-                style: TextStyle(
-                  color: AppColors.dynamicTextLight,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                l10n?.aboutAppConfirm ?? '確定',
-                style: TextStyle(color: AppColors.dynamicPrimary),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

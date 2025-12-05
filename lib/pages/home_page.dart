@@ -153,6 +153,7 @@ class _HomePageContent extends StatelessWidget {
 class _LessonBookButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       color: AppColors.dynamicCard,
       elevation: 4,
@@ -182,7 +183,7 @@ class _LessonBookButton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '家庭聯絡簿',
+                      l10n?.lessonBookTitle ?? '家庭聯絡簿',
                       style: TextStyle(
                         color: AppColors.dynamicTextDark,
                         fontWeight: FontWeight.bold,
@@ -191,7 +192,7 @@ class _LessonBookButton extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '記錄老師上課內容與練習建議',
+                      l10n?.homePageLessonBookDesc ?? '記錄老師上課內容與練習建議',
                       style: TextStyle(
                         color: AppColors.dynamicTextLight,
                         fontSize: 13,
@@ -215,6 +216,7 @@ class _LessonBookButton extends StatelessWidget {
 class _SlowPracticeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       color: AppColors.dynamicCard,
       elevation: 4,
@@ -243,7 +245,7 @@ class _SlowPracticeButton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '慢練 SOP',
+                      l10n?.slowPracticeTitle ?? '慢練 SOP',
                       style: TextStyle(
                         color: AppColors.dynamicTextDark,
                         fontWeight: FontWeight.bold,
@@ -252,7 +254,7 @@ class _SlowPracticeButton extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '建立正確動作，神經系統穩定記憶',
+                      l10n?.homePageSlowPracticeDesc ?? '建立正確動作，神經系統穩定記憶',
                       style: TextStyle(
                         color: AppColors.dynamicTextLight,
                         fontSize: 13,

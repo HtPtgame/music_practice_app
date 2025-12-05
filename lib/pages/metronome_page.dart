@@ -422,7 +422,7 @@ class _MetronomePageState extends State<MetronomePage>
                                 // 2. 旋轉的擺錘 (僅包含重錘與擺桿)
                                 // ✨ 修正 1：透過 Padding 抬高旋轉軸心，使其對齊下方的靜止圓點中心
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 6), // 6px 是圓點半徑 (12/2)
+                                  padding: const EdgeInsets.only(bottom: 16), // 8px + 8px (圓點半徑)
                                   child: AnimatedBuilder(
                                     animation: _pendulumAnimation,
                                     builder: (context, child) {
@@ -476,15 +476,18 @@ class _MetronomePageState extends State<MetronomePage>
                                 ),
 
                                 // 3. ✨ 修正 1：靜止的軸心圓點 (放在最上層，不參與旋轉)
-                                Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.dynamicTextDark,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.dynamicPrimary,
-                                      width: 2,
+                                Positioned(
+                                  bottom: 8,  // 往上移動 8 像素
+                                  child: Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.dynamicTextDark,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.dynamicPrimary,
+                                        width: 2,
+                                      ),
                                     ),
                                   ),
                                 ),

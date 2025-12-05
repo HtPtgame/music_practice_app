@@ -143,46 +143,48 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
               ),
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _measureController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: l10n?.sheetDetailMeasureNumber ?? '小節數',
-                  labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: l10n?.sheetDetailMeasureHint ?? 'Ex: 12',
-                  hintStyle: TextStyle(color: AppColors.dynamicTextLight),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _measureController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n?.sheetDetailMeasureNumber ?? '小節數',
+                    labelStyle: TextStyle(color: AppColors.dynamicTextDark),
+                    hintText: l10n?.sheetDetailMeasureHint ?? 'Ex: 12',
+                    hintStyle: TextStyle(color: AppColors.dynamicTextLight),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.dynamicPrimary),
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.dynamicPrimary),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _contentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: l10n?.sheetDetailContent ?? '注意事項',
+                    labelStyle: TextStyle(color: AppColors.dynamicTextDark),
+                    hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
+                    hintStyle: TextStyle(color: AppColors.dynamicTextLight),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
                   ),
                 ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _contentController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: l10n?.sheetDetailContent ?? '注意事項',
-                  labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
-                  hintStyle: TextStyle(color: AppColors.dynamicTextLight),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -384,45 +386,47 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
               ),
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _measureController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: l10n?.sheetDetailMeasureLabel ?? '小節數',
-                  labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: l10n?.sheetDetailMeasureExample ?? '例如：16',
-                  hintStyle: TextStyle(color: AppColors.dynamicTextLight),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.dynamicPrimary),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _contentController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: l10n?.sheetDetailContent ?? '注意事項',
-                  labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                  hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
-                  hintStyle: TextStyle(color: AppColors.dynamicTextLight),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.dynamicPrimary),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _measureController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n?.sheetDetailMeasureLabel ?? '小節數',
+                    labelStyle: TextStyle(color: AppColors.dynamicTextDark),
+                    hintText: l10n?.sheetDetailMeasureExample ?? '例如：16',
+                    hintStyle: TextStyle(color: AppColors.dynamicTextLight),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.dynamicPrimary),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _contentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: l10n?.sheetDetailContent ?? '注意事項',
+                    labelStyle: TextStyle(color: AppColors.dynamicTextDark),
+                    hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
+                    hintStyle: TextStyle(color: AppColors.dynamicTextLight),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.dynamicPrimary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(

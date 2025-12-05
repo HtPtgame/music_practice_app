@@ -141,28 +141,77 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
     return total;
   }
 
-  // 獲取月數據 (按週分組，共4-5週)
+  // 獲取月數據 (按 ISO 8601 週分組，週一為始，週日為終)
   List<int> _getMonthlyMinutes() {
     final monthStart = _getMonthStart();
     final daysInMonth = DateTime(monthStart.year, monthStart.month + 1, 0).day;
     
-    // 計算這個月有幾週
-    final weeks = ((daysInMonth + monthStart.weekday - 1) / 7).ceil();
-    final result = List<int>.filled(weeks, 0);
+    // 使用 ISO 8601 週計算：找出這個月的所有 ISO 週
+    final isoWeeks = _getISOWeeksInMonth(monthStart, daysInMonth);
+    final result = List<int>.filled(isoWeeks.length, 0);
     
     for (int i = 0; i < daysInMonth; i++) {
       final date = monthStart.add(Duration(days: i));
       final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       final seconds = _practiceData[dateStr] ?? 0;
       
-      // 計算這一天屬於第幾週
-      final weekIndex = ((i + monthStart.weekday - 1) / 7).floor();
-      if (weekIndex < weeks) {
+      // 找出這一天屬於哪個 ISO 週
+      final isoWeekNum = _getISOWeekNumber(date);
+      final weekIndex = isoWeeks.indexWhere((w) => w['weekNum'] == isoWeekNum);
+      if (weekIndex >= 0 && weekIndex < result.length) {
         result[weekIndex] += seconds ~/ 60; // 轉換為分鐘
       }
     }
     
     return result;
+  }
+
+  // 獲取指定月份包含的 ISO 週列表
+  List<Map<String, dynamic>> _getISOWeeksInMonth(DateTime monthStart, int daysInMonth) {
+    final weeks = <Map<String, dynamic>>[];
+    final seenWeeks = <int>{};
+    
+    for (int i = 0; i < daysInMonth; i++) {
+      final date = monthStart.add(Duration(days: i));
+      final isoWeekNum = _getISOWeekNumber(date);
+      
+      if (!seenWeeks.contains(isoWeekNum)) {
+        seenWeeks.add(isoWeekNum);
+        
+        // 計算該 ISO 週的週一和週日
+        final weekday = date.weekday;
+        final monday = date.subtract(Duration(days: weekday - 1));
+        final sunday = monday.add(const Duration(days: 6));
+        
+        weeks.add({
+          'weekNum': isoWeekNum,
+          'monday': monday,
+          'sunday': sunday,
+        });
+      }
+    }
+    
+    return weeks;
+  }
+
+  // 計算 ISO 8601 週數
+  int _getISOWeekNumber(DateTime date) {
+    // ISO 8601: 週一為一週開始，第一週是包含該年第一個週四的那一週
+    final dayOfYear = date.difference(DateTime(date.year, 1, 1)).inDays + 1;
+    final weekday = date.weekday;
+    final weekNum = ((dayOfYear - weekday + 10) / 7).floor();
+    
+    if (weekNum < 1) {
+      // 屬於上一年的最後一週
+      return _getISOWeekNumber(DateTime(date.year - 1, 12, 31));
+    } else if (weekNum > 52) {
+      // 檢查是否屬於下一年的第一週
+      final dec31 = DateTime(date.year, 12, 31);
+      if (dec31.weekday < 4) {
+        return 1;
+      }
+    }
+    return weekNum;
   }
 
   // 獲取月練習天數
@@ -253,26 +302,6 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
     }
     
     return days;
-  }
-
-  // 獲取曲目排行榜
-  List<PieceStatistics> _getPieceRanking() {
-    DateTime? startDate;
-    DateTime? endDate;
-    
-    if (_isWeekly) {
-      startDate = _getWeekStart();
-      endDate = startDate.add(const Duration(days: 6));
-    } else {
-      startDate = _getMonthStart();
-      endDate = DateTime(startDate.year, startDate.month + 1, 0);
-    }
-    
-    return _sessionService.getPieceRanking(
-      startDate: startDate,
-      endDate: endDate,
-      limit: 4,
-    );
   }
 
   // 格式化時長
@@ -369,19 +398,6 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
                     ),
                     const SizedBox(height: 12),
                     _buildChartCard(),
-                    const SizedBox(height: 24),
-
-                    // 4. 熱門曲目排行榜
-                    Text(
-                      l10n?.statsTopPieces ?? '最常練習曲目',
-                      style: TextStyle(
-                        color: AppColors.dynamicTextDark,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSongRankingCard(),
 
                     const SizedBox(height: 40),
                   ],
@@ -644,7 +660,8 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
 
   // 週報表條形 (每日)
   Widget _buildWeeklyBar(double value, double max, int index) {
-    final weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+    final l10n = AppLocalizations.of(context);
+    final weekDays = l10n?.statsWeekdays ?? ['一', '二', '三', '四', '五', '六', '日'];
     final heightFactor = max > 0 ? value / max : 0.0;
     
     final monday = _getWeekStart();
@@ -732,22 +749,31 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
     );
   }
 
-  // 月報表條形 (每週)
+  // 月報表條形 (每週，ISO 8601 標準)
   Widget _buildMonthlyBar(double value, double max, int weekIndex, int totalWeeks) {
     final heightFactor = max > 0 ? value / max : 0.0;
     final monthStart = _getMonthStart();
-    
-    // 計算這週的日期範圍
-    final weekStartDay = weekIndex * 7 - (monthStart.weekday - 1) + 1;
-    final adjustedStartDay = weekStartDay < 1 ? 1 : weekStartDay;
     final daysInMonth = DateTime(monthStart.year, monthStart.month + 1, 0).day;
-    final weekEndDay = (weekStartDay + 6).clamp(1, daysInMonth);
+    
+    // 獲取 ISO 週資訊
+    final isoWeeks = _getISOWeeksInMonth(monthStart, daysInMonth);
+    if (weekIndex >= isoWeeks.length) {
+      return const SizedBox.shrink();
+    }
+    
+    final weekInfo = isoWeeks[weekIndex];
+    final monday = weekInfo['monday'] as DateTime;
+    final sunday = weekInfo['sunday'] as DateTime;
+    
+    // 計算在當月範圍內的日期顯示
+    final displayStartDay = monday.month == monthStart.month ? monday.day : 1;
+    final displayEndDay = sunday.month == monthStart.month ? sunday.day : daysInMonth;
     
     // 判斷是否為當前週
     final now = DateTime.now();
-    final isCurrentMonth = monthStart.year == now.year && monthStart.month == now.month;
-    final isCurrentWeek = isCurrentMonth && now.day >= adjustedStartDay && now.day <= weekEndDay;
-    final isFutureWeek = isCurrentMonth && adjustedStartDay > now.day;
+    final isCurrentWeek = now.isAfter(monday.subtract(const Duration(days: 1))) && 
+                          now.isBefore(sunday.add(const Duration(days: 1)));
+    final isFutureWeek = monday.isAfter(now);
 
     // 計算條形高度
     final barHeight = isFutureWeek ? 0.0 : (90.0 * heightFactor).clamp(value > 0 ? 6.0 : 3.0, 90.0);
@@ -802,18 +828,18 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
               ),
             ),
             const SizedBox(height: 4),
-            // 週數
+            // 週數 (中文格式: 第一週, 第二週...)
             Text(
-              '第${weekIndex + 1}週',
+              _getChineseWeekLabel(weekIndex + 1),
               style: TextStyle(
                 color: isCurrentWeek ? AppColors.dynamicPrimary : AppColors.dynamicTextLight,
                 fontWeight: isCurrentWeek ? FontWeight.bold : FontWeight.normal,
                 fontSize: 9,
               ),
             ),
-            // 日期範圍
+            // 日期範圍 (格式: 12/2-8)
             Text(
-              '$adjustedStartDay-$weekEndDay',
+              '${monthStart.month}/$displayStartDay-$displayEndDay',
               style: TextStyle(
                 color: isFutureWeek
                     ? AppColors.dynamicTextLight.withValues(alpha: 0.3)
@@ -828,155 +854,13 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
     );
   }
 
-  // 曲目排行榜
-  Widget _buildSongRankingCard() {
-    final songs = _getPieceRanking();
+  /// 獲取中文週次標籤
+  String _getChineseWeekLabel(int weekNum) {
     final l10n = AppLocalizations.of(context);
-    
-    if (songs.isEmpty) {
-      return Card(
-        color: AppColors.dynamicCard,
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.music_off,
-                  size: 48,
-                  color: AppColors.dynamicTextLight.withOpacity(0.5),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  l10n?.statsNoPieceData ?? '尚無曲目練習記錄',
-                  style: TextStyle(
-                    color: AppColors.dynamicTextLight,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n?.statsNoPieceDataHint ?? '開始練習時選擇曲目即可記錄',
-                  style: TextStyle(
-                    color: AppColors.dynamicTextLight.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    final weekLabels = l10n?.statsWeekLabels ?? ['', '第一週', '第二週', '第三週', '第四週', '第五週', '第六週'];
+    if (weekNum > 0 && weekNum < weekLabels.length) {
+      return weekLabels[weekNum];
     }
-
-    final maxSeconds = songs.isNotEmpty ? songs.first.totalSeconds : 1;
-
-    return Card(
-      color: AppColors.dynamicCard,
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            for (int i = 0; i < songs.length; i++) ...[
-              if (i > 0)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Divider(color: AppColors.dynamicTextLight.withOpacity(0.1)),
-                ),
-              _buildSongRow(
-                rank: i + 1,
-                name: songs[i].pieceName,
-                time: songs[i].formattedTime,
-                percent: songs[i].percentOf(maxSeconds),
-              ),
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSongRow({
-    required int rank,
-    required String name,
-    required String time,
-    required double percent,
-  }) {
-    Color rankColor;
-    if (rank == 1) {
-      rankColor = const Color(0xFFFFD700); // 金
-    } else if (rank == 2) {
-      rankColor = const Color(0xFFC0C0C0); // 銀
-    } else if (rank == 3) {
-      rankColor = const Color(0xFFCD7F32); // 銅
-    } else {
-      rankColor = AppColors.dynamicTextLight;
-    }
-
-    return Row(
-      children: [
-        // 排名
-        Container(
-          width: 24,
-          alignment: Alignment.center,
-          child: Text(
-            '$rank',
-            style: TextStyle(
-              color: rankColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // 曲名與進度條
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: TextStyle(
-                        color: AppColors.dynamicTextDark,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    time,
-                    style: TextStyle(
-                      color: AppColors.dynamicTextLight,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              // 進度條
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: percent,
-                  backgroundColor: AppColors.dynamicAccent,
-                  color: AppColors.dynamicPrimary,
-                  minHeight: 6,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+    return l10n?.statsWeekLabel(weekNum) ?? '第$weekNum週';
   }
 }

@@ -1,13 +1,35 @@
 # 音樂練習 App - 代辦事項清單
 
-> **最後更新**: 2025年11月29日  
-> **專案狀態**: ✅ 核心功能完成，v4.8 SNR 自適應閾值系統上線  
-> **當前版本**: v1.0 生產就緒版本  
+> **最後更新**: 2025年1月  
+> **專案狀態**: ✅ 核心功能完成，v6.1 練習計時器優化上線  
+> **當前版本**: v6.1 生產就緒版本  
 > **分支**: branch 7
 
 ---
 
 ## 🎉 最新更新
+
+### 2025/01 - v6.1 練習計時器與報表優化 ✅
+
+**功能改進**:
+- ✅ 移除詳細報表中的「最常練習曲目」區塊
+- ✅ 月報表週次採用 ISO 8601 標準（週一起始）
+- ✅ 練習計時器支援跨頁面背景運行
+
+**技術實現**:
+- ✅ 完全重寫 `PracticeTimerService`，支援 `WidgetsBindingObserver` 生命週期監控
+- ✅ 新增 `FloatingTimerWidget` 浮動計時器小工具
+- ✅ 智慧背景暫停：超過設定閾值（預設 2 分鐘）自動暫停
+- ✅ ISO 8601 週次計算：`((dayOfYear - weekday + 10) / 7).floor()`
+- ✅ 設定頁面新增計時器控制選項
+
+**檔案變更**:
+- `lib/pages/practice_stats_page.dart` - 移除曲目排行，新增 ISO 週次
+- `lib/services/practice_timer_service.dart` - 完全重寫（約 320 行）
+- `lib/widgets/floating_timer_widget.dart` - 新增浮動計時器
+- `lib/main.dart` - 整合浮動計時器至全局
+- `lib/pages/settings_page.dart` - 新增計時器設定區塊
+- `lib/widgets/practice_timer_card.dart` - 新增服務同步
 
 ### 2025/11/29 - v4.8 SNR 自適應閾值系統 ✅
 

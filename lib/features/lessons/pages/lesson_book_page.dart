@@ -4,6 +4,23 @@ import 'dart:convert';
 import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
 import 'package:music_practice_app/features/lessons/services/lesson_service.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/l10n/app_localizations.dart';
+
+/// 獲取分類的本地化名稱
+String getCategoryDisplayName(LessonNoteCategory category, AppLocalizations? l10n) {
+  switch (category.id) {
+    case 'slow_practice':
+      return l10n?.lessonBookCategorySlowPractice ?? category.displayName;
+    case 'technique':
+      return l10n?.lessonBookCategoryTechnique ?? category.displayName;
+    case 'tone':
+      return l10n?.lessonBookCategoryTone ?? category.displayName;
+    case 'other':
+      return l10n?.lessonBookCategoryOther ?? category.displayName;
+    default:
+      return category.displayName;
+  }
+}
 
 class LessonBookPage extends StatefulWidget {
   const LessonBookPage({super.key});
@@ -79,6 +96,7 @@ class _LessonBookPageState extends State<LessonBookPage> {
       if (jsonString == null) return;
 
       final List<dynamic> jsonList = jsonDecode(jsonString);
+      final l10n = mounted ? AppLocalizations.of(context) : null;
       
       for (final point in record.points) {
         if (point.relatedPieceId == null) continue;
@@ -89,9 +107,10 @@ class _LessonBookPageState extends State<LessonBookPage> {
         final pieceJson = jsonList[pieceIndex] as Map<String, dynamic>;
         final notes = List<String>.from(pieceJson['notes'] as List? ?? []);
 
+        final categoryName = getCategoryDisplayName(point.category, l10n);
         final practiceNote = {
           'measure': _extractMeasure(point.measureRange),
-          'content': '[${point.category.displayName}] ${point.content}',
+          'content': '[$categoryName] ${point.content}',
         };
         notes.add(jsonEncode(practiceNote));
 
@@ -112,19 +131,20 @@ class _LessonBookPageState extends State<LessonBookPage> {
   }
 
   Future<void> _deleteRecord(LessonRecord record) async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('確認刪除'),
-        content: const Text('確定要刪除這筆上課紀錄嗎？'),
+        title: Text(l10n?.lessonBookConfirmDelete ?? '確認刪除'),
+        content: Text(l10n?.lessonBookConfirmDeleteMessage ?? '確定要刪除這筆上課紀錄嗎？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n?.cancel ?? '取消'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('刪除', style: TextStyle(color: Colors.red)),
+            child: Text(l10n?.delete ?? '刪除', style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -138,9 +158,10 @@ class _LessonBookPageState extends State<LessonBookPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('家庭聯絡簿'),
+        title: Text(l10n?.lessonBookTitle ?? '家庭聯絡簿'),
         backgroundColor: AppColors.dynamicBackground,
         foregroundColor: AppColors.dynamicTextDark,
         elevation: 0,
@@ -167,6 +188,7 @@ class _LessonBookPageState extends State<LessonBookPage> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -178,7 +200,7 @@ class _LessonBookPageState extends State<LessonBookPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            '還沒有上課紀錄',
+            l10n?.lessonBookEmpty ?? '還沒有上課紀錄',
             style: TextStyle(
               fontSize: 18,
               color: AppColors.dynamicTextLight,
@@ -186,7 +208,7 @@ class _LessonBookPageState extends State<LessonBookPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '點擊右下角 + 新增老師上課內容',
+            l10n?.lessonBookEmptyHint ?? '點擊右下角 + 新增老師上課內容',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.dynamicTextLight.withValues(alpha: 0.7),
@@ -214,23 +236,25 @@ class _LessonBookPageState extends State<LessonBookPage> {
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final dateOnly = DateTime(date.year, date.month, date.day);
 
     if (dateOnly == today) {
-      return '今天';
+      return l10n?.lessonBookToday ?? '今天';
     } else if (dateOnly == yesterday) {
-      return '昨天';
+      return l10n?.lessonBookYesterday ?? '昨天';
     } else {
       return '${date.month}/${date.day} (${_weekdayName(date.weekday)})';
     }
   }
 
   String _weekdayName(int weekday) {
-    const names = ['一', '二', '三', '四', '五', '六', '日'];
-    return '週${names[weekday - 1]}';
+    final l10n = AppLocalizations.of(context);
+    final names = l10n?.lessonBookWeekdays ?? ['一', '二', '三', '四', '五', '六', '日'];
+    return l10n?.lessonBookWeekdayLabel(weekday) ?? '週${names[weekday - 1]}';
   }
 }
 
@@ -278,7 +302,7 @@ class _LessonRecordCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${record.points.length} 則',
+                  '${record.points.length} ${AppLocalizations.of(context)?.lessonBookPointsCount ?? '則'}',
                   style: TextStyle(
                     color: AppColors.dynamicPrimary,
                     fontSize: 12,
@@ -445,154 +469,162 @@ class _AddLessonRecordSheetState extends State<_AddLessonRecordSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final l10n = AppLocalizations.of(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+    // ignore: unused_local_variable
+    final safeBottom = MediaQuery.of(context).padding.bottom;
     
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      padding: EdgeInsets.only(bottom: bottomPadding),
+      height: screenHeight * 0.9,
       decoration: BoxDecoration(
         color: AppColors.dynamicBackground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        children: [
-          // 標題列
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-            child: Row(
-              children: [
-                Text(
-                  widget.existingRecord == null ? '新增上課紀錄' : '編輯上課紀錄',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.dynamicTextDark,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-          ),
-          
-          // 日期選擇
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-            child: InkWell(
-              onTap: _pickDate,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.dynamicCard,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today, color: AppColors.dynamicPrimary),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${_lessonDate.year}/${_lessonDate.month}/${_lessonDate.day}',
-                      style: TextStyle(
-                        color: AppColors.dynamicTextDark,
-                        fontSize: 16,
-                      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // 標題列
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Row(
+                children: [
+                  Text(
+                    widget.existingRecord == null 
+                        ? (l10n?.lessonBookAddRecord ?? '新增上課紀錄')
+                        : (l10n?.lessonBookEditRecord ?? '編輯上課紀錄'),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.dynamicTextDark,
                     ),
-                    const Spacer(),
-                    Icon(Icons.chevron_right, color: AppColors.dynamicTextLight),
-                  ],
-                ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
             ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // 重點列表（可捲動）
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              itemCount: _points.length + 1, // +1 for the add button
-              itemBuilder: (context, index) {
-                if (index < _points.length) {
-                  return _PointEditor(
-                    point: _points[index],
-                    index: index,
-                    pieceOptions: widget.pieceOptions,
-                    canDelete: _points.length > 1,
-                    onChanged: () => setState(() {}),
-                    onDelete: () => _removePoint(index),
-                  );
-                } else {
-                  // 新增重點按鈕放在列表最後，這樣可以捲動到它
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: OutlinedButton.icon(
-                      onPressed: _addPoint,
-                      icon: const Icon(Icons.add),
-                      label: const Text('新增重點'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.dynamicPrimary,
-                        side: BorderSide(color: AppColors.dynamicPrimary),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-              },
-            ),
-          ),
-          
-          // 儲存按鈕（固定在底部）
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-            decoration: BoxDecoration(
-              color: AppColors.dynamicBackground,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.dynamicPrimary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
+            
+            // 日期選擇
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: InkWell(
+                onTap: _pickDate,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.dynamicCard,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        '儲存',
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: AppColors.dynamicPrimary),
+                      const SizedBox(width: 12),
+                      Text(
+                        '${_lessonDate.year}/${_lessonDate.month}/${_lessonDate.day}',
                         style: TextStyle(
+                          color: AppColors.dynamicTextDark,
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const Spacer(),
+                      Icon(Icons.chevron_right, color: AppColors.dynamicTextLight),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+            
+            const SizedBox(height: 16),
+            
+            // 重點列表（可捲動）
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.fromLTRB(24, 0, 24, bottomInset > 0 ? bottomInset : 16),
+                itemCount: _points.length + 1, // +1 for the add button
+                itemBuilder: (context, index) {
+                  if (index < _points.length) {
+                    return _PointEditor(
+                      point: _points[index],
+                      index: index,
+                      pieceOptions: widget.pieceOptions,
+                      canDelete: _points.length > 1,
+                      onChanged: () => setState(() {}),
+                      onDelete: () => _removePoint(index),
+                    );
+                  } else {
+                    // 新增重點按鈕放在列表最後，這樣可以捲動到它
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: OutlinedButton.icon(
+                        onPressed: _addPoint,
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n?.lessonBookAddPoint ?? '新增重點'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.dynamicPrimary,
+                          side: BorderSide(color: AppColors.dynamicPrimary),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          
+            // 儲存按鈕（固定在底部）
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              decoration: BoxDecoration(
+                color: AppColors.dynamicBackground,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.dynamicPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          l10n?.lessonBookSave ?? '儲存',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -618,6 +650,7 @@ class _PointEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -635,7 +668,7 @@ class _PointEditor extends StatelessWidget {
           Row(
             children: [
               Text(
-                '重點 ${index + 1}',
+                '${l10n?.lessonBookPointLabel ?? '重點'} ${index + 1}',
                 style: TextStyle(
                   color: AppColors.dynamicPrimary,
                   fontWeight: FontWeight.bold,
@@ -661,8 +694,9 @@ class _PointEditor extends StatelessWidget {
             runSpacing: 8,
             children: LessonCategories.all.map((cat) {
               final isSelected = point.category == cat;
+              final l10n = AppLocalizations.of(context);
               return ChoiceChip(
-                label: Text(cat.displayName),
+                label: Text(getCategoryDisplayName(cat, l10n)),
                 selected: isSelected,
                 onSelected: (_) {
                   point.category = cat;
@@ -692,7 +726,7 @@ class _PointEditor extends StatelessWidget {
             },
             maxLines: 2,
             decoration: InputDecoration(
-              hintText: '輸入上課內容...',
+              hintText: l10n?.lessonBookInputHint ?? '輸入上課內容...',
               filled: true,
               fillColor: AppColors.dynamicBackground,
               border: OutlineInputBorder(
@@ -713,7 +747,7 @@ class _PointEditor extends StatelessWidget {
                 child: DropdownButtonFormField<_PieceOption?>(
                   value: point.relatedPiece,
                   decoration: InputDecoration(
-                    hintText: '樂譜',
+                    hintText: l10n?.lessonBookSheetHint ?? '樂譜',
                     filled: true,
                     fillColor: AppColors.dynamicBackground,
                     border: OutlineInputBorder(
@@ -724,7 +758,7 @@ class _PointEditor extends StatelessWidget {
                     isDense: true,
                   ),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('不關聯')),
+                    DropdownMenuItem(value: null, child: Text(l10n?.lessonBookNoAssociate ?? '不關聯')),
                     ...pieceOptions.map((p) => DropdownMenuItem(
                       value: p,
                       child: Text(p.name, overflow: TextOverflow.ellipsis),
@@ -746,7 +780,7 @@ class _PointEditor extends StatelessWidget {
                     point.measureRange = value;
                   },
                   decoration: InputDecoration(
-                    hintText: '小節',
+                    hintText: l10n?.lessonBookMeasureHint ?? '小節',
                     filled: true,
                     fillColor: AppColors.dynamicBackground,
                     border: OutlineInputBorder(

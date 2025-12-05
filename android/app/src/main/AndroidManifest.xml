@@ -26,6 +26,9 @@
     <!-- 防止螢幕休眠 (練習時) -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     
+    <!-- 通知權限 (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
     <application
         android:label="音靈偵探"
         android:name="${applicationName}"
