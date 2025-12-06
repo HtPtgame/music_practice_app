@@ -1729,7 +1729,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
               isActive: i == _currentStepIndex,
             ),
             if (i < SlowPracticeSteps.all.length - 1)
-              Icon(Icons.arrow_forward_rounded, size: 20, color: AppColors.dynamicPrimary.withValues(alpha: 0.2)),
+              Icon(Icons.arrow_forward_rounded, size: 20, color: AppColors.dynamicTextLight),
           ],
         ],
       ),
@@ -2094,11 +2094,14 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(l10n?.slowPracticeReady ?? '準備好了，出發！',
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5)),
+                Flexible(
+                  child: Text(l10n?.slowPracticeReady ?? '準備好了，出發！',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5)),
+                ),
                 const SizedBox(width: 8),
                 const Icon(Icons.arrow_forward_rounded, size: 28),
               ],

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show Uint8List, rootBundle;
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 import 'package:music_practice_app/core/services/settings_service.dart';
@@ -53,10 +53,24 @@ class _MetronomePageState extends State<MetronomePage>
 
   Future<void> _initializeSystem() async {
     _initAnimations();
-    _normalBeepBuffer = _generateBeepSound(false);
-    _accentBeepBuffer = _generateBeepSound(true);
+    await _loadAudioAssets();
     await _initAudioPlayer();
     await _loadSettings();
+  }
+
+  /// 從 assets 載入節拍器音效
+  Future<void> _loadAudioAssets() async {
+    try {
+      final normalData = await rootBundle.load('assets/audio/Perc_MetronomeQuartz_lo.wav');
+      final accentData = await rootBundle.load('assets/audio/Perc_MetronomeQuartz_hi.wav');
+      _normalBeepBuffer = normalData.buffer.asUint8List();
+      _accentBeepBuffer = accentData.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('❌ 載入節拍器音效失敗: $e');
+      // 如果載入失敗，使用生成的音效作為備用
+      _normalBeepBuffer = _generateBeepSound(false);
+      _accentBeepBuffer = _generateBeepSound(true);
+    }
   }
 
   void _initAnimations() {

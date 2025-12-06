@@ -28,6 +28,7 @@ dependencies:
   open_file: ^3.3.2  # 用於開啟檔案/資料夾
   record: ^6.1.1  # 升級修正 linux 平台未實作 startStream 問題
   shared_preferences: ^2.3.2  # 本地儲存套件
+  metronome: ^2.0.7  # 高精度跨平台節拍器
   fftea: ^1.5.0+1  # FFT/STFT 頻譜分析 (音訊分析系統核心,支援任意大小輸入)
   image_picker: ^1.1.2  # 圖片選擇器
   syncfusion_flutter_pdfviewer: ^28.1.36  # PDF 檢視器
@@ -71,6 +72,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/ # 宣告整個 assets 資料夾
+    - assets/audio/ # 節拍器音效資料夾
     - assets/TimGM6mb.sf2 # SoundFont 檔案
     - assets/unlock.mp3 # 解鎖音效
     - assets/new_animal.mp3 # 獲得新動物音效
