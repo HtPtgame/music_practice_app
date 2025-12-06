@@ -645,11 +645,14 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                                         size: 14,
                                         color: AppColors.dynamicPrimary),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      l10n?.sheetDetailDrawingIncluded ?? '包含音樂畫面',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.dynamicPrimary,
+                                    Flexible(
+                                      child: Text(
+                                        l10n?.sheetDetailDrawingIncluded ?? '包含音樂畫面',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.dynamicPrimary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],

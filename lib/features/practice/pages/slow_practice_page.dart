@@ -1721,6 +1721,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
       padding: const EdgeInsets.fromLTRB(32, 12, 32, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (int i = 0; i < SlowPracticeSteps.all.length; i++) ...[
             _buildStepItem(
@@ -1729,7 +1730,14 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
               isActive: i == _currentStepIndex,
             ),
             if (i < SlowPracticeSteps.all.length - 1)
-              Icon(Icons.arrow_forward_rounded, size: 20, color: AppColors.dynamicTextLight),
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 24,
+                  color: AppColors.dynamicTextLight.withValues(alpha: 0.3),
+                ),
+              ),
           ],
         ],
       ),

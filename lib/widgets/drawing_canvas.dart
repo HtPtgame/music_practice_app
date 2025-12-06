@@ -565,25 +565,39 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
               children: [
                 Row(
                   children: [
-                    Text(AppLocalizations.of(context)!.errorDrawingColorLabel,
-                        style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600)),
+                    SizedBox(
+                      width: 50,
+                      child: Text(AppLocalizations.of(context)!.errorDrawingColorLabel,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 4),
                     Expanded(
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: _buildColorButtons())),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: _buildColorButtons()),
+                        )),
                   ],
                 ),
                 Divider(height: 12),
                 Row(
                   children: [
-                    Text(AppLocalizations.of(context)!.errorDrawingSizeLabel,
-                        style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600)),
+                    SizedBox(
+                      width: 50,
+                      child: Text(AppLocalizations.of(context)!.errorDrawingSizeLabel,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 4),
                     Expanded(
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: _buildSizeButtons())),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: _buildSizeButtons()),
+                        )),
                   ],
                 ),
               ],
