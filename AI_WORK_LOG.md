@@ -4,7 +4,290 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-12月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年12月5日 (v6.2 計時器狀態同步修復)
+**最後更新**: 2025年12月7日 (v6.3 冷笑話功能重構 + 雲端同步擴充)
+
+---
+
+## 📅 v6.3 冷笑話功能重構 + 雲端同步擴充 (2025/12/07)
+
+### 🎯 功能升級與優化
+
+#### 1. 冷笑話功能完全重構
+
+**需求背景**: 原冷笑話內容偏向練習技巧提示，不符合「冷笑話」定位，且用戶希望盡量不重複。
+
+**核心改進**:
+
+##### ✅ 笑話庫擴充 (20 → 100 則)
+- **檔案**: `lib/services/joke_service.dart`
+- **內容定位**: 100% 音樂相關冷笑話（樂器梗、樂團吐槽、舞台日常等）
+- **結構**: 每則包含 `setup`、`punchline`、`explain`、`tag` 四欄位
+- **標籤分類**: 
+  - 樂器梗、節奏梗、樂團吐槽、錄音室、合唱梗
+  - 舞台日常、音樂梗、和聲梗、生活梗、歷史梗
+  - 音準梗、教學梗
+
+**範例**:
+```dart
+{
+  'setup': '指揮家去夜市最討厭什麼？',
+  'punchline': '被喊「不用揮啦，內用外帶？」',
+  'explain': '「揮」和「點餐」雙關，指揮家不用揮動指揮棒。',
+  'tag': '舞台日常',
+}
+```
+
+##### ✅ 不重複機制實作
+**方法**: 洗牌序列（Shuffle-based）避免短期重複
+
+**實作邏輯**:
+```dart
+// 洗牌序列避免短時間重複
+List<int> _shuffledIndices = [];
+int _cursor = 0;
+
+void _reshuffle() {
+  _shuffledIndices = List<int>.generate(_jokes.length, (i) => i)
+    ..shuffle(_random);
+  _cursor = 0;
+}
+
+Map<String, String> getNextJoke() {
+  if (_shuffledIndices.isEmpty || _cursor >= _shuffledIndices.length) {
+    _reshuffle();  // 走完一輪才重新洗牌
+  }
+  final index = _shuffledIndices[_cursor];
+  _cursor++;
+  return _jokes[index];
+}
+```
+
+**優勢**: 
+- 100 則笑話走完一輪才重排
+- 避免連續重複或短時間內看到相同內容
+- 使用體驗更佳
+
+##### ✅ UI/UX 重新設計
+
+**改進點**: 對話框 → 底部彈窗 (Bottom Sheet)
+
+**新增元素**:
+1. **標籤色塊**: 根據 tag 動態顯示不同色彩 Chip
+2. **解釋開關**: 可摺疊的「看解釋/收起解釋」按鈕
+3. **視覺優化**: 漸層背景、圓角卡片、自適應色彩
+
+**標籤配色系統** (`lib/pages/settings_page.dart`):
+```dart
+Color _jokeTagColor(String tag) {
+  switch (tag) {
+    case '舞台日常': return const Color(0xFF4E9CFF);
+    case '音樂梗': return const Color(0xFF7BCFAE);
+    case '節奏梗': return const Color(0xFFFFB661);
+    case '樂團吐槽': return const Color(0xFFA18BFF);
+    // ... 共 12 種標籤配色
+  }
+}
+```
+
+**底部彈窗結構**:
+```
+┌─────────────────────────┐
+│ [Icon] 冷笑話/練習小提醒 │ [標籤]
+├─────────────────────────┤
+│ 為什麼鋼琴家露營會被趕？│
+├─────────────────────────┤
+│ 因為半夜還在找「C音」   │ ← 漸層背景
+│ （洗衣）間。           │
+├─────────────────────────┤
+│ [為什麼好笑／有用]      │ ← 可摺疊
+│ 「C音」諧音「洗衣」... │
+├─────────────────────────┤
+│ [看解釋]   [再來一個]   │
+│      [關閉]             │
+└─────────────────────────┘
+```
+
+##### ✅ 本地化字串更新
+
+**檔案**: `lib/l10n/app_localizations.dart`
+
+**新增/調整字串**:
+```dart
+// 繁體中文
+String get settingsJokeDesc => '音樂冷笑話，盡量不重複';
+String get jokeDialogTitle => '冷笑話 / 練習小提醒';
+String get jokeDialogSubtitle => '附解釋，不怕聽不懂';
+String get jokeDialogNext => '再來一個';
+String get jokeDialogExplainTitle => '為什麼好笑／有用';
+String get jokeDialogShowExplain => '看解釋';
+String get jokeDialogHideExplain => '收起解釋';
+
+// 英文
+String get jokeDialogTitle => 'Joke & Tip Time';
+String get jokeDialogSubtitle => 'With explanations so it makes sense';
+String get jokeDialogNext => 'Another one';
+String get jokeDialogShowExplain => 'Show explanation';
+String get jokeDialogHideExplain => 'Hide explanation';
+```
+
+---
+
+#### 2. 計時器設定雲端同步功能
+
+**需求**: 浮動計時器/背景通知設定需要跨裝置同步
+
+##### ✅ 上傳至雲端
+
+**位置**: `lib/pages/settings_page.dart`
+
+**觸發時機**:
+1. 用戶切換「浮動計時器」開關
+2. 用戶切換「背景通知」開關
+3. 批量同步所有設定時
+
+**實作代碼**:
+```dart
+// 1. 浮動計時器開關變更
+onChanged: (value) async {
+  setState(() => _showFloatingTimer = value);
+  await _timerService.setShowFloatingTimer(value);
+  if (authService.isAuthenticated) {
+    await _syncService.updateSetting('timer_show_floating', value);
+  }
+  _hapticService.lightImpact();
+}
+
+// 2. 背景通知開關變更
+onChanged: (value) async {
+  setState(() => _showNotification = value);
+  await _timerService.setShowNotification(value);
+  if (authService.isAuthenticated) {
+    await _syncService.updateSetting('timer_show_notification', value);
+  }
+  _hapticService.lightImpact();
+}
+
+// 3. 批量同步設定
+final settings = {
+  'masterVolume': _masterVolume,
+  'midiVolume': _midiVolume,
+  // ... 其他設定
+  'timer_show_floating': _showFloatingTimer,
+  'timer_show_notification': _showNotification,
+};
+await _syncService.syncSettings(settings);
+```
+
+##### ✅ 從雲端下載補全
+
+**位置**: `lib/services/user_data_sync_service.dart`
+
+**時機**: 用戶登入後自動執行 `syncFromCloudAfterLogin()`
+
+**實作邏輯**:
+```dart
+Future<void> syncFromCloudAfterLogin() async {
+  // 1. 從 Firestore 讀取用戶設定
+  final doc = await _firestore.collection('users').doc(user.id).get();
+  final data = doc.data()!;
+  final updatedUser = User.fromJson(data);
+  
+  // 2. 更新 AuthService 用戶數據
+  _authService.updateCurrentUser(updatedUser);
+  
+  // 3. 套用雲端計時器設定到本地
+  final timer = PracticeTimerService();
+  final cloudSettings = updatedUser.settings;
+  final bool? cloudFloating = cloudSettings['timer_show_floating'] as bool?;
+  final bool? cloudNotification = cloudSettings['timer_show_notification'] as bool?;
+  
+  if (cloudFloating != null || cloudNotification != null) {
+    await timer.updateSettings(
+      showFloatingTimer: cloudFloating,
+      showNotification: cloudNotification,
+    );  // 自動寫入 SharedPreferences
+  }
+}
+```
+
+**資料流**:
+```
+登入 → 讀取 Firestore settings
+     ↓
+套用到 PracticeTimerService
+     ↓
+寫入本地 SharedPreferences
+     ↓
+UI 自動更新（透過 notifyListeners）
+```
+
+---
+
+### 📊 技術細節
+
+#### 新增依賴
+```dart
+import 'package:music_practice_app/services/practice_timer_service.dart';
+```
+
+#### Firestore 資料結構
+```json
+{
+  "users": {
+    "{userId}": {
+      "settings": {
+        "masterVolume": 0.8,
+        "selectedLanguage": "zh_TW",
+        "timer_show_floating": true,      // ← 新增
+        "timer_show_notification": true   // ← 新增
+      }
+    }
+  }
+}
+```
+
+#### 同步機制
+- **單向同步**: 本地 → 雲端（即時）
+- **雙向同步**: 登入時從雲端 → 本地
+- **防重複寫入**: `_isSyncing` 標誌防止併發請求
+
+---
+
+### 🎨 UI/UX 改進總結
+
+| 項目 | 改進前 | 改進後 |
+|------|--------|--------|
+| 笑話數量 | 20 則 | 100 則 |
+| 重複機制 | 純隨機 | 洗牌序列不重複 |
+| 顯示方式 | 對話框 | 底部彈窗 |
+| 視覺元素 | 基礎文字 | 標籤色塊 + 漸層卡片 |
+| 互動功能 | 單次顯示 | 可摺疊解釋 + 連續換笑話 |
+| 本地化 | 部分 | 完整雙語支援 |
+
+---
+
+### 🔧 檔案變更清單
+
+| 檔案 | 變更類型 | 主要變更 |
+|------|----------|----------|
+| `lib/services/joke_service.dart` | 重構 | 擴充至 100 則 + 洗牌機制 |
+| `lib/pages/settings_page.dart` | 新增 | 雲端同步 + 底部彈窗 UI |
+| `lib/l10n/app_localizations.dart` | 更新 | 新增笑話相關字串 |
+| `lib/services/user_data_sync_service.dart` | 新增 | 計時器設定下載邏輯 |
+
+---
+
+### ✅ 測試建議
+
+1. **冷笑話功能**:
+   - 連續點擊「再來一個」20+ 次，確認不短期重複
+   - 測試「看解釋/收起」摺疊動畫
+   - 驗證標籤色彩是否對應正確
+
+2. **雲端同步**:
+   - 登入狀態切換計時器設定 → 檢查 Firestore 欄位
+   - 換裝置/重裝 App 登入 → 確認設定自動恢復
+   - 離線模式切換 → 本地仍可正常運作
 
 ---
 

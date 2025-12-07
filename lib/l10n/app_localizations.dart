@@ -81,7 +81,7 @@ class AppLocalizations {
   String get homePerDay => '/天';
   String get homePageLessonBookDesc => '記錄老師上課內容與練習建議';
   String get homePageSlowPracticeDesc => '建立正確動作，神經系統穩定記憶';
-  
+
   // ========== 打卡 ==========
   String get checkInSuccess => '打卡成功！';
   String get checkInAlreadyChecked => '今天已經打卡過了！';
@@ -98,7 +98,7 @@ class AppLocalizations {
   List<String> get checkInWeekdays => ['日', '一', '二', '三', '四', '五', '六'];
   String get checkInSuccessMessage => '打卡成功！連續 {consecutive} 天，累計 {total} 天 🎉';
   String get checkInFailure => '打卡失敗，請檢查網路連線';
-  
+
   // ========== 練習計時器 ==========
   String get timerTitle => '今日累計時長（隔日自動重置）';
   String get timerStart => '開始';
@@ -111,7 +111,8 @@ class AppLocalizations {
   String get timerResetConfirm => '確定要重置今日計時嗎？';
   String get timerResetSuccess => '計時器已重置';
   String get timerWarningTitle => '計時器運行中';
-  String get timerWarningMessage => '練習計時器正在運行中！\n\n切換頁面將導致本次計時數據不被記錄。\n建議先暫停計時器再切換頁面。\n\n確定要離開此頁面嗎？';
+  String get timerWarningMessage =>
+      '練習計時器正在運行中！\n\n切換頁面將導致本次計時數據不被記錄。\n建議先暫停計時器再切換頁面。\n\n確定要離開此頁面嗎？';
   String get timerStayHere => '留在此頁';
   String get timerLeave => '確定離開';
   String get timerCardTitle => '練習計時';
@@ -135,7 +136,7 @@ class AppLocalizations {
   String get timerContinue => '繼續';
   String get timerStop => '結束';
   String get timerTodayPractice => '今日練習';
-  
+
   // ========== 練習統計報表 ==========
   String get statsTitle => '練習偵探報表';
   String get statsWeekReport => '週報表';
@@ -154,7 +155,7 @@ class AppLocalizations {
   String get statsWeeklyDuration => '每週練習時長 (分鐘)';
   String get statsNoPieceData => '尚無曲目練習記錄';
   String get statsNoPieceDataHint => '開始練習時選擇曲目即可記錄';
-  
+
   // ========== 動物圖鑑 ==========
   String get animalCollectionTitle => '動物圖鑑';
   String get animalCollectionStats => '收集統計';
@@ -197,7 +198,7 @@ class AppLocalizations {
   String get libraryDeleteSuccess => '檔案已刪除';
   String get libraryFileSize => '大小';
   String get libraryUploadTime => '上傳時間';
-  
+
   // ========== 練習頁面 ==========
   String get practiceTitle => '練習模式';
   String get practiceSelectFile => '選擇要練習的曲目';
@@ -225,7 +226,7 @@ class AppLocalizations {
   String get practiceAnalysisError => '分析失敗';
   String get practiceRecordingSuccess => '錄音成功';
   String get practiceRecordingError => '錄音失敗';
-  
+
   // ========== 設定頁面 ==========
   String get settingsTitle => '設定';
   String get settingsAccount => '帳號設定';
@@ -233,7 +234,7 @@ class AppLocalizations {
   String get settingsLanguage => '語言設定';
   String get settingsOther => '其他設定';
   String get settingsAbout => '關於';
-  
+
   // 帳號相關
   String get settingsLogin => '登入';
   String get settingsLogout => '登出';
@@ -241,19 +242,19 @@ class AppLocalizations {
   String get settingsProfile => '個人資料';
   String get settingsGuest => '訪客模式';
   String get settingsGuestDesc => '登入以同步您的數據';
-  
+
   // 音訊設定
   String get settingsMasterVolume => '主音量';
   String get settingsMidiVolume => 'MIDI 音量';
   String get settingsMetronomeVolume => '節拍器音量';
   String get settingsRecordingVolume => '錄音音量';
   String get settingsPlaybackSpeed => '播放速度';
-  
+
   // 語言設定
   String get settingsLanguageTitle => '語言';
   String get settingsLanguageSelect => '選擇語言';
   String get settingsLanguageCurrent => '當前語言';
-  
+
   // 其他設定
   String get settingsNotification => '通知設定';
   String get settingsTheme => '主題設定';
@@ -275,15 +276,17 @@ class AppLocalizations {
   String get settingsNotificationsDesc => '管理應用程式通知';
   String get settingsThemeTitle => '主題設定';
   String get settingsThemeDesc => '選擇應用程式主題顏色';
+  String get settingsJokeTitle => '冷笑話';
+  String get settingsJokeDesc => '超短笑話＋解釋，秒懂梗';
   String get settingsAboutTitle => '關於應用程式';
   String get settingsAboutDesc => '版本資訊和開發團隊';
-  
+
   // 關於
   String get settingsAboutApp => '關於應用程式';
   String get settingsVersion => '版本';
   String get settingsPrivacy => '隱私政策';
   String get settingsTerms => '使用條款';
-  
+
   // 主題選擇
   String get themeSelectTitle => '選擇主題';
   String get themeClose => '關閉';
@@ -292,15 +295,27 @@ class AppLocalizations {
   String get themeForest => '森林';
   String get themeSunset => '夕陽';
   String get themeLavender => '櫻雪';
-  
+
+  // 冷笑話對話框
+  String get jokeDialogTitle => '冷笑話';
+  String get jokeDialogSubtitle => '附解釋，不怕聽不懂';
+  String get jokeDialogNext => '再來一個';
+  String get jokeDialogClose => '關閉';
+  String get jokeDialogLaugh => '😂 哈哈哈';
+  String get jokeDialogExplainTitle => '為什麼好笑／有用';
+  String get jokeDialogShowExplain => '看解釋';
+  String get jokeDialogHideExplain => '收起解釋';
+
   // 關於 App 對話框
   String get aboutAppTitle => '關於音樂練習應用程式';
   String get aboutAppVersion => '版本';
-  String get aboutAppDescription => '這是一個音樂練習應用程式，提供智能音樂分析、MIDI 播放、錄音練習、曲目管理和打卡激勵系統。幫助您在音樂學習之路上持續進步！';
-  String get aboutAppFeatures => '主要功能：\n• AI 音準與節奏分析\n• MIDI 播放與練習\n• 錄音與回放\n• 打卡系統與動物圖鑑\n• 多主題切換';
+  String get aboutAppDescription =>
+      '這是一個音樂練習應用程式，提供智能音樂分析、MIDI 播放、錄音練習、曲目管理和打卡激勵系統。幫助您在音樂學習之路上持續進步！';
+  String get aboutAppFeatures =>
+      '主要功能：\n• AI 音準與節奏分析\n• MIDI 播放與練習\n• 錄音與回放\n• 打卡系統與動物圖鑑\n• 多主題切換';
   String get aboutAppTeam => '開發團隊：Music Practice Team';
   String get aboutAppConfirm => '確定';
-  
+
   // 上傳 MIDI 頁面
   String get uploadMidiTitle => '從本機上傳 MIDI';
   String get uploadMidiSelectFile => '請選擇要上傳的 MIDI 檔案';
@@ -313,7 +328,7 @@ class AppLocalizations {
   String get uploadMidiSaveToLibrary => '儲存到樂庫';
   String get uploadMidiNoFileSelected => '尚未選擇檔案';
   String get uploadMidiSuccess => 'MIDI檔案已成功儲存到樂庫！';
-  
+
   // 動物圖鑑
   String get animalCat => '樂句 / Legato';
   String get animalDog => '快板 / Allegro';
@@ -350,7 +365,7 @@ class AppLocalizations {
   String get animalUnlockDate => '取得日期';
   String get animalDetailClose => 'Close';
   String get animalNameReason => '命名理由';
-  
+
   // 動物命名理由
   String get animalReasonCat => '貓咪動作流暢優雅，如音樂中連貫不斷的樂句';
   String get animalReasonDog => '小狗活潑好動，充滿快板般的歡快節奏';
@@ -374,19 +389,20 @@ class AppLocalizations {
   String get animalReasonQuokka => '短尾矮袋鼠表情可愛俴皮，如詼諧輕快的小曲';
   String get animalReasonFairy => '精靈神秘夢幻，如自由即興的幻想曲';
   String get animalReasonTaiwanBear => '台灣黑熊威嚴莊重，如莊嚴宏偉的音樂風格';
-  
+
   // 動物解鎖動畫
   String get animalUnlockCongrats => '🎉 恭喜獲得 🎉';
   String get animalUnlockCheckInDays => '打卡 %d 天解鎖';
   String get animalUnlockGreat => '太好了！';
   String get animalUnlockGoToCollection => '前往圖鑑';
-  
+
   // 計時器警告
   String get timerRunningTitle => '計時器運行中';
-  String get timerRunningMessage => '練習計時器正在運行中。\n\n切換頁面將自動暫停計時並保存當前記錄。\n\n確定要離開此頁面嗎？';
+  String get timerRunningMessage =>
+      '練習計時器正在運行中。\n\n切換頁面將自動暫停計時並保存當前記錄。\n\n確定要離開此頁面嗎？';
   String get timerStayOnPage => '留在此頁';
   String get timerLeavePage => '確定離開';
-  
+
   // 錯誤類型
   String get errorTypeMissedNote => '漏音';
   String get errorTypeWrongNote => '錯音';
@@ -396,7 +412,7 @@ class AppLocalizations {
   String get errorMessageTimingOffset => '節奏偏差: %s %s %sms (Onset)';
   String get errorTimingEarly => '早了';
   String get errorTimingLate => '晚了';
-  
+
   // ========== 登入頁面 ==========
   String get loginTitle => '登入';
   String get loginEmail => '電子郵件';
@@ -422,7 +438,7 @@ class AppLocalizations {
   String get loginOr => '或';
   String get loginGoogleButton => '使用 Google 帳號登入';
   String get loginGoogleSuccess => 'Google 登入成功！';
-  
+
   // ========== 註冊頁面 ==========
   String get registerTitle => '註冊';
   String get registerUsername => '使用者名稱';
@@ -454,14 +470,15 @@ class AppLocalizations {
   String get registerOr => '或';
   String get registerGoogleButton => '使用 Google 帳號註冊';
   String get registerDataRetentionTitle => '保留當前數據？';
-  String get registerDataRetentionMessage => '檢測到您在訪客模式下已有打卡記錄或練習時長。\n\n您希望將這些數據導入新帳號，還是重新開始？';
+  String get registerDataRetentionMessage =>
+      '檢測到您在訪客模式下已有打卡記錄或練習時長。\n\n您希望將這些數據導入新帳號，還是重新開始？';
   String get registerDataRetentionRestart => '重新開始';
   String get registerDataRetentionKeep => '保留當前數據';
   String get registerSuccessWithData => '註冊成功！已保留您的打卡和練習記錄';
   String get registerSuccessWelcome => '註冊成功！歡迎加入';
   String get registerGoogleSuccessWithData => 'Google 登入成功！已保留您的打卡和練習記錄';
   String get registerGoogleSuccess => 'Google 登入成功！';
-  
+
   // ========== 個人資料頁面 ==========
   String get profileTitle => '個人資料';
   String get profileEdit => '編輯資料';
@@ -490,13 +507,14 @@ class AppLocalizations {
   String get profileLoggedOut => '已登出';
   String get profileDeleteTitle => '刪除帳號';
   String get profileDeleteWarning => '⚠️ 此操作無法復原！\n所有資料將被永久刪除。';
-  String get profileDeleteGoogleHint => '您使用 Google 帳號登入。\n點擊「確認刪除」後需要重新登入 Google 以確認身份。';
+  String get profileDeleteGoogleHint =>
+      '您使用 Google 帳號登入。\n點擊「確認刪除」後需要重新登入 Google 以確認身份。';
   String get profileDeletePasswordHint => '請輸入密碼確認';
   String get profileDeletePasswordLabel => '需要輸入您的帳號密碼';
   String get profileDeleteButton => '確認刪除';
   String get profileAccountDeleted => '帳號已刪除';
   String get profileDeleteError => '刪除失敗';
-  
+
   // ========== 上傳頁面 ==========
   String get uploadTitle => '上傳 MIDI';
   String get uploadSelectFile => '選擇檔案';
@@ -514,7 +532,7 @@ class AppLocalizations {
   String get uploadLocalScoreSubtitle => '支援圖片格式的樂譜';
   String get uploadFeatureNotAvailable => '功能開發中';
   String get uploadFeatureNotAvailableMessage => '此功能正在開發中，敬請期待！';
-  
+
   // ========== 播放頁面 ==========
   String get playbackTitle => '播放 MIDI';
   String get playbackPlay => '播放';
@@ -531,7 +549,7 @@ class AppLocalizations {
   String get playbackTooltipPlay => '播放';
   String get playbackTooltipPause => '暫停';
   String get playbackTooltipStop => '停止';
-  
+
   // ========== 分析頁面 ==========
   String get analysisTitle => '演奏分析';
   String get analysisReportTitle => '演奏分析報告';
@@ -568,7 +586,7 @@ class AppLocalizations {
   String get analysisResultRetry => '重新練習';
   String get analysisResultViewScore => '查看樂譜';
   String get analysisResultScoreInDevelopment => '樂譜功能開發中...';
-  
+
   // ========== 練習頁面額外翻譯 ==========
   String get practiceAudioToMidi => '音訊轉 MIDI';
   String get practiceAnalyzingRecording => '🤖 使用 AI 模型分析您的完整錄音...';
@@ -576,11 +594,14 @@ class AppLocalizations {
   String get practiceAnalysisFailed => '分析失敗';
   String get practiceSelectingInstruction => '點擊選擇想要練習的樂譜';
   String get practiceAnalysisDescription => '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議';
-  String practiceFileSavedDownloads(String fileName, String analysis) => '檔案已儲存到「下載」資料夾:\n$fileName\n\n$analysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
-  String practiceFileSavedLocation(String path, String fileName, String analysis) => 'MIDI 檔案位置:\n$path\n\n$analysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
+  String practiceFileSavedDownloads(String fileName, String analysis) =>
+      '檔案已儲存到「下載」資料夾:\n$fileName\n\n$analysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
+  String practiceFileSavedLocation(
+          String path, String fileName, String analysis) =>
+      'MIDI 檔案位置:\n$path\n\n$analysis\n\n🔍 在檔案管理器中搜索「$fileName」即可找到';
   String get practiceFileOpenSuccess => '\n\n✅ 已嘗試開啟檔案管理器';
   String get practiceFileOpenFailed => '\n\n⚠️ 無法自動開啟，請手動搜索檔案';
-  
+
   // ========== 練習建議文字 ==========
   String get suggestionRandomPlaying => '🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:';
   String get suggestionCheckCorrectFile => '   1. 是否選擇了正確的 MIDI 檔案';
@@ -605,7 +626,7 @@ class AppLocalizations {
   String get suggestionRhythmGood => '✨ 節奏掌握很好!';
   String get suggestionTendencyRushing => '⏩ 有搶拍傾向,可以放鬆一點,不要太急';
   String get suggestionTendencyDragging => '⏸️ 有拖拍傾向,可能需要加強節奏訓練';
-  
+
   // ========== 家庭聯絡簿 ==========
   String get lessonBookTitle => '家庭聯絡簿';
   String get lessonBookEmpty => '還沒有上課紀錄';
@@ -627,13 +648,14 @@ class AppLocalizations {
   String get lessonBookSave => '儲存';
   String get lessonBookAtLeastOnePoint => '請至少輸入一則上課內容';
   List<String> get lessonBookWeekdays => ['一', '二', '三', '四', '五', '六', '日'];
-  String lessonBookWeekdayLabel(int weekday) => '週${lessonBookWeekdays[weekday - 1]}';
+  String lessonBookWeekdayLabel(int weekday) =>
+      '週${lessonBookWeekdays[weekday - 1]}';
   // 課堂分類
   String get lessonBookCategorySlowPractice => '慢練';
   String get lessonBookCategoryTechnique => '技巧';
   String get lessonBookCategoryTone => '音色';
   String get lessonBookCategoryOther => '其他';
-  
+
   // ========== 慢練SOP ==========
   String get slowPracticeTitle => '慢練魔法屋';
   String get slowPracticeHistory => '練習紀錄';
@@ -687,8 +709,9 @@ class AppLocalizations {
   String get slowPracticeFinalChallenge => '最終挑戰！';
   String get slowPracticeOops => '哎呀 (重來)';
   String get slowPracticePerfect => '完美 (+1)';
-  List<String> get slowPracticeDecompositions => ['左手單獨', '右手單獨', '節奏拆解', '只彈重拍', '唱譜', '不踩踏板'];
-  
+  List<String> get slowPracticeDecompositions =>
+      ['左手單獨', '右手單獨', '節奏拆解', '只彈重拍', '唱譜', '不踩踏板'];
+
   // ========== 計時器設定 ==========
   String get timerSettingsTitle => '計時器設定';
   String get timerSettingsFloatingTimer => '浮動計時器';
@@ -700,12 +723,13 @@ class AppLocalizations {
   String get timerSettingsNotificationPermission => '需要通知權限才能顯示背景通知';
   String get timerSettingsOpenSettings => '設定';
   String get timerSettingsIosLimitation => 'iOS 系統限制：背景計時將在 App 進入背景後暫停。';
-  
+
   // ========== 練習報表 - 星期/週數 ==========
   List<String> get statsWeekdays => ['一', '二', '三', '四', '五', '六', '日'];
-  List<String> get statsWeekLabels => ['', '第一週', '第二週', '第三週', '第四週', '第五週', '第六週'];
+  List<String> get statsWeekLabels =>
+      ['', '第一週', '第二週', '第三週', '第四週', '第五週', '第六週'];
   String statsWeekLabel(int weekNum) => '第$weekNum週';
-  
+
   // ========== 節拍器 ==========
   String get metronomeTitle => '節拍器';
   String get metronomeBPM => '速度 (BPM)';
@@ -717,7 +741,7 @@ class AppLocalizations {
   String get metronomeBpmRange => 'BPM 必須在 30 到 300 之間';
   String get metronomeClear => '清除';
   String get metronomeWeekPractice => '本週練習時長';
-  
+
   // ========== 錯誤訊息 ==========
   String get errorNetwork => '網路連線錯誤';
   String get errorServer => '伺服器錯誤';
@@ -725,12 +749,15 @@ class AppLocalizations {
   String get errorFileNotFound => '找不到檔案';
   String get errorPermissionDenied => '權限被拒絕';
   String get errorInvalidFormat => '格式不正確';
-  
+
   // 練習頁面錯誤
   String get errorMicPermission => '需要麥克風權限才能錄音，請在設定中手動授權';
-  String errorRecordingStart(String error) => '錄音啟動失敗: $error\n\n請確保：\n1. 已授權麥克風權限\n2. 沒有其他應用程式使用麥克風';
-  String errorRecordingFileSize(int size) => '錄音完成！檔案大小：${(size / 1024).toStringAsFixed(1)} KB';
-  String errorRecordingFileTooSmall(int size) => '錄音檔案太小（$size bytes），可能是音訊捕獲問題';
+  String errorRecordingStart(String error) =>
+      '錄音啟動失敗: $error\n\n請確保：\n1. 已授權麥克風權限\n2. 沒有其他應用程式使用麥克風';
+  String errorRecordingFileSize(int size) =>
+      '錄音完成！檔案大小：${(size / 1024).toStringAsFixed(1)} KB';
+  String errorRecordingFileTooSmall(int size) =>
+      '錄音檔案太小（$size bytes），可能是音訊捕獲問題';
   String errorRecordingFileCheck(String error) => '錄音檔案檢查失敗: $error';
   String errorRecordingStop(String error) => '停止錄音失敗: $error\n\n請嘗試重新錄音';
   String get errorRecordingFileNotFound => '未找到錄音檔案，請重新錄音';
@@ -740,11 +767,11 @@ class AppLocalizations {
   String get errorConvertMidiFirst => '請先轉換 MIDI 檔案';
   String errorFileAccess(String error) => '檔案存取失敗: $error';
   String errorAnalysisFailed(String error) => '分析失敗: $error';
-  
+
   // 上傳頁面錯誤
   String errorFileSelection(String error) => '選擇檔案時發生錯誤: $error';
   String get errorFileReadFailed => '錯誤：無法讀取檔案內容，請重新選擇檔案。';
-  
+
   // 圖片標註錯誤
   String get errorDrawingColorLabel => '顏色 ';
   String get errorDrawingSizeLabel => '大小 ';
@@ -761,7 +788,7 @@ class AppLocalizations {
   String get annotationMeasureLabel => '小節數';
   String get annotationMeasureHint => '例如：12';
   String get annotationSyncedToNotes => '已將標記同步到練習筆記';
-  
+
   // ========== 樂譜目錄頁面 ==========
   String get notePageTitle => '樂譜目錄';
   String get notePageSelectToDelete => '選擇要刪除的樂譜';
@@ -782,7 +809,7 @@ class AppLocalizations {
   String get notePageConfirmDeleteMessage => '確定要刪除';
   String get notePageConfirmDeleteSuffix => '個樂譜及其所有筆記嗎?';
   String get notePageDelete => '刪除';
-  
+
   // ========== 電子譜面標註頁面 ==========
   String get sheetAnnotationTitle => '電子譜';
   String get sheetAnnotationSelectToDelete => '選擇要刪除的譜面';
@@ -811,7 +838,7 @@ class AppLocalizations {
   String get sheetAnnotationDeletedMultiple => '已刪除';
   String get sheetAnnotationDeletedSuffix => '個譜面';
   String get sheetAnnotationConfirmDeleteMultiple => '確定要刪除選中的';
-  
+
   // ========== 樂譜詳情頁面 ==========
   String get sheetDetailAddNote => '新增練習要點';
   String get sheetDetailClickToAdd => '點擊下方按鈕新增練習要點';
@@ -837,19 +864,19 @@ class AppLocalizations {
   String get sheetDetailDrawingIncluded => '包含音樂畫面';
   String get sheetDetailMeasurePrefix => '第';
   String get sheetDetailMeasureSuffix => '小節';
-  
+
   // ========== 倒數計時 ==========
   String get countdownCancel => '取消';
-  
+
   // ========== 組件 ==========
   String get recentActivityContinue => '繼續';
-  
+
   // ========== 播放頁面（簡易版）==========
   String get playbackPageTitle => 'MIDI 播放器';
   String get playbackPagePlaying => '播放中...';
   String get playbackPagePaused => '已暫停';
   String get playbackPageStopped => '已停止';
-  
+
   // ========== 成功訊息 ==========
   String get successSaved => '儲存成功';
   String get successDeleted => '刪除成功';
@@ -952,7 +979,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homePageLessonBookDesc => 'Record teacher notes and practice tips';
   @override
-  String get homePageSlowPracticeDesc => 'Build correct habits, strengthen neural memory';
+  String get homePageSlowPracticeDesc =>
+      'Build correct habits, strengthen neural memory';
 
   @override
   String get checkInSuccess => 'Check-in successful!';
@@ -979,11 +1007,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get checkInYear => 'Year';
   @override
-  List<String> get checkInWeekdays => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  List<String> get checkInWeekdays =>
+      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   @override
-  String get checkInSuccessMessage => 'Check-in successful! {consecutive} day streak, {total} days total 🎉';
+  String get checkInSuccessMessage =>
+      'Check-in successful! {consecutive} day streak, {total} days total 🎉';
   @override
-  String get checkInFailure => 'Check-in failed, please check network connection';
+  String get checkInFailure =>
+      'Check-in failed, please check network connection';
 
   @override
   String get timerTitle => 'Today\'s Total (Resets Daily)';
@@ -1008,7 +1039,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timerWarningTitle => 'Timer Running';
   @override
-  String get timerWarningMessage => 'The practice timer is running!\n\nSwitching pages will cause the current session data to be lost.\nPlease pause the timer before switching pages.\n\nAre you sure you want to leave?';
+  String get timerWarningMessage =>
+      'The practice timer is running!\n\nSwitching pages will cause the current session data to be lost.\nPlease pause the timer before switching pages.\n\nAre you sure you want to leave?';
   @override
   String get timerStayHere => 'Stay Here';
   @override
@@ -1032,7 +1064,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timerDayUnit => '/day';
   @override
-  String get timerRecordedMessage => 'Recorded {session} practice, {total} today';
+  String get timerRecordedMessage =>
+      'Recorded {session} practice, {total} today';
   @override
   String get timerTrendingUp => 'Week Average';
   @override
@@ -1089,7 +1122,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get statsNoPieceData => 'No piece practice records yet';
   @override
-  String get statsNoPieceDataHint => 'Select a piece when starting practice to record';
+  String get statsNoPieceDataHint =>
+      'Select a piece when starting practice to record';
 
   @override
   String get animalCollectionTitle => 'Animal Collection';
@@ -1141,7 +1175,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get libraryEmpty => 'No music files';
   @override
-  String get libraryEmptyDesc => 'Please go to the upload page to add MIDI files';
+  String get libraryEmptyDesc =>
+      'Please go to the upload page to add MIDI files';
   @override
   String get libraryUpload => 'Add Music';
   @override
@@ -1163,7 +1198,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get libraryDeleteConfirmTitle => 'Confirm Delete';
   @override
-  String get libraryDeleteConfirmMessage => 'Are you sure you want to delete "{name}"?';
+  String get libraryDeleteConfirmMessage =>
+      'Are you sure you want to delete "{name}"?';
   @override
   String get libraryDeleteSuccess => 'File deleted';
   @override
@@ -1214,7 +1250,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get practicePlaybackHint => 'Tap "Play Recording" to listen';
   @override
-  String get practiceAnalyzeHint => 'Tap "Start Analysis" to analyze performance';
+  String get practiceAnalyzeHint =>
+      'Tap "Start Analysis" to analyze performance';
   @override
   String get practiceAnalysisComplete => 'Analysis Complete';
   @override
@@ -1309,6 +1346,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsThemeDesc => 'Choose app theme color';
   @override
+  String get settingsJokeTitle => 'Jokes';
+  @override
+  String get settingsJokeDesc => 'Short jokes with quick explanations';
+  @override
   String get settingsAboutTitle => 'About App';
   @override
   String get settingsAboutDesc => 'Version info and dev team';
@@ -1337,21 +1378,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeSunset => 'Sunset';
   @override
   String get themeLavender => 'Lavender';
-  
+
+  // Joke Dialog
+  @override
+  String get jokeDialogTitle => 'Joke Time!';
+  @override
+  String get jokeDialogSubtitle => 'With explanations so it makes sense';
+  @override
+  String get jokeDialogNext => 'Another one';
+  @override
+  String get jokeDialogClose => 'Close';
+  @override
+  String get jokeDialogLaugh => '😂 Haha';
+  @override
+  String get jokeDialogExplainTitle => 'Why it helps';
+  @override
+  String get jokeDialogShowExplain => 'Show explanation';
+  @override
+  String get jokeDialogHideExplain => 'Hide explanation';
+
   // About App Dialog
   @override
   String get aboutAppTitle => 'About Music Practice App';
   @override
   String get aboutAppVersion => 'Version';
   @override
-  String get aboutAppDescription => 'A music practice app with intelligent analysis, MIDI playback, recording, sheet management, and check-in rewards. Help you improve in your musical journey!';
+  String get aboutAppDescription =>
+      'A music practice app with intelligent analysis, MIDI playback, recording, sheet management, and check-in rewards. Help you improve in your musical journey!';
   @override
-  String get aboutAppFeatures => 'Key Features:\n• AI pitch & rhythm analysis\n• MIDI playback & practice\n• Recording & playback\n• Check-in system & animal collection\n• Multiple themes';
+  String get aboutAppFeatures =>
+      'Key Features:\n• AI pitch & rhythm analysis\n• MIDI playback & practice\n• Recording & playback\n• Check-in system & animal collection\n• Multiple themes';
   @override
   String get aboutAppTeam => 'Development Team: Music Practice Team';
   @override
   String get aboutAppConfirm => 'OK';
-  
+
   // Upload MIDI Page
   @override
   String get uploadMidiTitle => 'Upload MIDI from Device';
@@ -1360,7 +1421,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get uploadMidiSupportedFormats => 'Supported formats: .mid, .midi';
   @override
-  String get uploadMidiSupportedFormatsWeb => 'Supported formats: .mid, .midi (Web version uses memory loading)';
+  String get uploadMidiSupportedFormatsWeb =>
+      'Supported formats: .mid, .midi (Web version uses memory loading)';
   @override
   String get uploadMidiFileSize => 'File Size';
   @override
@@ -1375,7 +1437,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uploadMidiNoFileSelected => 'No file selected';
   @override
   String get uploadMidiSuccess => 'MIDI file saved to library successfully!';
-  
+
   // Animal Collection
   @override
   String get animalCat => 'Legato';
@@ -1447,53 +1509,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animalDetailClose => 'Close';
   @override
   String get animalNameReason => 'Naming Reason';
-  
+
   // Animal Naming Reasons
   @override
-  String get animalReasonCat => 'Cats move smoothly and gracefully, like continuous musical phrases';
+  String get animalReasonCat =>
+      'Cats move smoothly and gracefully, like continuous musical phrases';
   @override
-  String get animalReasonDog => 'Dogs are lively and energetic, full of allegro-like cheerful rhythm';
+  String get animalReasonDog =>
+      'Dogs are lively and energetic, full of allegro-like cheerful rhythm';
   @override
-  String get animalReasonFox => 'Foxes are agile and nimble, like rapid repeated tremolo effects';
+  String get animalReasonFox =>
+      'Foxes are agile and nimble, like rapid repeated tremolo effects';
   @override
-  String get animalReasonPanda => 'Pandas move adorably and slowly, like the elegant grace of a waltz';
+  String get animalReasonPanda =>
+      'Pandas move adorably and slowly, like the elegant grace of a waltz';
   @override
-  String get animalReasonRabbit => 'Rabbits hop lightly and quickly, like short separated staccato notes';
+  String get animalReasonRabbit =>
+      'Rabbits hop lightly and quickly, like short separated staccato notes';
   @override
-  String get animalReasonBear => 'Bears are large and steady, like the bass section in music';
+  String get animalReasonBear =>
+      'Bears are large and steady, like the bass section in music';
   @override
-  String get animalReasonDeer => 'Deer are graceful and gentle, like sweet and soft musical expression';
+  String get animalReasonDeer =>
+      'Deer are graceful and gentle, like sweet and soft musical expression';
   @override
-  String get animalReasonPenguin => 'Penguins waddle in unison, like a military march';
+  String get animalReasonPenguin =>
+      'Penguins waddle in unison, like a military march';
   @override
-  String get animalReasonKoala => 'Koalas move slowly and leisurely, like a soothing adagio movement';
+  String get animalReasonKoala =>
+      'Koalas move slowly and leisurely, like a soothing adagio movement';
   @override
-  String get animalReasonRaccoon => 'Raccoons are nocturnal animals, like peaceful and mysterious nocturnes';
+  String get animalReasonRaccoon =>
+      'Raccoons are nocturnal animals, like peaceful and mysterious nocturnes';
   @override
-  String get animalReasonSquirrel => 'Squirrels move swiftly and quickly, like extremely fast presto passages';
+  String get animalReasonSquirrel =>
+      'Squirrels move swiftly and quickly, like extremely fast presto passages';
   @override
-  String get animalReasonHedgehog => 'Hedgehogs are covered in spikes, like the staccato sound of plucked strings';
+  String get animalReasonHedgehog =>
+      'Hedgehogs are covered in spikes, like the staccato sound of plucked strings';
   @override
-  String get animalReasonSeal => 'Seals glide smoothly in water, like continuous pitch sliding';
+  String get animalReasonSeal =>
+      'Seals glide smoothly in water, like continuous pitch sliding';
   @override
-  String get animalReasonSheep => 'Sheep are gentle and quiet, like soft piano playing';
+  String get animalReasonSheep =>
+      'Sheep are gentle and quiet, like soft piano playing';
   @override
-  String get animalReasonLion => 'Lions are majestic and powerful, like loud and strong forte';
+  String get animalReasonLion =>
+      'Lions are majestic and powerful, like loud and strong forte';
   @override
-  String get animalReasonKangaroo => 'Kangaroos excel at jumping, like bouncing musical articulation';
+  String get animalReasonKangaroo =>
+      'Kangaroos excel at jumping, like bouncing musical articulation';
   @override
-  String get animalReasonSloth => 'Sloths move extremely slowly, like solemn and slow grave tempo';
+  String get animalReasonSloth =>
+      'Sloths move extremely slowly, like solemn and slow grave tempo';
   @override
-  String get animalReasonGuineaPig => 'Guinea pigs make continuous trembling sounds, like slight voice vibrato';
+  String get animalReasonGuineaPig =>
+      'Guinea pigs make continuous trembling sounds, like slight voice vibrato';
   @override
-  String get animalReasonPrairieDog => 'Prairie dogs live in groups and interact, like multi-part choral effects';
+  String get animalReasonPrairieDog =>
+      'Prairie dogs live in groups and interact, like multi-part choral effects';
   @override
-  String get animalReasonQuokka => 'Quokkas look cute and playful, like humorous and light scherzando';
+  String get animalReasonQuokka =>
+      'Quokkas look cute and playful, like humorous and light scherzando';
   @override
-  String get animalReasonFairy => 'Fairies are mysterious and dreamy, like free improvisational fantasia';
+  String get animalReasonFairy =>
+      'Fairies are mysterious and dreamy, like free improvisational fantasia';
   @override
-  String get animalReasonTaiwanBear => 'Taiwan black bears are dignified and majestic, like grand and solemn musical style';
-  
+  String get animalReasonTaiwanBear =>
+      'Taiwan black bears are dignified and majestic, like grand and solemn musical style';
+
   // Animal Unlock Animation
   @override
   String get animalUnlockCongrats => '🎉 Congratulations 🎉';
@@ -1503,17 +1587,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animalUnlockGreat => 'Awesome!';
   @override
   String get animalUnlockGoToCollection => 'Go to Collection';
-  
+
   // Timer Warning
   @override
   String get timerRunningTitle => 'Timer Running';
   @override
-  String get timerRunningMessage => 'Practice timer is currently running.\n\nSwitching pages will automatically pause the timer and save current record.\n\nAre you sure you want to leave this page?';
+  String get timerRunningMessage =>
+      'Practice timer is currently running.\n\nSwitching pages will automatically pause the timer and save current record.\n\nAre you sure you want to leave this page?';
   @override
   String get timerStayOnPage => 'Stay Here';
   @override
   String get timerLeavePage => 'Leave';
-  
+
   // Error Types
   @override
   String get errorTypeMissedNote => 'Missed Note';
@@ -1620,7 +1705,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get registerUsernameLabel => 'Username';
   @override
-  String get registerUsernameHint => '3-20 characters, will be your display name';
+  String get registerUsernameHint =>
+      '3-20 characters, will be your display name';
   @override
   String get registerUsernameLength => 'Username must be 3-20 characters';
   @override
@@ -1628,7 +1714,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get registerPasswordHint => 'At least 6 characters';
   @override
-  String get registerPasswordMinLength => 'Password must be at least 6 characters';
+  String get registerPasswordMinLength =>
+      'Password must be at least 6 characters';
   @override
   String get registerConfirmPasswordLabel => 'Confirm Password';
   @override
@@ -1642,17 +1729,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get registerDataRetentionTitle => 'Keep Current Data?';
   @override
-  String get registerDataRetentionMessage => 'We detected check-in records or practice time in guest mode.\n\nDo you want to import this data to your new account, or start fresh?';
+  String get registerDataRetentionMessage =>
+      'We detected check-in records or practice time in guest mode.\n\nDo you want to import this data to your new account, or start fresh?';
   @override
   String get registerDataRetentionRestart => 'Start Fresh';
   @override
   String get registerDataRetentionKeep => 'Keep Current Data';
   @override
-  String get registerSuccessWithData => 'Registration successful! Your check-in and practice records have been preserved';
+  String get registerSuccessWithData =>
+      'Registration successful! Your check-in and practice records have been preserved';
   @override
   String get registerSuccessWelcome => 'Registration successful! Welcome';
   @override
-  String get registerGoogleSuccessWithData => 'Google sign-in successful! Your check-in and practice records have been preserved';
+  String get registerGoogleSuccessWithData =>
+      'Google sign-in successful! Your check-in and practice records have been preserved';
   @override
   String get registerGoogleSuccess => 'Google sign-in successful!';
 
@@ -1669,7 +1759,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileDeleteAccount => 'Delete Account';
   @override
-  String get profileDeleteConfirm => 'Delete your account? This cannot be undone.';
+  String get profileDeleteConfirm =>
+      'Delete your account? This cannot be undone.';
   @override
   String get profileLogout => 'Logout';
   @override
@@ -1709,9 +1800,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileDeleteTitle => 'Delete Account';
   @override
-  String get profileDeleteWarning => '⚠️ This action cannot be undone!\nAll data will be permanently deleted.';
+  String get profileDeleteWarning =>
+      '⚠️ This action cannot be undone!\nAll data will be permanently deleted.';
   @override
-  String get profileDeleteGoogleHint => 'You signed in with Google.\nAfter clicking "Confirm Delete", you will need to sign in to Google again to verify your identity.';
+  String get profileDeleteGoogleHint =>
+      'You signed in with Google.\nAfter clicking "Confirm Delete", you will need to sign in to Google again to verify your identity.';
   @override
   String get profileDeletePasswordHint => 'Please enter password to confirm';
   @override
@@ -1754,7 +1847,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get uploadFeatureNotAvailable => 'Feature Under Development';
   @override
-  String get uploadFeatureNotAvailableMessage => 'This feature is under development, stay tuned!';
+  String get uploadFeatureNotAvailableMessage =>
+      'This feature is under development, stay tuned!';
 
   @override
   String get playbackTitle => 'Play MIDI';
@@ -1856,75 +1950,103 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get analysisResultViewScore => 'View Score';
   @override
-  String get analysisResultScoreInDevelopment => 'Score feature in development...';
+  String get analysisResultScoreInDevelopment =>
+      'Score feature in development...';
 
   @override
   String get practiceAudioToMidi => 'Audio to MIDI';
   @override
-  String get practiceAnalyzingRecording => '🤖 Analyzing your complete recording with AI...';
+  String get practiceAnalyzingRecording =>
+      '🤖 Analyzing your complete recording with AI...';
   @override
   String get practiceAnalyzingTitle => 'Performance Analysis';
   @override
   String get practiceAnalysisFailed => 'Analysis Failed';
   @override
-  String get practiceSelectingInstruction => 'Tap to select a sheet to practice';
+  String get practiceSelectingInstruction =>
+      'Tap to select a sheet to practice';
   @override
-  String get practiceAnalysisDescription => 'Use spectral analysis technology to verify your performance\nCompare pitch, rhythm, and provide ratings and suggestions';
+  String get practiceAnalysisDescription =>
+      'Use spectral analysis technology to verify your performance\nCompare pitch, rhythm, and provide ratings and suggestions';
   @override
-  String practiceFileSavedDownloads(String fileName, String analysis) => 'File saved to Downloads folder:\n$fileName\n\n$analysis\n\n🔍 Search for "$fileName" in file manager to find it';
+  String practiceFileSavedDownloads(String fileName, String analysis) =>
+      'File saved to Downloads folder:\n$fileName\n\n$analysis\n\n🔍 Search for "$fileName" in file manager to find it';
   @override
-  String practiceFileSavedLocation(String path, String fileName, String analysis) => 'MIDI file location:\n$path\n\n$analysis\n\n🔍 Search for "$fileName" in file manager to find it';
+  String practiceFileSavedLocation(
+          String path, String fileName, String analysis) =>
+      'MIDI file location:\n$path\n\n$analysis\n\n🔍 Search for "$fileName" in file manager to find it';
   @override
   String get practiceFileOpenSuccess => '\n\n✅ Attempted to open file manager';
   @override
-  String get practiceFileOpenFailed => '\n\n⚠️ Cannot open automatically, please search manually';
+  String get practiceFileOpenFailed =>
+      '\n\n⚠️ Cannot open automatically, please search manually';
 
   @override
-  String get suggestionRandomPlaying => '🚨 System detected possible random playing or wrong track, please confirm:';
+  String get suggestionRandomPlaying =>
+      '🚨 System detected possible random playing or wrong track, please confirm:';
   @override
-  String get suggestionCheckCorrectFile => '   1. Have you selected the correct MIDI file';
+  String get suggestionCheckCorrectFile =>
+      '   1. Have you selected the correct MIDI file';
   @override
-  String get suggestionCheckCompleteSong => '   2. Have you played the specified piece completely';
+  String get suggestionCheckCompleteSong =>
+      '   2. Have you played the specified piece completely';
   @override
-  String get suggestionCheckQuietEnvironment => '   3. Did you record in a quiet environment';
+  String get suggestionCheckQuietEnvironment =>
+      '   3. Did you record in a quiet environment';
   @override
-  String get suggestionWrongSong => '❌ Performance content does not match the specified piece!';
+  String get suggestionWrongSong =>
+      '❌ Performance content does not match the specified piece!';
   @override
-  String get suggestionConfirmCorrectSong => '   Please confirm if you played the correct piece';
+  String get suggestionConfirmCorrectSong =>
+      '   Please confirm if you played the correct piece';
   @override
-  String get suggestionPitchNeedsPractice => '🎹 Pitch needs more practice, suggest slowing down to verify each note';
+  String get suggestionPitchNeedsPractice =>
+      '🎹 Pitch needs more practice, suggest slowing down to verify each note';
   @override
-  String get suggestionPitchBasic => '🎵 Pitch is basically correct, but there is still room for improvement';
+  String get suggestionPitchBasic =>
+      '🎵 Pitch is basically correct, but there is still room for improvement';
   @override
   String get suggestionPitchPerfect => '🌟 Pitch performance is perfect!';
   @override
   String get suggestionPitchExcellent => '⭐ Pitch performance is excellent!';
   @override
-  String suggestionExtraNotes(int count) => '⚠️ Detected $count extra notes, please pay attention:';
+  String suggestionExtraNotes(int count) =>
+      '⚠️ Detected $count extra notes, please pay attention:';
   @override
-  String get suggestionAvoidWrongKeys => '   - Avoid accidentally pressing other keys';
+  String get suggestionAvoidWrongKeys =>
+      '   - Avoid accidentally pressing other keys';
   @override
-  String get suggestionEnsureAccuracy => '   - Ensure fingers are accurately placed in the correct position';
+  String get suggestionEnsureAccuracy =>
+      '   - Ensure fingers are accurately placed in the correct position';
   @override
-  String suggestionManyMissed(int count) => '❌ Many missed notes ($count), suggestions:';
+  String suggestionManyMissed(int count) =>
+      '❌ Many missed notes ($count), suggestions:';
   @override
-  String get suggestionCheckKeyPress => '   - Check if fingers fully press the keys';
+  String get suggestionCheckKeyPress =>
+      '   - Check if fingers fully press the keys';
   @override
-  String get suggestionRetryQuietEnvironment => '   - Re-record in a quiet environment';
+  String get suggestionRetryQuietEnvironment =>
+      '   - Re-record in a quiet environment';
   @override
-  String get suggestionCheckMicSensitivity => '   - Ensure microphone sensitivity is sufficient';
+  String get suggestionCheckMicSensitivity =>
+      '   - Ensure microphone sensitivity is sufficient';
   @override
-  String suggestionSomeMissed(int count) => '⚠️ Some missed notes ($count), please check key press strength';
+  String suggestionSomeMissed(int count) =>
+      '⚠️ Some missed notes ($count), please check key press strength';
   @override
-  String get suggestionRhythmUnstable => '⏱️ Rhythm is unstable, suggest practicing with a metronome';
+  String get suggestionRhythmUnstable =>
+      '⏱️ Rhythm is unstable, suggest practicing with a metronome';
   @override
-  String get suggestionRhythmBasic => '🎼 Rhythm is basically stable, you can try to increase the speed slightly';
+  String get suggestionRhythmBasic =>
+      '🎼 Rhythm is basically stable, you can try to increase the speed slightly';
   @override
   String get suggestionRhythmGood => '✨ Rhythm mastery is great!';
   @override
-  String get suggestionTendencyRushing => '⏩ Tendency to rush, relax a bit and don\'t be too hasty';
+  String get suggestionTendencyRushing =>
+      '⏩ Tendency to rush, relax a bit and don\'t be too hasty';
   @override
-  String get suggestionTendencyDragging => '⏸️ Tendency to drag, may need to strengthen rhythm training';
+  String get suggestionTendencyDragging =>
+      '⏸️ Tendency to drag, may need to strengthen rhythm training';
 
   @override
   String get metronomeTitle => 'Metronome';
@@ -1959,21 +2081,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorPermissionDenied => 'Permission denied';
   @override
   String get errorInvalidFormat => 'Invalid format';
-  
+
   @override
-  String get errorMicPermission => 'Microphone permission required for recording. Please grant permission in settings';
+  String get errorMicPermission =>
+      'Microphone permission required for recording. Please grant permission in settings';
   @override
-  String errorRecordingStart(String error) => 'Recording failed to start: $error\n\nPlease ensure:\n1. Microphone permission is granted\n2. No other app is using the microphone';
+  String errorRecordingStart(String error) =>
+      'Recording failed to start: $error\n\nPlease ensure:\n1. Microphone permission is granted\n2. No other app is using the microphone';
   @override
-  String errorRecordingFileSize(int size) => 'Recording complete! File size: ${(size / 1024).toStringAsFixed(1)} KB';
+  String errorRecordingFileSize(int size) =>
+      'Recording complete! File size: ${(size / 1024).toStringAsFixed(1)} KB';
   @override
-  String errorRecordingFileTooSmall(int size) => 'Recording file too small ($size bytes), possible audio capture issue';
+  String errorRecordingFileTooSmall(int size) =>
+      'Recording file too small ($size bytes), possible audio capture issue';
   @override
-  String errorRecordingFileCheck(String error) => 'Recording file check failed: $error';
+  String errorRecordingFileCheck(String error) =>
+      'Recording file check failed: $error';
   @override
-  String errorRecordingStop(String error) => 'Failed to stop recording: $error\n\nPlease try recording again';
+  String errorRecordingStop(String error) =>
+      'Failed to stop recording: $error\n\nPlease try recording again';
   @override
-  String get errorRecordingFileNotFound => 'Recording file not found, please record again';
+  String get errorRecordingFileNotFound =>
+      'Recording file not found, please record again';
   @override
   String get errorRecordingFileEmpty => 'Recording file is empty, cannot play';
   @override
@@ -1986,12 +2115,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorFileAccess(String error) => 'File access failed: $error';
   @override
   String errorAnalysisFailed(String error) => 'Analysis failed: $error';
-  
+
   @override
   String errorFileSelection(String error) => 'Error selecting file: $error';
   @override
-  String get errorFileReadFailed => 'Error: Unable to read file content, please select again.';
-  
+  String get errorFileReadFailed =>
+      'Error: Unable to read file content, please select again.';
+
   @override
   String get errorDrawingColorLabel => 'Color ';
   @override
@@ -2095,7 +2225,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sheetAnnotationConfirmDelete => 'Confirm Delete';
   @override
-  String get sheetAnnotationConfirmDeleteMessage => 'Are you sure you want to delete "{name}"?';
+  String get sheetAnnotationConfirmDeleteMessage =>
+      'Are you sure you want to delete "{name}"?';
   @override
   String get sheetAnnotationDelete => 'Delete';
   @override
@@ -2115,20 +2246,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sheetAnnotationDeletedSuffix => 'sheet(s)';
   @override
-  String get sheetAnnotationConfirmDeleteMultiple => 'Are you sure you want to delete the selected';
+  String get sheetAnnotationConfirmDeleteMultiple =>
+      'Are you sure you want to delete the selected';
 
   @override
   String get sheetDetailAddNote => 'Add Practice Note';
   @override
-  String get sheetDetailClickToAdd => 'Click the button below to add practice notes';
+  String get sheetDetailClickToAdd =>
+      'Click the button below to add practice notes';
   @override
-  String get sheetDetailAddDescription => 'Record important points for specific measures';
+  String get sheetDetailAddDescription =>
+      'Record important points for specific measures';
   @override
   String get sheetDetailAddButton => 'Add Note';
   @override
   String get sheetDetailEmpty => 'No practice notes yet';
   @override
-  String get sheetDetailEmptyHint => 'Start recording practice points for this piece!';
+  String get sheetDetailEmptyHint =>
+      'Start recording practice points for this piece!';
   @override
   String get sheetDetailMeasureNumber => 'Measure Number';
   @override
@@ -2136,7 +2271,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sheetDetailContent => 'Notes';
   @override
-  String get sheetDetailContentHint => 'Record important points, techniques, or practice focus...';
+  String get sheetDetailContentHint =>
+      'Record important points, techniques, or practice focus...';
   @override
   String get sheetDetailCancel => 'Cancel';
   @override
@@ -2146,7 +2282,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sheetDetailConfirmDelete => 'Confirm Delete';
   @override
-  String get sheetDetailConfirmDeleteMessage => 'Are you sure you want to delete this note?';
+  String get sheetDetailConfirmDeleteMessage =>
+      'Are you sure you want to delete this note?';
   @override
   String get sheetDetailDelete => 'Delete';
   @override
@@ -2202,7 +2339,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lessonBookConfirmDelete => 'Confirm Delete';
   @override
-  String get lessonBookConfirmDeleteMessage => 'Are you sure you want to delete this lesson record?';
+  String get lessonBookConfirmDeleteMessage =>
+      'Are you sure you want to delete this lesson record?';
   @override
   String get lessonBookToday => 'Today';
   @override
@@ -2228,9 +2366,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lessonBookSave => 'Save';
   @override
-  String get lessonBookAtLeastOnePoint => 'Please enter at least one lesson point';
+  String get lessonBookAtLeastOnePoint =>
+      'Please enter at least one lesson point';
   @override
-  List<String> get lessonBookWeekdays => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  List<String> get lessonBookWeekdays =>
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   @override
   String lessonBookWeekdayLabel(int weekday) => lessonBookWeekdays[weekday - 1];
   // Lesson categories
@@ -2263,7 +2403,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get slowPracticeCustomRange => 'Choose Your Own Section';
   @override
-  String get slowPracticeCustomRangeHint => 'Enter measure range to start practicing!';
+  String get slowPracticeCustomRangeHint =>
+      'Enter measure range to start practicing!';
   @override
   String get slowPracticeCustomRangeTitle => 'Custom Practice Range';
   @override
@@ -2337,7 +2478,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get slowPracticeTarget => 'Target: {bpm}';
   @override
-  String get slowPracticeConsecutiveSuccess => '3 consecutive successes to speed up!';
+  String get slowPracticeConsecutiveSuccess =>
+      '3 consecutive successes to speed up!';
   @override
   String get slowPracticeFail => 'Fail (Reset)';
   @override
@@ -2349,7 +2491,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get slowPracticePerfect => 'Perfect (+1)';
   @override
-  List<String> get slowPracticeDecompositions => ['Left Hand Only', 'Right Hand Only', 'Rhythm Breakdown', 'Accents Only', 'Sing Along', 'No Pedal'];
+  List<String> get slowPracticeDecompositions => [
+        'Left Hand Only',
+        'Right Hand Only',
+        'Rhythm Breakdown',
+        'Accents Only',
+        'Sing Along',
+        'No Pedal'
+      ];
 
   // ========== Timer Settings (計時器設定) ==========
   @override
@@ -2357,27 +2506,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timerSettingsFloatingTimer => 'Floating Timer';
   @override
-  String get timerSettingsFloatingTimerOn => 'Floating timer shown during practice';
+  String get timerSettingsFloatingTimerOn =>
+      'Floating timer shown during practice';
   @override
   String get timerSettingsFloatingTimerOff => 'Floating timer disabled';
   @override
   String get timerSettingsBackgroundNotification => 'Background Notification';
   @override
-  String get timerSettingsBackgroundNotificationOn => 'Notification shown when app is in background';
+  String get timerSettingsBackgroundNotificationOn =>
+      'Notification shown when app is in background';
   @override
-  String get timerSettingsBackgroundNotificationOff => 'Background notification disabled';
+  String get timerSettingsBackgroundNotificationOff =>
+      'Background notification disabled';
   @override
-  String get timerSettingsNotificationPermission => 'Notification permission required for background notification';
+  String get timerSettingsNotificationPermission =>
+      'Notification permission required for background notification';
   @override
   String get timerSettingsOpenSettings => 'Settings';
   @override
-  String get timerSettingsIosLimitation => 'iOS limitation: Background timer will pause when app goes to background.';
+  String get timerSettingsIosLimitation =>
+      'iOS limitation: Background timer will pause when app goes to background.';
 
   // ========== Practice Stats - Weekdays/Weeks (練習報表 - 星期/週數) ==========
   @override
-  List<String> get statsWeekdays => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  List<String> get statsWeekdays =>
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   @override
-  List<String> get statsWeekLabels => ['', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'];
+  List<String> get statsWeekLabels =>
+      ['', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'];
   @override
   String statsWeekLabel(int weekNum) => 'Week $weekNum';
 }

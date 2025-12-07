@@ -12,6 +12,7 @@ import 'package:music_practice_app/services/haptic_service.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
 import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:music_practice_app/services/joke_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -35,7 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
   double _metronomeVolume = 0.6; // 節拍器音量
   bool _soundEnabled = true; // 是否啟用音效
   bool _vibrationEnabled = true; // 是否啟用震動
-  
+
   // 練習計時器設定
   bool _showFloatingTimer = true; // 是否顯示浮動計時器
   bool _showNotification = false; // 是否顯示通知 (僅 Android)
@@ -89,11 +90,11 @@ class _SettingsPageState extends State<SettingsPage> {
           _soundEnabled = settings['soundEnabled'] as bool;
           _vibrationEnabled = settings['vibrationEnabled'] as bool;
           _selectedLanguage = settings['selectedLanguage'] as String;
-          
+
           // 載入計時器設定
           _showFloatingTimer = _timerService.showFloatingTimer;
           _showNotification = _timerService.showNotification;
-          
+
           _isLoading = false;
         });
       }
@@ -132,6 +133,8 @@ class _SettingsPageState extends State<SettingsPage> {
           'soundEnabled': _soundEnabled,
           'vibrationEnabled': _vibrationEnabled,
           'selectedLanguage': _selectedLanguage,
+          'timer_show_floating': _showFloatingTimer,
+          'timer_show_notification': _showNotification,
         };
 
         await _syncService.syncSettings(settings);
@@ -194,7 +197,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 16),
             _buildSoundSettingsCard(),
             const SizedBox(height: 32),
-            
+
             // 練習計時器設定區塊
             _buildSectionTitle(l10n?.timerSettingsTitle ?? '計時器設定'),
             const SizedBox(height: 16),
@@ -268,7 +271,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            user != null ? (l10n?.settingsPersonalAccount ?? '個人帳號') : (l10n?.settingsLoginRegister ?? '登入 / 註冊'),
+                            user != null
+                                ? (l10n?.settingsPersonalAccount ?? '個人帳號')
+                                : (l10n?.settingsLoginRegister ?? '登入 / 註冊'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -472,7 +477,9 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSwitchTile(
               icon: Icons.music_note,
               title: l10n?.settingsSoundEffect ?? '音效',
-              subtitle: _soundEnabled ? (l10n?.settingsEnableSoundEffect ?? '已啟用') : '已關閉',
+              subtitle: _soundEnabled
+                  ? (l10n?.settingsEnableSoundEffect ?? '已啟用')
+                  : '已關閉',
               value: _soundEnabled,
               onChanged: (value) async {
                 setState(() => _soundEnabled = value);
@@ -486,7 +493,9 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSwitchTile(
               icon: Icons.vibration,
               title: l10n?.settingsVibration ?? '震動回饋',
-              subtitle: _vibrationEnabled ? (l10n?.settingsEnableVibration ?? '已啟用') : '已關閉',
+              subtitle: _vibrationEnabled
+                  ? (l10n?.settingsEnableVibration ?? '已啟用')
+                  : '已關閉',
               value: _vibrationEnabled,
               onChanged: (value) async {
                 setState(() => _vibrationEnabled = value);
@@ -534,26 +543,32 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSwitchTile(
               icon: Icons.picture_in_picture_alt,
               title: l10n?.timerSettingsFloatingTimer ?? '浮動計時器',
-              subtitle: _showFloatingTimer 
+              subtitle: _showFloatingTimer
                   ? (l10n?.timerSettingsFloatingTimerOn ?? '練習時會顯示浮動計時器')
                   : (l10n?.timerSettingsFloatingTimerOff ?? '已關閉浮動計時器'),
               value: _showFloatingTimer,
               onChanged: (value) async {
                 setState(() => _showFloatingTimer = value);
                 await _timerService.setShowFloatingTimer(value);
+                if (authService.isAuthenticated) {
+                  await _syncService.updateSetting(
+                      'timer_show_floating', value);
+                }
                 _hapticService.lightImpact();
               },
             ),
             const SizedBox(height: 16),
-            
+
             // 通知設定 (僅 Android)
             if (Platform.isAndroid) ...[
               _buildSwitchTile(
                 icon: Icons.notifications_active,
                 title: l10n?.timerSettingsBackgroundNotification ?? '背景通知',
-                subtitle: _showNotification 
-                    ? (l10n?.timerSettingsBackgroundNotificationOn ?? '離開 App 時會顯示通知')
-                    : (l10n?.timerSettingsBackgroundNotificationOff ?? '不顯示背景通知'),
+                subtitle: _showNotification
+                    ? (l10n?.timerSettingsBackgroundNotificationOn ??
+                        '離開 App 時會顯示通知')
+                    : (l10n?.timerSettingsBackgroundNotificationOff ??
+                        '不顯示背景通知'),
                 value: _showNotification,
                 onChanged: (value) async {
                   if (value) {
@@ -566,7 +581,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(l10n?.timerSettingsNotificationPermission ?? '需要通知權限才能顯示背景通知'),
+                              content: Text(
+                                  l10n?.timerSettingsNotificationPermission ??
+                                      '需要通知權限才能顯示背景通知'),
                               action: SnackBarAction(
                                 label: l10n?.timerSettingsOpenSettings ?? '設定',
                                 onPressed: () => openAppSettings(),
@@ -580,12 +597,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                   setState(() => _showNotification = value);
                   await _timerService.setShowNotification(value);
+                  if (authService.isAuthenticated) {
+                    await _syncService.updateSetting(
+                        'timer_show_notification', value);
+                  }
                   _hapticService.lightImpact();
                 },
               ),
               const SizedBox(height: 16),
             ],
-            
+
             // iOS 提示
             if (Platform.isIOS)
               Padding(
@@ -598,12 +619,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, 
-                           color: Colors.orange, size: 20),
+                      Icon(Icons.info_outline, color: Colors.orange, size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          l10n?.timerSettingsIosLimitation ?? 'iOS 系統限制：背景計時將在 App 進入背景後暫停。',
+                          l10n?.timerSettingsIosLimitation ??
+                              'iOS 系統限制：背景計時將在 App 進入背景後暫停。',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.orange[800],
@@ -778,6 +799,13 @@ class _SettingsPageState extends State<SettingsPage> {
           subtitle: l10n?.settingsThemeDesc ?? '選擇應用程式主題顏色',
           onTap: () => _showThemeDialog(),
         ),
+        const SizedBox(height: 12),
+        _buildSettingCard(
+          icon: Icons.emoji_emotions,
+          title: l10n?.settingsJokeTitle ?? '冷笑話',
+          subtitle: l10n?.settingsJokeDesc ?? '音樂冷笑話，盡量不重複',
+          onTap: () => _showJokeDialog(),
+        ),
       ],
     );
   }
@@ -858,7 +886,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showLanguageDialog() {
     final l10n = AppLocalizations.of(context)!;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -888,9 +916,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: ListView.builder(
                     itemCount: LanguageManager.languageNames.length,
                     itemBuilder: (context, index) {
-                      final languageCode = LanguageManager.languageNames.keys.elementAt(index);
-                      final languageName = LanguageManager.languageNames[languageCode]!;
-                      final isSelected = LanguageManager.instance.currentLanguageCode == languageCode;
+                      final languageCode =
+                          LanguageManager.languageNames.keys.elementAt(index);
+                      final languageName =
+                          LanguageManager.languageNames[languageCode]!;
+                      final isSelected =
+                          LanguageManager.instance.currentLanguageCode ==
+                              languageCode;
 
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(
@@ -899,7 +931,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           languageName,
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                             color: isSelected
                                 ? Colors.blue[700]
                                 : AppColors.dynamicTextDark,
@@ -910,13 +944,16 @@ class _SettingsPageState extends State<SettingsPage> {
                             : null,
                         onTap: () async {
                           Navigator.pop(context);
-                          
-                          await _settingsService.setSelectedLanguage(languageCode);
-                          await LanguageManager.instance.setLocale(languageCode);
-                          
+
+                          await _settingsService
+                              .setSelectedLanguage(languageCode);
+                          await LanguageManager.instance
+                              .setLocale(languageCode);
+
                           // 使用 updateSetting 只更新單一設定項，不會影響其他設定
                           if (authService.isAuthenticated) {
-                            await _syncService.updateSetting('selectedLanguage', languageCode);
+                            await _syncService.updateSetting(
+                                'selectedLanguage', languageCode);
                           }
 
                           if (mounted) {
@@ -965,11 +1002,16 @@ class _SettingsPageState extends State<SettingsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildThemeOption(l10n?.themeDawn ?? '晨曦', 'default', const Color(0xFFCFAB8D)),
-              _buildThemeOption(l10n?.themeOcean ?? '海洋', 'ocean', const Color(0xFF7FADCC)),
-              _buildThemeOption(l10n?.themeForest ?? '森林', 'forest', const Color(0xFF96A78D)),
-              _buildThemeOption(l10n?.themeSunset ?? '夕陽', 'sunset', const Color(0xFFF6A85B)),
-              _buildThemeOption(l10n?.themeLavender ?? '櫻雪', 'lavender', const Color(0xFFE6B7BC)),
+              _buildThemeOption(
+                  l10n?.themeDawn ?? '晨曦', 'default', const Color(0xFFCFAB8D)),
+              _buildThemeOption(
+                  l10n?.themeOcean ?? '海洋', 'ocean', const Color(0xFF7FADCC)),
+              _buildThemeOption(
+                  l10n?.themeForest ?? '森林', 'forest', const Color(0xFF96A78D)),
+              _buildThemeOption(
+                  l10n?.themeSunset ?? '夕陽', 'sunset', const Color(0xFFF6A85B)),
+              _buildThemeOption(l10n?.themeLavender ?? '櫻雪', 'lavender',
+                  const Color(0xFFE6B7BC)),
             ],
           ),
           actions: [
@@ -1049,5 +1091,319 @@ class _SettingsPageState extends State<SettingsPage> {
         _isShowingSnackBar = false;
       }
     });
+  }
+
+  /// 顯示冷笑話（附解釋）的底部彈窗
+  void _showJokeDialog() async {
+    await _hapticService.lightImpact();
+
+    final jokeService = JokeService();
+    Map<String, String> currentJoke = jokeService.getNextJoke();
+    bool showExplain = false;
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final bottomPadding =
+            MediaQuery.of(sheetContext).viewInsets.bottom + 16;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final l10n = AppLocalizations.of(context);
+            final tag = currentJoke['tag'] ?? '音樂梗';
+            final accentColor = _jokeTagColor(tag);
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                decoration: BoxDecoration(
+                  color: AppColors.dynamicCard,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x16000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.dynamicTextLight.withValues(
+                              alpha: 0.2,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.sentiment_satisfied_alt,
+                              color: accentColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n?.jokeDialogTitle ?? '冷笑話時間',
+                                  style: TextStyle(
+                                    color: AppColors.dynamicTextDark,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l10n?.jokeDialogSubtitle ?? '附解釋，不怕聽不懂',
+                                  style: TextStyle(
+                                    color: AppColors.dynamicTextLight,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Chip(
+                            backgroundColor:
+                                accentColor.withValues(alpha: 0.15),
+                            labelPadding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            label: Text(
+                              tag,
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        currentJoke['setup'] ?? '',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.dynamicTextDark,
+                          fontWeight: FontWeight.w600,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              accentColor.withValues(alpha: 0.16),
+                              AppColors.dynamicAccent.withValues(alpha: 0.10),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: accentColor.withValues(alpha: 0.35),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          currentJoke['punchline'] ?? '',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.dynamicPrimary,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      AnimatedCrossFade(
+                        firstChild: const SizedBox.shrink(),
+                        secondChild: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.dynamicBackground
+                                .withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n?.jokeDialogExplainTitle ?? '為什麼好笑／有用',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.dynamicTextDark,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                currentJoke['explain'] ?? '',
+                                style: TextStyle(
+                                  color: AppColors.dynamicTextLight,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        crossFadeState: showExplain
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        duration: const Duration(milliseconds: 200),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await _hapticService.lightImpact();
+                                setSheetState(() {
+                                  showExplain = !showExplain;
+                                });
+                              },
+                              icon: Icon(
+                                showExplain
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.dynamicPrimary,
+                              ),
+                              label: Text(
+                                showExplain
+                                    ? (l10n?.jokeDialogHideExplain ?? '收起解釋')
+                                    : (l10n?.jokeDialogShowExplain ?? '看解釋'),
+                                style: TextStyle(
+                                  color: AppColors.dynamicPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: accentColor),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                await _hapticService.lightImpact();
+                                setSheetState(() {
+                                  showExplain = false;
+                                  currentJoke = jokeService.getNextJoke();
+                                });
+                              },
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: Text(
+                                l10n?.jokeDialogNext ?? '再來一個',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.center,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            _hapticService.lightImpact();
+                            Navigator.of(sheetContext).pop();
+                          },
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: Text(
+                            l10n?.jokeDialogClose ?? '關閉',
+                            style: TextStyle(
+                              color: AppColors.dynamicTextLight,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Color _jokeTagColor(String tag) {
+    switch (tag) {
+      case '舞台日常':
+        return const Color(0xFF4E9CFF);
+      case '音樂梗':
+        return const Color(0xFF7BCFAE);
+      case '節奏梗':
+        return const Color(0xFFFFB661);
+      case '樂團吐槽':
+        return const Color(0xFFA18BFF);
+      case '錄音室':
+        return const Color(0xFFF87070);
+      case '樂器梗':
+        return const Color(0xFF5CC8D7);
+      case '和聲梗':
+        return const Color(0xFF4DB6AC);
+      case '生活梗':
+        return const Color(0xFF8BC34A);
+      case '歷史梗':
+        return const Color(0xFF61A5F8);
+      case '合唱梗':
+        return const Color(0xFF6D7BE0);
+      case '音準梗':
+        return const Color(0xFF9C27B0);
+      default:
+        return AppColors.dynamicPrimary;
+    }
   }
 }
