@@ -4,7 +4,276 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-12月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年12月7日 (v6.3 冷笑話功能重構 + 雲端同步擴充)
+**最後更新**: 2025年12月8日 (v6.4 音樂術語教學功能 + 計時器停止修復)
+
+---
+
+## 📅 v6.4 音樂術語教學功能 + 計時器停止修復 (2025/12/08)
+
+### 🎯 功能升級與問題修復
+
+#### 1. 冷笑話功能全面改版為「音樂術語冷笑話」
+
+**需求背景**: 用戶希望冷笑話內容與音樂專業術語相關，透過諧音梗、雙關等幽默方式輕鬆學習音樂知識。
+
+**核心改變**:
+
+##### ✅ 內容定位轉變
+- **改版前**: 音樂相關冷笑話（樂器梗、樂團吐槽等純娛樂）
+- **改版後**: 音樂術語教學導向，每則笑話包含專業術語解釋
+
+##### ✅ 笑話內容重構（100 則術語教學笑話）
+
+**檔案**: `lib/services/joke_service.dart`
+
+**內容結構**:
+```dart
+{
+  'setup': '為什麼 Largo 總是遲到？',
+  'punchline': '因為他走得太「緩慢」，連鬧鐘都追不上！',
+  'explain': '🎵 Largo = 極緩板（40-60 BPM）\n義大利文原意「寬廣」，用於音樂表示非常緩慢、莊嚴的速度。',
+  'tag': '速度術語',
+}
+```
+
+**涵蓋術語分類**（13 大類別）:
+1. **速度術語**: Largo、Presto、Andante、Allegro、Adagio
+2. **力度術語**: Piano、Forte、Crescendo、Diminuendo、Fortissimo
+3. **音符時值**: 全音符、十六分音符、附點音符、休止符
+4. **調性術語**: 大調、小調、C 大調、異名同音
+5. **和弦術語**: 三和弦、七和弦、屬和弦、減和弦
+6. **節奏術語**: Syncopation、Rubato、Triplet、拍號
+7. **演奏技巧**: Staccato、Legato、Pizzicato、Tremolo、Glissando
+8. **曲式術語**: Rondo、Sonata、Canon、主題與變奏
+9. **音程術語**: 完全五度、小二度、八度、增四度
+10. **音色術語**: Timbre、Con sordino、Vibrato
+11. **記譜術語**: 五線譜、譜號、小節線、調號
+12. **表情術語**: Dolce、Espressivo、Maestoso、Giocoso
+13. **和聲/對位/裝飾音/風格/進階節奏**等
+
+**範例笑話展示**:
+
+```dart
+// 速度術語
+{
+  'setup': 'Presto 去速食店點餐會怎樣？',
+  'punchline': '店員還沒聽清楚，他已經吃完走人了！',
+  'explain': '🎵 Presto = 急板（168-200 BPM）\n義大利文「快速」之意，是最快的速度記號之一，常用於激昂樂段。',
+  'tag': '速度術語',
+}
+
+// 力度術語
+{
+  'setup': 'Crescendo 去吃到飽，為什麼老闆嚇到？',
+  'punchline': '因為他的食量「漸強」，從一盤變成十盤！',
+  'explain': '🎵 Crescendo (cresc.) = 漸強\n記號 <，表示音量逐漸增強，營造情緒推進感。',
+  'tag': '力度術語',
+}
+
+// 演奏技巧
+{
+  'setup': 'Staccato 說話，為什麼像機關槍？',
+  'punchline': '因為他每個字都「短促斷開」，聽起來像連珠炮！',
+  'explain': '🎵 Staccato = 斷奏\n記號為音符上加點 (•)，演奏時要短促分離，不連貫。',
+  'tag': '演奏技巧',
+}
+
+// 音程術語
+{
+  'setup': '增四度為什麼被稱為「魔鬼音程」？',
+  'punchline': '因為他在中世紀被禁用，據說「會召喚惡魔」！',
+  'explain': '🎵 增四度 (Tritone) = 6 個半音\n如 C-F#，極不協和，中世紀稱"Diabolus in Musica"（音樂中的惡魔）。',
+  'tag': '音程術語',
+}
+```
+
+##### ✅ UI/本地化更新
+
+**檔案**: `lib/l10n/app_localizations.dart`
+
+**繁體中文更新**:
+```dart
+String get settingsJokeTitle => '音樂術語冷笑話';
+String get settingsJokeDesc => '輕鬆學專業術語，附幽默解釋';
+String get jokeDialogTitle => '🎵 音樂術語冷笑話';
+String get jokeDialogSubtitle => '用幽默方式學習音樂專業術語';
+String get jokeDialogExplainTitle => '📚 術語解釋';
+```
+
+**英文更新**:
+```dart
+String get settingsJokeTitle => 'Music Term Jokes';
+String get jokeDialogTitle => '🎵 Music Term Jokes';
+String get jokeDialogSubtitle => 'Learn music terminology with humor';
+String get jokeDialogExplainTitle => '📚 Term Explanation';
+```
+
+**教學效果**:
+- ✅ 用諧音梗、雙關、幽默情境包裝專業術語
+- ✅ 每則笑話包含完整術語定義與音樂知識
+- ✅ 100 則笑話覆蓋初學到進階的重要音樂術語
+- ✅ 洗牌機制確保不重複，可作為長期學習工具
+
+---
+
+#### 2. 計時器停止功能修復
+
+**問題描述**: 
+在首頁計時器卡片點擊暫停按鈕後，雖然計時停止並保存數據，但浮動視窗和通知欄仍顯示「練習暫停」狀態，無法完全關閉。
+
+**問題分析**:
+
+1. **原始行為**:
+   - 用戶點擊暫停 → 調用 `_pauseTimer()`
+   - `_pauseTimer()` 調用 `_timerService.pause()`
+   - 服務進入暫停狀態：`_isRunning = false`，但 `_accumulatedSeconds > 0` 
+   - 根據定義：`isPaused = !_isRunning && _accumulatedSeconds > 0` → `true`
+
+2. **浮動視窗顯示邏輯**:
+   ```dart
+   final shouldShow = (_timerService.isRunning || _timerService.isPaused) && 
+                      _timerService.showFloatingTimer;
+   ```
+   - 因為 `isPaused = true`，浮動視窗繼續顯示「已暫停」狀態
+
+3. **通知欄行為**:
+   - `pause()` 方法會調用 `_showPausedNotification()`
+   - 顯示「⏸️ 練習暫停」通知，且設為 `ongoing: true`（常駐通知）
+
+**用戶期望 vs 實際行為**:
+
+| 操作 | 用戶期望 | 原始行為 | 問題 |
+|------|---------|---------|------|
+| 點擊暫停按鈕 | 完全停止並清除所有 UI | 進入暫停狀態 | ❌ 浮動視窗仍顯示「已暫停」 |
+| 通知欄 | 清除所有通知 | 顯示「練習暫停」通知 | ❌ 通知欄殘留暫停狀態 |
+| 數據保存 | 保存到今日累計 | ✅ 正確保存 | ✅ 正常 |
+
+**解決方案**:
+
+**修改檔案**: `lib/widgets/practice_timer_card.dart`
+
+**修改內容**: 將 `_pauseTimer()` 方法中的 `_timerService.pause()` 改為 `_timerService.reset()`
+
+**修改前**:
+```dart
+Future<void> _pauseTimer() async {
+  // ... 省略前面代碼
+  
+  // 使用全局計時器服務暫停
+  _timerService.pause();  // ❌ 問題：進入暫停狀態
+  
+  // ... 保存數據邏輯
+}
+```
+
+**修改後**:
+```dart
+Future<void> _pauseTimer() async {
+  final l10n = AppLocalizations.of(context);
+  _timer?.cancel();
+
+  final sessionSeconds = _elapsedSeconds - _sessionStartSeconds;
+
+  setState(() {
+    _isRunning = false;
+  });
+
+  // 完全停止計時器（調用 reset 而不是 pause，確保浮動視窗和通知都消失）
+  _timerService.reset();  // ✅ 修復：完全重置狀態
+
+  // 如果本次練習有時長，則保存數據
+  if (sessionSeconds > 0) {
+    final today = _getTodayString();
+    setState(() {
+      _weeklyPracticeData[today] = _elapsedSeconds;
+    });
+    await _savePracticeData();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n?.timerRecordedMessage...),
+          backgroundColor: AppColors.dynamicPrimary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+    debugPrint('本次練習: $sessionSeconds 秒, 今日累計: $_elapsedSeconds 秒');
+  }
+  
+  // 重置本次開始秒數為當前累計
+  _sessionStartSeconds = _elapsedSeconds;
+}
+```
+
+**`reset()` 方法效果**:
+```dart
+void reset() {
+  _stopCountingTimer();         // 停止計時 Timer
+  _stopNotificationUpdates();   // 停止通知更新
+  _cancelNotification();        // ✅ 清除所有通知
+  _isRunning = false;           // ✅ 設為非運行狀態
+  _startTime = null;
+  _accumulatedSeconds = 0;      // ✅ 清空累計秒數（isPaused = false）
+  _backgroundTime = null;
+  _stopRequested = false;
+  _safeNotifyListeners();       // ✅ 通知所有監聽者（包括浮動視窗）
+  debugPrint('⏹️ 計時器已完全重置');
+}
+```
+
+**修復效果**:
+
+| 項目 | 修復前 | 修復後 |
+|------|--------|--------|
+| 點擊暫停按鈕 | 進入暫停狀態 | ✅ 完全停止並重置 |
+| 浮動視窗 | ❌ 顯示「已暫停」 | ✅ 立即消失 |
+| 通知欄 | ❌ 顯示「練習暫停」 | ✅ 清除所有通知 |
+| 數據保存 | ✅ 正常保存 | ✅ 正常保存 |
+| 下次開始 | 從暫停繼續 | ✅ 開始新的計時 session |
+
+**新的使用流程**:
+1. **開始計時** → 顯示浮動視窗 + 通知欄計時
+2. **點擊暫停/停止** → 保存本次練習數據 + 完全清除 UI
+3. **再次點擊開始** → 開始新的計時 session
+
+**技術細節**:
+- 浮動視窗顯示條件：`isRunning || isPaused`
+- `reset()` 後：`isRunning = false` 且 `accumulatedSeconds = 0`
+- 因此 `isPaused = !false && 0 > 0 = false`
+- 浮動視窗判斷：`false || false = false` → 不顯示 ✅
+
+---
+
+### 📊 技術細節總結
+
+#### 變更檔案清單
+
+| 檔案 | 變更類型 | 主要變更 |
+|------|----------|----------|
+| `lib/services/joke_service.dart` | 完全重寫 | 100 則音樂術語教學笑話 |
+| `lib/l10n/app_localizations.dart` | 更新 | 術語冷笑話相關字串（中英文） |
+| `lib/widgets/practice_timer_card.dart` | 修復 | `_pauseTimer()` 改用 `reset()` |
+| `lib/services/practice_timer_service.dart` | 優化 | `reset()` 方法註解完善 |
+
+#### 測試建議
+
+**音樂術語冷笑話測試**:
+1. 開啟設定頁 → 點擊「音樂術語冷笑話」
+2. 連續點擊「再來一個」20+ 次，驗證不重複機制
+3. 展開/收起術語解釋，檢查動畫流暢度
+4. 驗證所有笑話的術語解釋是否完整正確
+5. 測試英文版本的術語解釋是否通順
+
+**計時器停止功能測試**:
+1. 首頁點擊「開始計時」→ 驗證浮動視窗和通知欄出現
+2. 計時 10 秒後點擊「暫停」→ 驗證：
+   - ✅ 浮動視窗立即消失
+   - ✅ 通知欄清空
+   - ✅ 首頁顯示保存成功提示
+   - ✅ 今日累計時長更新
+3. 再次點擊「開始」→ 驗證開始新的計時（從 0 開始）
+4. 測試快速開始/停止多次，確認無狀態殘留
 
 ---
 

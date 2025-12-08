@@ -276,8 +276,8 @@ class AppLocalizations {
   String get settingsNotificationsDesc => '管理應用程式通知';
   String get settingsThemeTitle => '主題設定';
   String get settingsThemeDesc => '選擇應用程式主題顏色';
-  String get settingsJokeTitle => '冷笑話';
-  String get settingsJokeDesc => '超短笑話＋解釋，秒懂梗';
+  String get settingsJokeTitle => '音樂術語冷笑話';
+  String get settingsJokeDesc => '輕鬆學專業術語，附幽默解釋';
   String get settingsAboutTitle => '關於應用程式';
   String get settingsAboutDesc => '版本資訊和開發團隊';
 
@@ -297,12 +297,12 @@ class AppLocalizations {
   String get themeLavender => '櫻雪';
 
   // 冷笑話對話框
-  String get jokeDialogTitle => '冷笑話';
-  String get jokeDialogSubtitle => '附解釋，不怕聽不懂';
+  String get jokeDialogTitle => '音樂術語小教室';
+  String get jokeDialogSubtitle => '用幽默方式學習音樂專業術語';
   String get jokeDialogNext => '再來一個';
   String get jokeDialogClose => '關閉';
   String get jokeDialogLaugh => '😂 哈哈哈';
-  String get jokeDialogExplainTitle => '為什麼好笑／有用';
+  String get jokeDialogExplainTitle => '📚 術語解釋';
   String get jokeDialogShowExplain => '看解釋';
   String get jokeDialogHideExplain => '收起解釋';
 
@@ -1346,9 +1346,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsThemeDesc => 'Choose app theme color';
   @override
-  String get settingsJokeTitle => 'Jokes';
+  String get settingsJokeTitle => 'Music Term Jokes';
   @override
-  String get settingsJokeDesc => 'Short jokes with quick explanations';
+  String get settingsJokeDesc => 'Learn music terms with humor';
   @override
   String get settingsAboutTitle => 'About App';
   @override
@@ -1381,9 +1381,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   // Joke Dialog
   @override
-  String get jokeDialogTitle => 'Joke Time!';
+  String get jokeDialogTitle => '🎵 Music Term Jokes';
   @override
-  String get jokeDialogSubtitle => 'With explanations so it makes sense';
+  String get jokeDialogSubtitle => 'Learn music terminology with humor';
   @override
   String get jokeDialogNext => 'Another one';
   @override
@@ -1391,7 +1391,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get jokeDialogLaugh => '😂 Haha';
   @override
-  String get jokeDialogExplainTitle => 'Why it helps';
+  String get jokeDialogExplainTitle => '📚 Term Explanation';
   @override
   String get jokeDialogShowExplain => 'Show explanation';
   @override

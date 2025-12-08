@@ -90,14 +90,14 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
     if (_timerService.stopRequested && _isRunning) {
       debugPrint('收到停止請求，執行停止操作');
       _timerService.clearStopRequest();
-      _stopAndSaveTimer();  // 使用停止方法而非暫停
+      _stopAndSaveTimer(); // 使用停止方法而非暫停
       return;
     }
-    
+
     // 同步計時器服務的狀態
     if (mounted) {
       final serviceRunning = _timerService.isRunning;
-      
+
       // 如果服務在運行但本地沒有運行，說明是從其他地方恢復的（如浮動視窗按繼續）
       if (serviceRunning && !_isRunning) {
         debugPrint('服務正在運行，恢復本地計時狀態');
@@ -108,11 +108,11 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
           // 恢復計時
           _elapsedSeconds = _sessionStartSeconds + sessionSeconds;
         });
-        
+
         // 啟動本地 UI 更新 Timer
         _startUIUpdateTimer();
       }
-      
+
       // 如果服務已暫停但本地仍在運行，同步暫停本地狀態
       // （例如從浮動視窗按暫停）
       if (!serviceRunning && _timerService.isPaused && _isRunning) {
@@ -132,7 +132,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
         }
         // 不顯示 SnackBar，因為這是從浮動視窗觸發的暫停
       }
-      
+
       // 同步服務的計時到本地顯示
       if (serviceRunning && _isRunning) {
         final sessionSeconds = _timerService.getElapsedSeconds();
@@ -159,16 +159,16 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
         _weeklyPracticeData =
             data.map((key, value) => MapEntry(key, value as int));
       }
-      
+
       final today = _getTodayString();
       final todaySavedSeconds = _weeklyPracticeData[today] ?? 0;
-      
+
       // 檢查計時器服務是否正在運行或暫停
       if (_timerService.isRunning || _timerService.isPaused) {
         // 計時器正在運行/暫停，恢復狀態
         final sessionSeconds = _timerService.getElapsedSeconds();
         final previousSeconds = _timerService.todayPreviousSeconds;
-        
+
         setState(() {
           _sessionStartSeconds = previousSeconds;
           _elapsedSeconds = previousSeconds + sessionSeconds;
@@ -176,13 +176,14 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
           _lastDate = today;
           _isLoading = false;
         });
-        
+
         // 如果正在運行，啟動 UI 更新 Timer
         if (_timerService.isRunning) {
           _startUIUpdateTimer();
         }
-        
-        debugPrint('恢復計時狀態: 本次計時=$sessionSeconds秒, 之前累計=$previousSeconds秒, 總計=$_elapsedSeconds秒');
+
+        debugPrint(
+            '恢復計時狀態: 本次計時=$sessionSeconds秒, 之前累計=$previousSeconds秒, 總計=$_elapsedSeconds秒');
       } else {
         // 計時器未運行，使用已存的數據
         setState(() {
@@ -297,7 +298,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
       }
     });
   }
-  
+
   // 內部開始計時邏輯
   void _startTimerInternal() {
     // 檢查日期是否變化（跨日檢測）
@@ -320,7 +321,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
     // 使用全局計時器服務開始計時
     _timerService.start();
-    
+
     // 設定今日已累計的秒數
     _timerService.setTodayPreviousSeconds(_sessionStartSeconds);
 
@@ -341,8 +342,8 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
       _isRunning = false;
     });
 
-    // 使用全局計時器服務暫停
-    _timerService.pause();
+    // 完全停止計時器（調用 reset 而不是 pause，確保浮動視窗和通知都消失）
+    _timerService.reset();
 
     // 如果本次練習有時長，則保存數據
     if (sessionSeconds > 0) {
@@ -354,13 +355,13 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
       await _savePracticeData();
 
-      // 不再逐條記錄練習會話（已移除曲目追蹤功能）
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                l10n?.timerRecordedMessage.replaceAll('{session}', _formatTime(sessionSeconds)).replaceAll('{total}', _formatTime(_elapsedSeconds)) ?? '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
+            content: Text(l10n?.timerRecordedMessage
+                    .replaceAll('{session}', _formatTime(sessionSeconds))
+                    .replaceAll('{total}', _formatTime(_elapsedSeconds)) ??
+                '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
             backgroundColor: AppColors.dynamicPrimary,
             duration: const Duration(seconds: 2),
           ),
@@ -369,8 +370,11 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
       debugPrint('本次練習: $sessionSeconds 秒, 今日累計: $_elapsedSeconds 秒');
     }
+
+    // 重置本次開始秒數為當前累計（下次開始是新的 session）
+    _sessionStartSeconds = _elapsedSeconds;
   }
-  
+
   // 停止計時並保存（完全結束計時，重置狀態）
   Future<void> _stopAndSaveTimer() async {
     final l10n = AppLocalizations.of(context);
@@ -398,8 +402,10 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                l10n?.timerRecordedMessage.replaceAll('{session}', _formatTime(sessionSeconds)).replaceAll('{total}', _formatTime(_elapsedSeconds)) ?? '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
+            content: Text(l10n?.timerRecordedMessage
+                    .replaceAll('{session}', _formatTime(sessionSeconds))
+                    .replaceAll('{total}', _formatTime(_elapsedSeconds)) ??
+                '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
             backgroundColor: AppColors.dynamicPrimary,
             duration: const Duration(seconds: 2),
           ),
@@ -408,7 +414,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
       debugPrint('停止計時 - 本次練習: $sessionSeconds 秒, 今日累計: $_elapsedSeconds 秒');
     }
-    
+
     // 重置本次開始秒數為當前累計（下次開始是新的 session）
     _sessionStartSeconds = _elapsedSeconds;
   }
@@ -461,7 +467,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    
+
     return Card(
       color: AppColors.dynamicCard,
       elevation: 4,
@@ -528,14 +534,17 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                               fontSize: 40,
                               fontWeight: FontWeight.bold,
                               color: AppColors.dynamicPrimary,
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                              fontFeatures: const [
+                                FontFeature.tabularFigures()
+                              ],
                             ),
                           ),
                           // 顯示練習中標籤
                           if (_isRunning)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppColors.dynamicAccent.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(12),
@@ -575,7 +584,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                         color: _isRunning
                             ? Colors.orange
                             : AppColors.dynamicPrimary,
-                        tooltip: _isRunning ? (l10n?.timerPauseAndSave ?? '暫停並保存') : (l10n?.timerStartTimer ?? '開始計時'),
+                        tooltip: _isRunning
+                            ? (l10n?.timerPauseAndSave ?? '暫停並保存')
+                            : (l10n?.timerStartTimer ?? '開始計時'),
                       ),
                     ],
                   ),
@@ -633,14 +644,14 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildStatItem(
-                          l10n?.timerTrendingUp ?? '本週平均', _getWeekAverage(), Icons.trending_up),
+                      _buildStatItem(l10n?.timerTrendingUp ?? '本週平均',
+                          _getWeekAverage(), Icons.trending_up),
                       Container(
                           width: 1,
                           height: 16,
                           color: AppColors.dynamicTextLight.withOpacity(0.3)),
-                      _buildStatItem(
-                          l10n?.timerCalendarMonth ?? '本月累計', _getMonthTotal(), Icons.calendar_month),
+                      _buildStatItem(l10n?.timerCalendarMonth ?? '本月累計',
+                          _getMonthTotal(), Icons.calendar_month),
                     ],
                   ),
 
@@ -648,9 +659,9 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
 
                   // 長條圖
                   _buildWeeklyChart(),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // 查看詳細報表按鈕
                   Center(
                     child: TextButton.icon(
@@ -768,7 +779,7 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
     // 如果本週還沒有任何天數（理論上不可能），返回0
     final l10n = AppLocalizations.of(context);
     final dayUnit = l10n?.timerDayUnit ?? '/天';
-    
+
     if (daysInWeekSoFar == 0) return '0min$dayUnit';
 
     // 計算平均秒數（除以本週已過天數）
