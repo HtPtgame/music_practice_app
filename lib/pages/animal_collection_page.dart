@@ -1089,8 +1089,8 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
   bool _soundPlayed = false; // 音效是否已播放
   
   void _onAnimationUpdate() {
-    // 當動畫接近 80% 時提前播放音效（在爆破前更早）
-    if (_controller.value > 0.80 && !_soundPlayed) {
+    // 當動畫接近 68% 時提前播放音效（在爆破前更早）
+    if (_controller.value > 0.68 && !_soundPlayed) {
       _soundPlayed = true;
       SoundEffectService().playUnlockSound();
     }

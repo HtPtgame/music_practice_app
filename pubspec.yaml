@@ -72,6 +72,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/ # 宣告整個 assets 資料夾
+    - assets/icon/ # 底部導航欄圖示
+    - assets/animals/ # 動物圖鑑圖片
     - assets/audio/ # 節拍器音效資料夾
     - assets/TimGM6mb.sf2 # SoundFont 檔案
     - assets/unlock.mp3 # 解鎖音效

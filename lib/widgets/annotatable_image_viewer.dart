@@ -57,7 +57,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
       text: existingMarker?.measure?.toString() ?? '',
     );
     Color selectedColor = existingMarker?.color ?? Colors.red;
-    String selectedIcon = existingMarker?.iconPath ?? 'assets/star1.svg'; // 預設為星星1
+    String selectedIcon = existingMarker?.iconPath ?? 'assets/icon/star1.svg'; // 預設為星星1
 
     showDialog(
       context: context,
@@ -96,9 +96,9 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    'assets/star1.svg',
-                    'assets/star2.svg',
-                    'assets/star3.svg',
+                    'assets/icon/star1.svg',
+                    'assets/icon/star2.svg',
+                    'assets/icon/star3.svg',
                   ].map((iconPath) {
                     final isSelected = selectedIcon == iconPath;
                     return GestureDetector(

@@ -18,7 +18,7 @@ class AnnotationMarker {
     this.measure,
     required this.createdAt,
     this.color = Colors.red,
-    this.iconPath = 'assets/star1.svg', // 預設為星星1
+    this.iconPath = 'assets/icon/star1.svg', // 預設為星星1
   });
 
   Map<String, dynamic> toJson() {
@@ -45,7 +45,7 @@ class AnnotationMarker {
       measure: json['measure'] as int?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       color: Color(json['color'] as int),
-      iconPath: json['iconPath'] as String? ?? 'assets/star1.svg', // 向後兼容
+      iconPath: json['iconPath'] as String? ?? 'assets/icon/star1.svg', // 向後兼容
     );
   }
 }
