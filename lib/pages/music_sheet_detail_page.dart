@@ -522,12 +522,14 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildSheetsTab(l10n),
-          _buildNotesTab(l10n),
-        ],
+      body: SafeArea(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildSheetsTab(l10n),
+            _buildNotesTab(l10n),
+          ],
+        ),
       ),
       floatingActionButton: _isSheetEditMode
           ? null

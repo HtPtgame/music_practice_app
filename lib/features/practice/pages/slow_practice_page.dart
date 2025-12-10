@@ -106,15 +106,17 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
             const Text('🏰', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 8),
             Flexible(
-              child: Text(
-                l10n?.slowPracticeTitle ?? '慢練魔法屋',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  color: AppColors.dynamicTextDark, // 使用 App 主題文字色
-                  letterSpacing: 1.2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n?.slowPracticeTitle ?? '慢練魔法屋',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: AppColors.dynamicTextDark,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -132,9 +134,11 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
             ),
         ],
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildBody(l10n),
+      ),
     );
   }
 
@@ -259,7 +263,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                                 ),
                               ),
                               Text(
-                                '跟著步驟一起練習吧！',
+                                l10n?.slowFollowSteps ?? '跟著步驟一起練習吧！',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.dynamicTextLight,
@@ -282,7 +286,8 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                 const SizedBox(height: 20),
                 // 三個步驟的可愛卡片
                 Builder(
-                  builder: (context) {
+                  builder: (innerContext) {
+                    final l10n = AppLocalizations.of(innerContext);
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -316,14 +321,17 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                                   child: Text(stepIcons[i], style: const TextStyle(fontSize: 24)),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  i == 0 ? '設定目標' : (i == 1 ? '慢練偵探' : '最終挑戰'),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.dynamicTextDark,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    i == 0 ? (l10n?.slowPracticeStep1Title ?? '設定目標') : (i == 1 ? (l10n?.slowPracticeStep2Title ?? '慢練偵探') : (l10n?.slowPracticeStep3Title ?? '最終挑戰')),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.dynamicTextDark,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),
@@ -805,7 +813,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                           color: Colors.red.shade400,
                         ),
                         label: Text(
-                          '清除全部',
+                          l10n?.slowPracticeClearAll ?? '清除全部',
                           style: TextStyle(
                             color: Colors.red.shade400,
                             fontWeight: FontWeight.w600,

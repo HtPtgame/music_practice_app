@@ -81,9 +81,10 @@ class _LibraryPageState extends State<LibraryPage> {
         backgroundColor: AppColors.dynamicBackground, // AppBar 背景色與頁面背景色一致
         elevation: 0, // 移除 AppBar 陰影
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ...existing code...
@@ -133,6 +134,7 @@ class _LibraryPageState extends State<LibraryPage> {
               ),
           ],
         ),
+      ),
       ),
       // 在這裡添加 FloatingActionButton
       floatingActionButton: FloatingActionButton(

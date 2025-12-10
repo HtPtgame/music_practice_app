@@ -39,8 +39,9 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
+      body: SafeArea(
+        child: Stack(
+          children: [
           // 全螢幕圖片檢視器
           AnnotatableImageViewer(
             sheet: _currentSheet,
@@ -99,6 +100,7 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

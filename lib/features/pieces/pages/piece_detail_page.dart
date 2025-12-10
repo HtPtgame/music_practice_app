@@ -12,6 +12,62 @@ import 'package:music_practice_app/widgets/drawing_canvas.dart';
 import 'package:music_practice_app/models/sheet_annotation.dart';
 import 'sheet_viewer_page.dart';
 
+/// 以緩存與逾時保護取得圖片尺寸，避免重複解析造成卡頓
+Future<Size?> _resolveImageSizeWithCache(
+  File file,
+  Map<String, Size> cache,
+) async {
+  if (!file.existsSync()) return null;
+
+  final cacheKey = file.path;
+  if (cache.containsKey(cacheKey)) {
+    return cache[cacheKey];
+  }
+
+  try {
+    final completer = Completer<Size?>();
+    final timer = Timer(const Duration(seconds: 5), () {
+      if (!completer.isCompleted) {
+        debugPrint('圖片尺寸解析逾時: ${file.path}');
+        completer.complete(null);
+      }
+    });
+
+    final image = Image.file(
+      file,
+      cacheWidth: 1024, // 降低解碼尺寸減少主執行緒負載
+    ).image;
+
+    image.resolve(const ImageConfiguration()).addListener(
+          ImageStreamListener(
+            (info, _) {
+              if (!completer.isCompleted) {
+                final size = Size(
+                  info.image.width.toDouble(),
+                  info.image.height.toDouble(),
+                );
+                cache[cacheKey] = size;
+                completer.complete(size);
+              }
+            },
+            onError: (exception, stackTrace) {
+              if (!completer.isCompleted) {
+                debugPrint('圖片載入錯誤: $exception');
+                completer.complete(null);
+              }
+            },
+          ),
+        );
+
+    final result = await completer.future;
+    timer.cancel();
+    return result;
+  } catch (e) {
+    debugPrint('獲取圖片尺寸失敗: $e');
+    return null;
+  }
+}
+
 // 練習要點數據模型
 class PracticeNote {
   final int measure;
@@ -79,17 +135,21 @@ class MusicSheetDetailPage extends StatefulWidget {
   State<MusicSheetDetailPage> createState() => _MusicSheetDetailPageState();
 }
 
-class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with SingleTickerProviderStateMixin {
+class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<PracticeNote> _notes;
   late List<AnnotatedSheet> _sheets;
-  
+
   // 電子譜相關狀態
   bool _isSheetEditMode = false;
   final Set<int> _selectedSheetIndices = {};
   final PageController _pageController = PageController();
   int _currentPageIndex = 0;
-  
+
+  // 圖片尺寸緩存，避免重複解析
+  final Map<String, Size> _imageSizeCache = {};
+
   final TextEditingController _measureController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
@@ -100,12 +160,12 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
     _tabController.addListener(() {
       setState(() {}); // 更新 AppBar 標題和按鈕
     });
-    
+
     // 初始化筆記
     _notes = widget.initialNotes.map((noteString) {
       return PracticeNote.fromString(noteString);
     }).toList();
-    
+
     // 初始化電子譜
     _sheets = List.from(widget.initialSheets);
   }
@@ -172,7 +232,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                   decoration: InputDecoration(
                     labelText: l10n?.sheetDetailContent ?? '注意事項',
                     labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                    hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
+                    hintText: l10n?.sheetDetailContentHint ??
+                        '記錄需要注意的地方、技巧要點或練習重點...',
                     hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -414,7 +475,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                   decoration: InputDecoration(
                     labelText: l10n?.sheetDetailContent ?? '注意事項',
                     labelStyle: TextStyle(color: AppColors.dynamicTextDark),
-                    hintText: l10n?.sheetDetailContentHint ?? '記錄需要注意的地方、技巧要點或練習重點...',
+                    hintText: l10n?.sheetDetailContentHint ??
+                        '記錄需要注意的地方、技巧要點或練習重點...',
                     hintStyle: TextStyle(color: AppColors.dynamicTextLight),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -476,7 +538,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final isSheetTab = _tabController.index == 0;
-    
+
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
@@ -508,26 +570,33 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             TextButton(
               onPressed: _toggleSheetEditMode,
               child: Text(
-                _isSheetEditMode ? (l10n?.notePageCancel ?? '取消') : (l10n?.notePageEdit ?? '編輯'),
+                _isSheetEditMode
+                    ? (l10n?.notePageCancel ?? '取消')
+                    : (l10n?.notePageEdit ?? '編輯'),
                 style: TextStyle(
-                  color: _isSheetEditMode ? Colors.red : AppColors.dynamicPrimary,
+                  color:
+                      _isSheetEditMode ? Colors.red : AppColors.dynamicPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-          if (isSheetTab && _isSheetEditMode && _selectedSheetIndices.isNotEmpty)
+          if (isSheetTab &&
+              _isSheetEditMode &&
+              _selectedSheetIndices.isNotEmpty)
             IconButton(
               onPressed: _deleteSelectedAnnotatedSheets,
               icon: const Icon(Icons.delete, color: Colors.red),
             ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildSheetsTab(l10n),
-          _buildNotesTab(l10n),
-        ],
+      body: SafeArea(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildSheetsTab(l10n),
+            _buildNotesTab(l10n),
+          ],
+        ),
       ),
       floatingActionButton: _isSheetEditMode
           ? null
@@ -582,7 +651,6 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
               ),
             ),
           if (_notes.isEmpty) const SizedBox(height: 20),
-
           Expanded(
             child: _notes.isEmpty
                 ? Center(
@@ -592,8 +660,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                         Icon(
                           Icons.music_note_outlined,
                           size: 80,
-                          color: AppColors.dynamicTextLight
-                              .withValues(alpha: 0.5),
+                          color:
+                              AppColors.dynamicTextLight.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 16),
                         FittedBox(
@@ -619,8 +687,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: AppColors.dynamicPrimary
-                                .withValues(alpha: 0.1),
+                            backgroundColor:
+                                AppColors.dynamicPrimary.withValues(alpha: 0.1),
                             child: Text(
                               '${_notes[index].measure}',
                               style: TextStyle(
@@ -637,8 +705,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                               fontSize: 16,
                             ),
                           ),
-                          subtitle: _notes[index].drawing?.isNotEmpty ==
-                                  true
+                          subtitle: _notes[index].drawing?.isNotEmpty == true
                               ? Row(
                                   children: [
                                     Icon(Icons.brush,
@@ -647,7 +714,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                                     const SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
-                                        l10n?.sheetDetailDrawingIncluded ?? '包含音樂畫面',
+                                        l10n?.sheetDetailDrawingIncluded ??
+                                            '包含音樂畫面',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: AppColors.dynamicPrimary,
@@ -665,13 +733,13 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                                 icon: Icon(
                                   Icons.brush_outlined,
                                   color:
-                                      _notes[index].drawing?.isNotEmpty ==
-                                              true
+                                      _notes[index].drawing?.isNotEmpty == true
                                           ? AppColors.dynamicPrimary
                                           : Colors.grey,
                                 ),
                                 onPressed: () => _showDrawingDialog(index),
-                                tooltip: l10n?.sheetDetailDrawingEdit ?? '編輯音樂畫面',
+                                tooltip:
+                                    l10n?.sheetDetailDrawingEdit ?? '編輯音樂畫面',
                               ),
                               IconButton(
                                 icon: Icon(Icons.edit_outlined,
@@ -740,176 +808,15 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
           itemCount: _sheets.length,
           itemBuilder: (context, index) {
             final sheet = _sheets[index];
-            final file = File(sheet.filePath);
-            
-            return GestureDetector(
+
+            return _SheetImageViewer(
+              key: ValueKey(sheet.sheetId),
+              sheet: sheet,
+              isEditMode: _isSheetEditMode,
+              isSelected: _selectedSheetIndices.contains(index),
+              imageSizeCache: _imageSizeCache,
               onTap: () => _openSheet(sheet),
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // 使用 FutureBuilder 來獲取圖片實際尺寸
-                      return FutureBuilder<Size?>(
-                        future: _getImageSize(file),
-                        builder: (context, snapshot) {
-                          final containerWidth = constraints.maxWidth;
-                          final containerHeight = constraints.maxHeight;
-                          
-                          // 計算圖片實際顯示區域
-                          double imageDisplayWidth = containerWidth;
-                          double imageDisplayHeight = containerHeight;
-                          double offsetX = 0;
-                          double offsetY = 0;
-                          
-                          if (snapshot.hasData && snapshot.data != null) {
-                            final imageSize = snapshot.data!;
-                            final widthRatio = containerWidth / imageSize.width;
-                            final heightRatio = containerHeight / imageSize.height;
-                            final scale = widthRatio < heightRatio ? widthRatio : heightRatio;
-                            
-                            imageDisplayWidth = imageSize.width * scale;
-                            imageDisplayHeight = imageSize.height * scale;
-                            
-                            // 計算圖片居中後的偏移
-                            offsetX = (containerWidth - imageDisplayWidth) / 2;
-                            offsetY = (containerHeight - imageDisplayHeight) / 2;
-                          }
-                          
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              file.existsSync()
-                                  ? Image.file(
-                                      file,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.broken_image, size: 64, color: Colors.grey[400]),
-                                              const SizedBox(height: 8),
-                                              Text('無法載入圖片', style: TextStyle(color: Colors.grey[600])),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.image_not_supported, size: 64, color: Colors.grey[400]),
-                                          const SizedBox(height: 8),
-                                          Text('檔案不存在', style: TextStyle(color: Colors.grey[600])),
-                                        ],
-                                      ),
-                                    ),
-                              // 在預覽中顯示星星標記（只讀）
-                              if (snapshot.hasData)
-                                ...sheet.markers.map((marker) {
-                                  return Positioned(
-                                    left: offsetX + marker.position.dx * imageDisplayWidth - 10,
-                                    top: offsetY + marker.position.dy * imageDisplayHeight - 10,
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: SvgPicture.asset(
-                                        marker.iconPath,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              // 編輯模式時顯示勾選框
-                          if (_isSheetEditMode)
-                            Positioned(
-                              top: 16,
-                              right: 16,
-                              child: GestureDetector(
-                                onTap: () => _toggleSheetSelection(index),
-                                child: Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: _selectedSheetIndices.contains(index)
-                                        ? AppColors.dynamicPrimary
-                                        : Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: _selectedSheetIndices.contains(index)
-                                          ? AppColors.dynamicPrimary
-                                          : Colors.grey,
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  child: _selectedSheetIndices.contains(index)
-                                      ? const Icon(Icons.check, size: 20, color: Colors.white)
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          // 標記數量提示
-                          if (!_isSheetEditMode && sheet.markers.isNotEmpty)
-                            Positioned(
-                              top: 16,
-                              right: 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.dynamicPrimary,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.bookmark, size: 14, color: Colors.white),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${sheet.markers.length}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
+              onToggleSelection: () => _toggleSheetSelection(index),
             );
           },
         ),
@@ -921,7 +828,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(16),
@@ -942,32 +850,12 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
 
   // --- 電子譜相關方法 ---
 
-  // 獲取圖片尺寸
-  Future<Size?> _getImageSize(File file) async {
-    if (!file.existsSync()) return null;
-    try {
-      final image = Image.file(file);
-      final completer = Completer<Size>();
-      image.image.resolve(const ImageConfiguration()).addListener(
-        ImageStreamListener((ImageInfo info, bool _) {
-          completer.complete(Size(
-            info.image.width.toDouble(),
-            info.image.height.toDouble(),
-          ));
-        }),
-      );
-      return completer.future;
-    } catch (e) {
-      return null;
-    }
-  }
-
   Future<void> _pickAndAddSheet() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png'],
-        allowMultiple: true,  // 支援多張照片匯入
+        allowMultiple: true, // 支援多張照片匯入
       );
 
       if (result == null || result.files.isEmpty) return;
@@ -1013,7 +901,9 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
       if (mounted) {
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n?.sheetAnnotationImportFailed ?? '匯入失敗'}: $e')),
+          SnackBar(
+              content:
+                  Text('${l10n?.sheetAnnotationImportFailed ?? '匯入失敗'}: $e')),
         );
       }
     }
@@ -1044,7 +934,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n?.sheetAnnotationConfirmDelete ?? '確認刪除'),
-        content: Text('${l10n?.sheetAnnotationConfirmDeleteMultiple ?? '確定要刪除選中的'} ${_selectedSheetIndices.length} ${l10n?.sheetAnnotationDeletedSuffix ?? '個譜面'}？'),
+        content: Text(
+            '${l10n?.sheetAnnotationConfirmDeleteMultiple ?? '確定要刪除選中的'} ${_selectedSheetIndices.length} ${l10n?.sheetAnnotationDeletedSuffix ?? '個譜面'}？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1084,14 +975,18 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
       if (mounted) {
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n?.sheetAnnotationDeletedMultiple ?? '已刪除'} ${indicesToDelete.length} ${l10n?.sheetAnnotationDeletedSuffix ?? '個譜面'}')),
+          SnackBar(
+              content: Text(
+                  '${l10n?.sheetAnnotationDeletedMultiple ?? '已刪除'} ${indicesToDelete.length} ${l10n?.sheetAnnotationDeletedSuffix ?? '個譜面'}')),
         );
       }
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n?.sheetAnnotationDeleteFailed ?? '刪除失敗'}: $e')),
+          SnackBar(
+              content:
+                  Text('${l10n?.sheetAnnotationDeleteFailed ?? '刪除失敗'}: $e')),
         );
       }
     }
@@ -1109,7 +1004,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                 _sheets[index] = updatedSheet;
               });
               widget.onSheetsChanged(_sheets);
-              
+
               // 將有小節數的標記統整到練習筆記
               _syncMarkersToNotes(updatedSheet);
             }
@@ -1118,18 +1013,19 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
       ),
     );
   }
-  
+
   /// 將電子譜標記統整到練習筆記
   void _syncMarkersToNotes(AnnotatedSheet sheet) {
     bool hasNewNotes = false;
-    
+
     for (final marker in sheet.markers) {
       if (marker.measure != null && marker.note.isNotEmpty) {
         // 檢查是否已經有相同小節+內容的筆記
         final existingIndex = _notes.indexWhere(
-          (note) => note.measure == marker.measure && note.content == marker.note,
+          (note) =>
+              note.measure == marker.measure && note.content == marker.note,
         );
-        
+
         if (existingIndex == -1) {
           // 不存在相同的筆記，新增
           _notes.add(PracticeNote(
@@ -1140,13 +1036,231 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
         }
       }
     }
-    
+
     if (hasNewNotes) {
       // 按小節數排序
       _notes.sort((a, b) => a.measure.compareTo(b.measure));
-      
+
       setState(() {});
       widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
     }
+  }
+}
+
+/// 優化的圖片查看器 Widget，避免重複構建和圖片解析
+class _SheetImageViewer extends StatefulWidget {
+  final AnnotatedSheet sheet;
+  final bool isEditMode;
+  final bool isSelected;
+  final Map<String, Size> imageSizeCache;
+  final VoidCallback onTap;
+  final VoidCallback onToggleSelection;
+
+  const _SheetImageViewer({
+    super.key,
+    required this.sheet,
+    required this.isEditMode,
+    required this.isSelected,
+    required this.imageSizeCache,
+    required this.onTap,
+    required this.onToggleSelection,
+  });
+
+  @override
+  State<_SheetImageViewer> createState() => _SheetImageViewerState();
+}
+
+class _SheetImageViewerState extends State<_SheetImageViewer>
+    with AutomaticKeepAliveClientMixin {
+  Size? _imageSize;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImageSize();
+  }
+
+  Future<void> _loadImageSize() async {
+    final file = File(widget.sheet.filePath);
+
+    if (!file.existsSync()) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final size = await _resolveImageSizeWithCache(
+      file,
+      widget.imageSizeCache,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _imageSize = size;
+      _isLoading = false;
+      _hasError = size == null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // 必須調用以支持 AutomaticKeepAliveClientMixin
+
+    final file = File(widget.sheet.filePath);
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: _isLoading
+              ? Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.dynamicPrimary,
+                  ),
+                )
+              : _hasError || !file.existsSync()
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image,
+                              size: 64, color: Colors.grey[400]),
+                          const SizedBox(height: 8),
+                          Text('無法載入圖片',
+                              style: TextStyle(color: Colors.grey[600])),
+                        ],
+                      ),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final containerWidth = constraints.maxWidth;
+                        final containerHeight = constraints.maxHeight;
+
+                        double imageDisplayWidth = containerWidth;
+                        double imageDisplayHeight = containerHeight;
+                        double offsetX = 0;
+                        double offsetY = 0;
+
+                        if (_imageSize != null) {
+                          final widthRatio = containerWidth / _imageSize!.width;
+                          final heightRatio =
+                              containerHeight / _imageSize!.height;
+                          final scale = widthRatio < heightRatio
+                              ? widthRatio
+                              : heightRatio;
+
+                          imageDisplayWidth = _imageSize!.width * scale;
+                          imageDisplayHeight = _imageSize!.height * scale;
+
+                          offsetX = (containerWidth - imageDisplayWidth) / 2;
+                          offsetY = (containerHeight - imageDisplayHeight) / 2;
+                        }
+
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.file(
+                              file,
+                              fit: BoxFit.contain,
+                              cacheWidth: 1024, // 限制緩存大小以節省記憶體
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.broken_image,
+                                          size: 64, color: Colors.grey[400]),
+                                      const SizedBox(height: 8),
+                                      Text('圖片載入失敗',
+                                          style: TextStyle(
+                                              color: Colors.grey[600])),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                            // 顯示標記 - 使用 RepaintBoundary 隔離重繪
+                            if (_imageSize != null)
+                              ...widget.sheet.markers.map((marker) {
+                                return Positioned(
+                                  left: offsetX +
+                                      marker.position.dx * imageDisplayWidth -
+                                      10,
+                                  top: offsetY +
+                                      marker.position.dy * imageDisplayHeight -
+                                      10,
+                                  child: RepaintBoundary(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: SvgPicture.asset(
+                                        marker.iconPath,
+                                        fit: BoxFit.contain,
+                                        placeholderBuilder: (_) =>
+                                            const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            // 編輯模式勾選框
+                            if (widget.isEditMode)
+                              Positioned(
+                                top: 16,
+                                right: 16,
+                                child: GestureDetector(
+                                  onTap: widget.onToggleSelection,
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: widget.isSelected
+                                          ? AppColors.dynamicPrimary
+                                          : Colors.white,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: widget.isSelected
+                                            ? AppColors.dynamicPrimary
+                                            : Colors.grey,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: widget.isSelected
+                                        ? const Icon(
+                                            Icons.check,
+                                            size: 18,
+                                            color: Colors.white,
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+        ),
+      ),
+    );
   }
 }

@@ -325,7 +325,8 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
             ),
         ],
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _sheets.isEmpty
               ? Center(
@@ -548,6 +549,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                     );
                   },
                 ),
+      ),
       floatingActionButton: _isEditMode
           ? null
           : FloatingActionButton(

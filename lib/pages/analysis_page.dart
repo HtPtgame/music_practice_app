@@ -22,7 +22,8 @@ class AnalysisPage extends StatelessWidget {
             ),
           ),
           automaticallyImplyLeading: false),
-      body: Padding(
+      body: SafeArea(
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
@@ -105,6 +106,7 @@ class AnalysisPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

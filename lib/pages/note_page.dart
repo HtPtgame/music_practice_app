@@ -327,7 +327,9 @@ class _NotePageState extends State<NotePage> {
             ),
         ],
       ),
-      body: _buildMusicSheetsList(l10n),
+      body: SafeArea(
+        child: _buildMusicSheetsList(l10n),
+      ),
       floatingActionButton: _isNoteEditMode
           ? null
           : FloatingActionButton(

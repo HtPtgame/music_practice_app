@@ -2619,7 +2619,7 @@ class _PracticePageState extends State<PracticePage> {
                           const SizedBox(width: 8),
                           FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text(_isRecordMode ? '錄音控制' : '上傳音檔',
+                            child: Text(_isRecordMode ? (l10n?.practiceRecordControl ?? '錄音控制') : (l10n?.practiceUploadAudio ?? '上傳音檔'),
                                 style: const TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
@@ -2663,7 +2663,7 @@ class _PracticePageState extends State<PracticePage> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '錄音',
+                                        l10n?.practiceRecordMode ?? '錄音',
                                         style: TextStyle(
                                           color: _isRecordMode ? Colors.white : Colors.grey[700],
                                           fontWeight: _isRecordMode ? FontWeight.bold : FontWeight.normal,
@@ -2700,7 +2700,7 @@ class _PracticePageState extends State<PracticePage> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '上傳',
+                                        l10n?.practiceUploadMode ?? '上傳',
                                         style: TextStyle(
                                           color: !_isRecordMode ? Colors.white : Colors.grey[700],
                                           fontWeight: !_isRecordMode ? FontWeight.bold : FontWeight.normal,
@@ -2783,7 +2783,7 @@ class _PracticePageState extends State<PracticePage> {
                                   : Icons.fiber_manual_record),
                               label: Text(isRecording
                                   ? (l10n?.practiceStopRecord ?? '停止')
-                                  : (_audioPath != null ? '重新錄音' : (l10n?.practiceRecord ?? '開始錄音'))),
+                                  : (_audioPath != null ? (l10n?.practiceRerecord ?? '重新錄音') : (l10n?.practiceRecord ?? '開始錄音'))),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
                                     isRecording ? Colors.grey : Colors.red,
@@ -2806,8 +2806,8 @@ class _PracticePageState extends State<PracticePage> {
                             const SizedBox(height: 12),
                             Text(
                               _audioPath != null 
-                                  ? '已上傳檔案' 
-                                  : '請選擇 WAV 檔案',
+                                  ? (l10n?.practiceFileUploaded ?? '已上傳檔案') 
+                                  : (l10n?.practiceSelectWavFile ?? '請選擇 WAV 檔案'),
                               style: TextStyle(
                                 fontSize: 16,
                                 color: _audioPath != null ? Colors.green : Colors.grey,
@@ -2827,7 +2827,7 @@ class _PracticePageState extends State<PracticePage> {
                             ElevatedButton.icon(
                               onPressed: uploadWavFile,
                               icon: const Icon(Icons.upload_file),
-                              label: Text(_audioPath != null ? '重新上傳' : '選擇檔案'),
+                              label: Text(_audioPath != null ? (l10n?.practiceReupload ?? '重新上傳') : (l10n?.practiceSelectFile2 ?? '選擇檔案')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.dynamicPrimary,
                                 foregroundColor: Colors.white,
@@ -2859,7 +2859,7 @@ class _PracticePageState extends State<PracticePage> {
                           const SizedBox(width: 8),
                           FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text(l10n?.practicePlayback ?? '播放控制',
+                            child: Text(l10n?.practicePlaybackControl ?? '播放控制',
                                 style: const TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
@@ -2920,8 +2920,8 @@ class _PracticePageState extends State<PracticePage> {
                             ),
                             label: Text(
                               isPlaying 
-                                  ? (_isPaused ? '繼續' : '暫停')
-                                  : '播放錄音'
+                                  ? (_isPaused ? (l10n?.practiceResume ?? '繼續') : (l10n?.practicePause ?? '暫停'))
+                                  : (l10n?.practicePlayRecording ?? '播放錄音')
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isPlaying ? Colors.orange : Colors.green,
@@ -2936,7 +2936,7 @@ class _PracticePageState extends State<PracticePage> {
                             ElevatedButton.icon(
                               onPressed: stopPlaying,
                               icon: const Icon(Icons.stop),
-                              label: const Text('停止'),
+                              label: Text(l10n?.practiceStopPlayback2 ?? '停止'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                                 foregroundColor: Colors.white,
@@ -3134,11 +3134,12 @@ class _PracticePageState extends State<PracticePage> {
   }
 
   String _getAnalysisPhaseDescription(double progress) {
-    if (progress < 0.2) return '正在解析 MIDI 標準答案...';
-    if (progress < 0.6) return '正在分析音訊頻譜...';
-    if (progress < 0.8) return '正在驗證音符準確性...';
-    if (progress < 1.0) return '正在分類錯誤類型...';
-    return '分析完成!';
+    final l10n = AppLocalizations.of(context);
+    if (progress < 0.2) return l10n?.practiceAnalysisPhase1 ?? '正在解析 MIDI 標準答案...';
+    if (progress < 0.6) return l10n?.practiceAnalysisPhase2 ?? '正在分析音訊頻譜...';
+    if (progress < 0.8) return l10n?.practiceAnalysisPhase3 ?? '正在驗證音符準確性...';
+    if (progress < 1.0) return l10n?.practiceAnalysisPhase4 ?? '正在分類錯誤類型...';
+    return l10n?.practiceAnalysisPhase5 ?? '分析完成!';
   }
 
   Widget _buildAnalysisProgressDialog() {

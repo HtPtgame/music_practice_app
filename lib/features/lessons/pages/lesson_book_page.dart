@@ -167,7 +167,8 @@ class _LessonBookPageState extends State<LessonBookPage> {
         elevation: 0,
       ),
       backgroundColor: AppColors.dynamicBackground,
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListenableBuilder(
               listenable: _lessonService,
@@ -179,6 +180,7 @@ class _LessonBookPageState extends State<LessonBookPage> {
                 return _buildRecordsList(records);
               },
             ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddRecordDialog(),
         backgroundColor: AppColors.dynamicPrimary,

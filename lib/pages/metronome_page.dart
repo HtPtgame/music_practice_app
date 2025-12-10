@@ -213,13 +213,24 @@ class _MetronomePageState extends State<MetronomePage>
 
   void _playBeatSound(bool isAccent) {
     if (!_soundEnabled || !_audioPlayerReady || _normalBeepBuffer == null) return;
-    final buffer = isAccent ? _accentBeepBuffer! : _normalBeepBuffer!;
-    _audioPlayer!.startPlayer(
-      fromDataBuffer: buffer,
-      codec: Codec.pcm16WAV,
-      sampleRate: 44100,
-      whenFinished: () {},
-    ).catchError((e) => null);
+    
+    // 選擇音效 buffer (如果 accent buffer 不存在則使用 normal)
+    final buffer = (isAccent && _accentBeepBuffer != null) 
+        ? _accentBeepBuffer! 
+        : _normalBeepBuffer!;
+    
+    // 在播放前設定音量
+    _audioPlayer!.setVolume(_cachedVolume).then((_) {
+      return _audioPlayer!.startPlayer(
+        fromDataBuffer: buffer,
+        codec: Codec.pcm16WAV,
+        sampleRate: 44100,
+        whenFinished: () {},
+      );
+    }).catchError((e) {
+      debugPrint('❌ 節拍器播放失敗: $e');
+      return null;
+    });
   }
 
   void _changeBPM(int delta) {
@@ -372,9 +383,12 @@ class _MetronomePageState extends State<MetronomePage>
                                 '$_bpm',
                                 style: TextStyle(fontSize: 64, fontWeight: FontWeight.w700, color: AppColors.dynamicPrimary, height: 1.0),
                               ),
-                              Text(
-                                'BPM (點擊輸入)',
-                                style: TextStyle(fontSize: 12, color: AppColors.dynamicTextLight),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  l10n?.metronomeBpmClickInput ?? 'BPM (點擊輸入)',
+                                  style: TextStyle(fontSize: 12, color: AppColors.dynamicTextLight),
+                                ),
                               ),
                             ],
                           ),
@@ -781,9 +795,10 @@ class _BPMInputPageState extends State<_BPMInputPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.4),
-      body: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: Center(
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Center(
           child: GestureDetector(
             onTap: () {}, 
             child: Container(
@@ -828,7 +843,10 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text("確定", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        AppLocalizations.of(context)?.metronomeConfirm ?? "確認",
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                      ),
                     ),
                   )
                 ],
@@ -836,6 +854,7 @@ class _BPMInputPageState extends State<_BPMInputPage> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

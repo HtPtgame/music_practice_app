@@ -300,24 +300,55 @@ class AnalysisReport {
     return 'F'; // <55%
   }
 
-  /// 是否可能在亂彈 - 優化 2025/11/27
+  /// 是否為亂彈 - v5.0 優化判定邏輯 2025/12/10
   ///
-  /// 判斷標準（更嚴格，避免誤判）:
-  /// - Precision < 0.3: 大部分檢測為誤報
-  /// - 且 False Positive Rate > 0.7: 超過70%的檢測是錯的
-  /// - 且 F1 Score < 0.3: 綜合評分極低
+  /// 判斷標準（多層級檢測，更精確）:
+  /// 1. 極端亂彈: Precision < 0.2 && FP Rate > 1.0 && F1 < 0.25
+  /// 2. 嚴重亂彈: Precision < 0.3 && FP Rate > 0.7 && F1 < 0.3
+  /// 3. 中度亂彈: Precision < 0.4 && FP Rate > 0.5 && F1 < 0.4 && 覆蓋率 < 0.4
   bool get isProbablyRandomPlaying {
-    return precision < 0.3 && falsePositiveRate > 0.7 && f1Score < 0.3;
+    // 極端亂彈：檢測音符比期望多，且準確率極低
+    if (precision < 0.2 && falsePositiveRate > 1.0 && f1Score < 0.25) {
+      return true;
+    }
+    
+    // 嚴重亂彈：大量誤報
+    if (precision < 0.3 && falsePositiveRate > 0.7 && f1Score < 0.3) {
+      return true;
+    }
+    
+    // 中度亂彈：結合覆蓋率判斷（可能是環境噪音）
+    if (precision < 0.4 && falsePositiveRate > 0.5 && 
+        f1Score < 0.4 && coverageRate < 0.4) {
+      return true;
+    }
+    
+    return false;
   }
 
-  /// 是否為錯誤曲目 - 優化 2025/11/27
+  /// 是否為錯誤曲目 - v5.0 優化判定邏輯 2025/12/10
   ///
-  /// 判斷標準（更嚴格，避免誤判）:
-  /// - F1 Score < 0.15: 幾乎完全不匹配（從0.2降至0.15）
-  /// - 且 Recall < 0.2: 期望音符幾乎全部未檢出（從0.3降至0.2）
-  /// - 且 Accuracy < 0.3: 準確率極低
+  /// 判斷標準（避免與短錄音混淆）:
+  /// 1. 時長匹配但內容錯誤: F1 < 0.15 && Recall < 0.2 && 時長比 > 0.7
+  /// 2. 時長和內容都不匹配: F1 < 0.2 && Recall < 0.25 && 時長比 < 0.5
   bool get isProbablyWrongSong {
-    return f1Score < 0.15 && recall < 0.2 && accuracy < 0.3;
+    final durationOk = timelineAnalysis != null && 
+                       timelineAnalysis!.durationRatio > 0.7;
+    
+    // 時長匹配但內容完全不對 → 錯誤曲目
+    if (f1Score < 0.15 && recall < 0.2 && durationOk) {
+      return true;
+    }
+    
+    // 時長和內容都不對，且不是單純的短錄音
+    if (f1Score < 0.2 && recall < 0.25 && 
+        timelineAnalysis != null && 
+        timelineAnalysis!.durationRatio < 0.5 &&
+        accuracy < 0.3) {
+      return true;
+    }
+    
+    return false;
   }
 
   /// 錯誤分布 (用於圖表)
@@ -405,12 +436,20 @@ class AnalysisReport {
     return sb.toString();
   }
 
-  /// 生成建議 (已優化 - 2025/10/25)
+  /// 生成建議 - v5.0 全面優化 2025/12/10
+  ///
+  /// 優化重點:
+  /// 1. 分層次判定：極端問題 → 嚴重問題 → 一般問題 → 優點
+  /// 2. 避免重複提示：高分時只顯示正面評價
+  /// 3. 具體化建議：根據錯誤類型給出針對性建議
+  /// 4. 智能門檻：根據總分動態調整提示門檻
   List<String> generateSuggestions(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final suggestions = <String>[];
 
-    // 新增: 亂彈檢測
+    // === 第一層：致命問題檢測 ===
+    
+    // 1. 亂彈檢測（最高優先級）
     if (isProbablyRandomPlaying) {
       suggestions.add(l10n?.suggestionRandomPlaying ?? '🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:');
       suggestions.add(l10n?.suggestionCheckCorrectFile ?? '   1. 是否選擇了正確的 MIDI 檔案');
@@ -419,63 +458,159 @@ class AnalysisReport {
       return suggestions; // 直接返回,不提供其他建議
     }
 
-    // 新增: 錯誤曲目檢測
+    // 2. 錯誤曲目檢測
     if (isProbablyWrongSong) {
       suggestions.add(l10n?.suggestionWrongSong ?? '❌ 演奏內容與指定曲目嚴重不符!');
       suggestions.add(l10n?.suggestionConfirmCorrectSong ?? '   請確認是否演奏了正確的曲目');
       return suggestions;
     }
 
-    // 音準建議 (v4.8 優化 - 高分時只顯示正面評價)
+    // 3. 錄音過短檢測（新增）
+    if (timelineAnalysis != null && timelineAnalysis!.durationRatio < 0.3) {
+      suggestions.add('⏱️ 錄音時長過短 (僅 ${(timelineAnalysis!.durationRatio * 100).toStringAsFixed(0)}%)');
+      suggestions.add('   建議完整演奏整首曲目後再進行分析');
+      if (overallScore < 60) {
+        return suggestions; // 短錄音且分數低，不提供其他建議
+      }
+    }
+
+    // === 第二層：高分表揚（90分以上） ===
+    
     if (overallScore >= 90) {
-      // 高分時直接顯示優秀評價
-      if (f1Score >= 0.95) {
+      // 完美演奏
+      if (f1Score >= 0.95 && rhythmScore >= 95) {
         suggestions.add(l10n?.suggestionPitchPerfect ?? '🌟 音準表現完美!');
+        suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
+        suggestions.add('🎉 這是一次出色的演奏，繼續保持！');
+      }
+      // 優秀演奏
+      else if (f1Score >= 0.9 && rhythmScore >= 90) {
+        suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
+        suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
+      }
+      // 良好演奏（給出小建議）
+      else {
+        if (f1Score >= 0.85) {
+          suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
+        }
+        if (rhythmScore >= 85) {
+          suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
+        }
+        // 給出細微改進建議
+        if (earlyNotes > totalNotes * 0.05) {
+          suggestions.add('💡 小提示：有輕微搶拍傾向，可以再放鬆一點');
+        } else if (lateNotes > totalNotes * 0.05) {
+          suggestions.add('💡 小提示：節奏可以再緊湊一些');
+        }
+      }
+      return suggestions;
+    }
+
+    // === 第三層：中等分數建議（75-89分） ===
+    
+    if (overallScore >= 75) {
+      suggestions.add('👍 整體表現良好，以下是改進建議：');
+      
+      // 音準建議
+      if (f1Score < 0.8) {
+        suggestions.add(l10n?.suggestionPitchBasic ?? '🎵 音準基本正確,但仍有進步空間');
+        if (missedNotes > totalNotes * 0.1) {
+          suggestions.add('   - 有 $missedNotes 個漏音，注意手指按鍵力度');
+        }
+        if (falsePositives > totalNotes * 0.1) {
+          suggestions.add('   - 有 $falsePositives 個多餘音符，注意手指位置');
+        }
       } else {
         suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
       }
-    } else if (f1Score < 0.6) {
+      
+      // 節奏建議
+      if (rhythmScore < 80) {
+        suggestions.add(l10n?.suggestionRhythmBasic ?? '🎼 節奏基本穩定,可以嘗試稍微提高速度');
+        if (earlyNotes > lateNotes * 1.5) {
+          suggestions.add('   - 注意不要太急，保持穩定的節奏');
+        } else if (lateNotes > earlyNotes * 1.5) {
+          suggestions.add('   - 節奏可以再積極一些，避免拖拍');
+        }
+      }
+      
+      return suggestions;
+    }
+
+    // === 第四層：需要改進（60-74分） ===
+    
+    if (overallScore >= 60) {
+      suggestions.add('📝 發現一些需要改進的地方：');
+      
+      // 音準問題分析
+      if (f1Score < 0.6) {
+        suggestions.add(l10n?.suggestionPitchNeedsPractice ?? '🎹 音準需要加強練習,建議放慢速度逐個音符確認');
+      } else if (f1Score < 0.75) {
+        suggestions.add(l10n?.suggestionPitchBasic ?? '🎵 音準基本正確,但仍有進步空間');
+      }
+      
+      // 具體錯誤分析
+      if (missedNotes > totalNotes * 0.15) {
+        suggestions.add(l10n?.suggestionSomeMissed(missedNotes) ?? '⚠️ 有少量漏音 ($missedNotes個),請檢查按鍵力度');
+        suggestions.add('   - 確保每個音符都完全按下');
+        suggestions.add('   - 可以嘗試在安靜環境下重新錄音');
+      }
+      
+      if (falsePositives > totalNotes * 0.15) {
+        suggestions.add('⚠️ 檢測到 $falsePositives 個多餘音符');
+        suggestions.add('   - 注意手指不要誤觸其他琴鍵');
+        suggestions.add('   - 確保手指準確按在正確位置');
+      }
+      
+      // 節奏問題分析
+      if (rhythmScore < 70) {
+        suggestions.add(l10n?.suggestionRhythmUnstable ?? '⏱️ 節奏不穩定,建議使用節拍器練習');
+        if (earlyNotes + lateNotes > totalNotes * 0.2) {
+          suggestions.add('   - 時間偏差較大的音符有 ${earlyNotes + lateNotes} 個');
+        }
+      }
+      
+      return suggestions;
+    }
+
+    // === 第五層：嚴重問題（< 60分） ===
+    
+    suggestions.add('⚠️ 演奏需要較多改進，以下是重點建議：');
+    
+    // 覆蓋率問題
+    if (coverageRate < 0.5) {
+      suggestions.add('📊 音符覆蓋率較低 (${(coverageRate * 100).toStringAsFixed(0)}%)');
+      suggestions.add('   建議：');
+      suggestions.add('   1. 確保完整演奏整首曲目');
+      suggestions.add('   2. 檢查是否選擇了正確的 MIDI 檔案');
+      suggestions.add('   3. 在安靜環境下錄音，避免環境噪音干擾');
+    }
+    
+    // 嚴重的音準問題
+    if (f1Score < 0.5) {
       suggestions.add(l10n?.suggestionPitchNeedsPractice ?? '🎹 音準需要加強練習,建議放慢速度逐個音符確認');
-    } else if (f1Score < 0.8) {
-      suggestions.add(l10n?.suggestionPitchBasic ?? '🎵 音準基本正確,但仍有進步空間');
-    } else if (f1Score >= 0.95) {
-      suggestions.add(l10n?.suggestionPitchPerfect ?? '🌟 音準表現完美!');
-    } else {
-      suggestions.add(l10n?.suggestionPitchExcellent ?? '⭐ 音準表現優秀!');
+      
+      // 詳細分析
+      if (recall < 0.5) {
+        suggestions.add(l10n?.suggestionManyMissed(missedNotes) ?? '❌ 漏音較多 ($missedNotes個),建議:');
+        suggestions.add(l10n?.suggestionCheckKeyPress ?? '   - 檢查手指是否完全按下琴鍵');
+        suggestions.add(l10n?.suggestionRetryQuietEnvironment ?? '   - 在安靜環境下重新錄音');
+        suggestions.add(l10n?.suggestionCheckMicSensitivity ?? '   - 確保麥克風靈敏度足夠');
+      }
+      
+      if (precision < 0.5 && falsePositives > 10) {
+        suggestions.add(l10n?.suggestionExtraNotes(falsePositives) ?? '⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
+        suggestions.add(l10n?.suggestionAvoidWrongKeys ?? '   - 避免誤觸其他琴鍵');
+        suggestions.add(l10n?.suggestionEnsureAccuracy ?? '   - 確保手指準確按在正確位置');
+      }
     }
-
-    // Precision 建議 (v4.8 優化 - 只在分數較低時顯示警告)
-    // 只有在總分低於 85 分時才顯示多餘音符警告
-    if (overallScore < 85 && precision < 0.7 && falsePositives > 5) {
-      suggestions.add(l10n?.suggestionExtraNotes(falsePositives) ?? '⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
-      suggestions.add(l10n?.suggestionAvoidWrongKeys ?? '   - 避免誤觸其他琴鍵');
-      suggestions.add(l10n?.suggestionEnsureAccuracy ?? '   - 確保手指準確按在正確位置');
-    }
-
-    // Recall 建議 (v4.8 優化 - 只在分數較低時顯示警告)
-    // 只有在總分低於 85 分時才顯示漏音警告
-    if (overallScore < 85 && recall < 0.7) {
-      suggestions.add(l10n?.suggestionManyMissed(missedNotes) ?? '❌ 漏音較多 ($missedNotes個),建議:');
-      suggestions.add(l10n?.suggestionCheckKeyPress ?? '   - 檢查手指是否完全按下琴鍵');
-      suggestions.add(l10n?.suggestionRetryQuietEnvironment ?? '   - 在安靜環境下重新錄音');
-      suggestions.add(l10n?.suggestionCheckMicSensitivity ?? '   - 確保麥克風靈敏度足夠');
-    } else if (overallScore < 90 && missedNotes > totalNotes * 0.1) {
-      suggestions.add(l10n?.suggestionSomeMissed(missedNotes) ?? '⚠️ 有少量漏音 ($missedNotes個),請檢查按鍵力度');
-    }
-
-    // 節奏建議 (v4.8 優化 - 高分時只顯示正面評價)
-    if (overallScore >= 90) {
-      suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
-    } else if (rhythmScore < 60) {
+    
+    // 嚴重的節奏問題
+    if (rhythmScore < 50) {
       suggestions.add(l10n?.suggestionRhythmUnstable ?? '⏱️ 節奏不穩定,建議使用節拍器練習');
-    } else if (rhythmScore < 80) {
-      suggestions.add(l10n?.suggestionRhythmBasic ?? '🎼 節奏基本穩定,可以嘗試稍微提高速度');
-    } else {
-      suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
-    }
-
-    // 搶拍/拖拍建議 (v4.8 優化 - 只在分數較低時顯示)
-    if (overallScore < 85) {
+      suggestions.add('   - 從慢速開始練習，逐步提高速度');
+      suggestions.add('   - 每次只練習一小段，確保穩定後再連貫');
+      
       if (earlyNotes > lateNotes * 2) {
         suggestions.add(l10n?.suggestionTendencyRushing ?? '⏩ 有搶拍傾向,可以放鬆一點,不要太急');
       } else if (lateNotes > earlyNotes * 2) {

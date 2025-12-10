@@ -50,8 +50,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      body: ListView(
-        children: [
+      body: SafeArea(
+        child: ListView(
+          children: [
           Container(
             padding: const EdgeInsets.all(24),
             color: Theme.of(context).primaryColor.withOpacity(0.1),
@@ -105,6 +106,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onTap: () => _handleDeleteAccount(),
           ),
         ],
+      ),
       ),
     );
   }

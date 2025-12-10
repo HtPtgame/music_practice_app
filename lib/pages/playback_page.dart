@@ -155,7 +155,8 @@ class _PlaybackPageState extends State<PlaybackPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
           : LayoutBuilder(
               builder: (context, constraints) {
@@ -335,6 +336,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 );
               },
             ),
+      ),
     );
   }
 }

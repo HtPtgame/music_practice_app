@@ -149,6 +149,8 @@ class AppLocalizations {
   String get statsWeeklyPractice => '本週練習';
   String get statsMonthlyPractice => '本月練習';
   String get statsPracticeDays => '練習天數';
+  String get statsKeepGoing => '加油';
+  String get statsExcellent => '優秀';
   String get statsTrend => '練習趨勢';
   String get statsTopPieces => '最常練習曲目';
   String get statsDailyDuration => '每日練習時長 (分鐘)';
@@ -226,6 +228,25 @@ class AppLocalizations {
   String get practiceAnalysisError => '分析失敗';
   String get practiceRecordingSuccess => '錄音成功';
   String get practiceRecordingError => '錄音失敗';
+  String get practiceRecordControl => '錄音控制';
+  String get practiceUploadAudio => '上傳音檔';
+  String get practiceRecordMode => '錄音';
+  String get practiceUploadMode => '上傳';
+  String get practiceRerecord => '重新錄音';
+  String get practicePlayRecording => '播放錄音';
+  String get practicePause => '暫停';
+  String get practiceResume => '繼續';
+  String get practiceStopPlayback2 => '停止';
+  String get practiceFileUploaded => '已上傳檔案';
+  String get practiceSelectWavFile => '請選擇 WAV 檔案';
+  String get practiceReupload => '重新上傳';
+  String get practiceSelectFile2 => '選擇檔案';
+  String get practicePlaybackControl => '播放控制';
+  String get practiceAnalysisPhase1 => '正在解析 MIDI 標準答案...';
+  String get practiceAnalysisPhase2 => '正在分析音訊頻譜...';
+  String get practiceAnalysisPhase3 => '正在驗證音符準確性...';
+  String get practiceAnalysisPhase4 => '正在分類錯誤類型...';
+  String get practiceAnalysisPhase5 => '分析完成!';
 
   // ========== 設定頁面 ==========
   String get settingsTitle => '設定';
@@ -685,6 +706,9 @@ class AppLocalizations {
   String get slowPracticeChallengeSuccess => '太棒了！挑戰成功！';
   String get slowPracticeAllComplete => '你已經完成了所有的練習！';
   String get slowPracticeComplete => '完成';
+  String get slowPracticeFollowSteps => '跟著步驟一起練習吧！';
+  String get slowFollowSteps => '跟著步驟一起練習吧！';
+  String get slowPracticeClearAll => '清除全部';
   String get slowPracticeToggleMetronome => '開啟節拍器';
   String get slowPracticeToggleMetronomeOff => '關閉節拍器';
   List<String> get slowPracticeStepLabels => ['設定', '慢練', '挑戰'];
@@ -717,6 +741,7 @@ class AppLocalizations {
   String get timerSettingsFloatingTimer => '浮動計時器';
   String get timerSettingsFloatingTimerOn => '練習時會顯示浮動計時器';
   String get timerSettingsFloatingTimerOff => '已關閉浮動計時器';
+  String get settingsDisabled => '已關閉';
   String get timerSettingsBackgroundNotification => '背景通知';
   String get timerSettingsBackgroundNotificationOn => '離開 App 時會顯示通知';
   String get timerSettingsBackgroundNotificationOff => '不顯示背景通知';
@@ -738,9 +763,15 @@ class AppLocalizations {
   String get metronomeTimeSignature => '拍號';
   String get metronomeAccent => '重音';
   String get metronomeBpmInputHint => '點擊輸入';
+  String get metronomeBpmClickInput => 'BPM (點擊輸入)';
   String get metronomeBpmRange => 'BPM 必須在 30 到 300 之間';
   String get metronomeClear => '清除';
   String get metronomeWeekPractice => '本週練習時長';
+  String get metronomeConfirm => '確認';
+
+  // ========== 設定頁面訊息 ==========
+  String get settingsThemeSwitched => '已切換到主題';
+  String get settingsVolumeReset => '已重置所有音量至標準值';
 
   // ========== 錯誤訊息 ==========
   String get errorNetwork => '網路連線錯誤';
@@ -809,6 +840,8 @@ class AppLocalizations {
   String get notePageConfirmDeleteMessage => '確定要刪除';
   String get notePageConfirmDeleteSuffix => '個樂譜及其所有筆記嗎?';
   String get notePageDelete => '刪除';
+  String get notePageElectronicSheet => '電子譜';
+  String get notePagePracticeNotes => '練習筆記';
 
   // ========== 電子譜面標註頁面 ==========
   String get sheetAnnotationTitle => '電子譜';
@@ -1112,6 +1145,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get statsPracticeDays => 'Practice Days';
   @override
+  String get statsKeepGoing => 'Keep Going';
+  @override
+  String get statsExcellent => 'Excellent';
+  @override
   String get statsTrend => 'Practice Trend';
   @override
   String get statsTopPieces => 'Most Practiced Pieces';
@@ -1260,6 +1297,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get practiceRecordingSuccess => 'Recording Successful';
   @override
   String get practiceRecordingError => 'Recording Failed';
+  @override
+  String get practiceRecordControl => 'Recording Control';
+  @override
+  String get practiceUploadAudio => 'Upload Audio';
+  @override
+  String get practiceRecordMode => 'Record';
+  @override
+  String get practiceUploadMode => 'Upload';
+  @override
+  String get practiceRerecord => 'Re-record';
+  @override
+  String get practicePlayRecording => 'Play Recording';
+  @override
+  String get practicePause => 'Pause';
+  @override
+  String get practiceResume => 'Resume';
+  @override
+  String get practiceStopPlayback2 => 'Stop';
+  @override
+  String get practiceFileUploaded => 'File Uploaded';
+  @override
+  String get practiceSelectWavFile => 'Select WAV File';
+  @override
+  String get practiceReupload => 'Re-upload';
+  @override
+  String get practiceSelectFile2 => 'Select File';
+  @override
+  String get practicePlaybackControl => 'Playback Control';
+  @override
+  String get practiceAnalysisPhase1 => 'Parsing MIDI reference...';
+  @override
+  String get practiceAnalysisPhase2 => 'Analyzing audio spectrum...';
+  @override
+  String get practiceAnalysisPhase3 => 'Verifying note accuracy...';
+  @override
+  String get practiceAnalysisPhase4 => 'Categorizing error types...';
+  @override
+  String get practiceAnalysisPhase5 => 'Analysis complete!';
 
   @override
   String get settingsTitle => 'Settings';
@@ -1377,7 +1452,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get themeSunset => 'Sunset';
   @override
-  String get themeLavender => 'Lavender';
+  String get themeLavender => 'Sakura';
 
   // Joke Dialog
   @override
@@ -2063,11 +2138,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get metronomeBpmInputHint => 'Tap to input';
   @override
+  String get metronomeBpmClickInput => 'BPM (Tap to input)';
+  @override
   String get metronomeBpmRange => 'BPM must be between 30 and 300';
   @override
   String get metronomeClear => 'Clear';
   @override
   String get metronomeWeekPractice => 'Weekly Practice Time';
+  @override
+  String get metronomeConfirm => 'Confirm';
+
+  @override
+  String get settingsThemeSwitched => 'Switched to theme';
+  @override
+  String get settingsVolumeReset => 'All volumes reset to default';
 
   @override
   String get errorNetwork => 'Network error';
@@ -2191,6 +2275,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notePageConfirmDeleteSuffix => 'sheet(s) and all their notes?';
   @override
   String get notePageDelete => 'Delete';
+  @override
+  String get notePageElectronicSheet => 'Electronic Sheet';
+  @override
+  String get notePagePracticeNotes => 'Practice Notes';
 
   @override
   String get sheetAnnotationTitle => 'Digital Sheet';
@@ -2325,6 +2413,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get successUploaded => 'Uploaded successfully';
   @override
+  String get settingsDisabled => 'Disabled';
+
+  @override
   String get successUpdated => 'Updated successfully';
 
   // ========== Lesson Book (家庭聯絡簿) ==========
@@ -2441,6 +2532,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slowPracticeAllComplete => 'You have completed all practices!';
   @override
   String get slowPracticeComplete => 'Complete';
+  @override
+  String get slowPracticeFollowSteps => 'Follow the steps to practice!';
+  @override
+  String get slowFollowSteps => 'Follow the steps to practice!';
+  @override
+  String get slowPracticeClearAll => 'Clear All';
   @override
   String get slowPracticeToggleMetronome => 'Turn On Metronome';
   @override

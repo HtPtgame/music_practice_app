@@ -175,40 +175,42 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 帳號設定區塊
-            _buildSectionTitle(l10n?.settingsAccount ?? '帳號設定'),
-            const SizedBox(height: 16),
-            _buildAccountCard(),
-            const SizedBox(height: 32),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 帳號設定區塊
+              _buildSectionTitle(l10n?.settingsAccount ?? '帳號設定'),
+              const SizedBox(height: 16),
+              _buildAccountCard(),
+              const SizedBox(height: 32),
 
-            // 語言設定區塊
-            _buildSectionTitle(l10n?.settingsLanguage ?? '語言設定'),
-            const SizedBox(height: 16),
-            _buildLanguageCard(),
-            const SizedBox(height: 32),
+              // 語言設定區塊
+              _buildSectionTitle(l10n?.settingsLanguage ?? '語言設定'),
+              const SizedBox(height: 16),
+              _buildLanguageCard(),
+              const SizedBox(height: 32),
 
-            // 音效設定區塊
-            _buildSectionTitle(l10n?.settingsAudio ?? '音效設定'),
-            const SizedBox(height: 16),
-            _buildSoundSettingsCard(),
-            const SizedBox(height: 32),
+              // 音效設定區塊
+              _buildSectionTitle(l10n?.settingsAudio ?? '音效設定'),
+              const SizedBox(height: 16),
+              _buildSoundSettingsCard(),
+              const SizedBox(height: 32),
 
-            // 練習計時器設定區塊
-            _buildSectionTitle(l10n?.timerSettingsTitle ?? '計時器設定'),
-            const SizedBox(height: 16),
-            _buildTimerSettingsCard(),
-            const SizedBox(height: 32),
+              // 練習計時器設定區塊
+              _buildSectionTitle(l10n?.timerSettingsTitle ?? '計時器設定'),
+              const SizedBox(height: 16),
+              _buildTimerSettingsCard(),
+              const SizedBox(height: 32),
 
-            // 其他設定區塊
-            _buildSectionTitle(l10n?.settingsOther ?? '其他設定'),
-            const SizedBox(height: 16),
-            _buildOtherSettingsCards(),
-          ],
+              // 其他設定區塊
+              _buildSectionTitle(l10n?.settingsOther ?? '其他設定'),
+              const SizedBox(height: 16),
+              _buildOtherSettingsCards(),
+            ],
+          ),
         ),
       ),
     );
@@ -479,7 +481,7 @@ class _SettingsPageState extends State<SettingsPage> {
               title: l10n?.settingsSoundEffect ?? '音效',
               subtitle: _soundEnabled
                   ? (l10n?.settingsEnableSoundEffect ?? '已啟用')
-                  : '已關閉',
+                  : (l10n?.settingsDisabled ?? '已關閉'),
               value: _soundEnabled,
               onChanged: (value) async {
                 setState(() => _soundEnabled = value);
@@ -495,7 +497,7 @@ class _SettingsPageState extends State<SettingsPage> {
               title: l10n?.settingsVibration ?? '震動回饋',
               subtitle: _vibrationEnabled
                   ? (l10n?.settingsEnableVibration ?? '已啟用')
-                  : '已關閉',
+                  : (l10n?.settingsDisabled ?? '已關閉'),
               value: _vibrationEnabled,
               onChanged: (value) async {
                 setState(() => _vibrationEnabled = value);
@@ -659,7 +661,8 @@ class _SettingsPageState extends State<SettingsPage> {
       await _saveSettings();
 
       if (mounted) {
-        _showSuccessMessage('已重置所有音量至標準值');
+        final l10n = AppLocalizations.of(context);
+        _showSuccessMessage(l10n?.settingsVolumeReset ?? '已重置所有音量至標準值');
       }
     } catch (e) {
       debugPrint('重置音量失敗: $e');
@@ -1062,7 +1065,8 @@ class _SettingsPageState extends State<SettingsPage> {
             // 再等待一小段時間確保 setState 完成
             await Future.delayed(const Duration(milliseconds: 50));
             if (mounted) {
-              _showSuccessMessage('已切換到$name主題');
+              final l10n = AppLocalizations.of(context);
+              _showSuccessMessage('${l10n?.settingsThemeSwitched ?? '已切換到'}$name${l10n?.settingsThemeSwitched != null ? '' : '主題'}');
             }
           }
         } catch (e) {

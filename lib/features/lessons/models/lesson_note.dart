@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 
 /// 單則上課重點
 class LessonPoint {
@@ -121,11 +122,22 @@ class LessonRecord {
 class LessonNoteCategory {
   final String id;
   final String displayName;
+  final String? displayNameEn;
 
   const LessonNoteCategory({
     required this.id,
     required this.displayName,
+    this.displayNameEn,
   });
+
+  String getLocalizedName(BuildContext? context) {
+    if (context == null) return displayName;
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'en' && displayNameEn != null) {
+      return displayNameEn!;
+    }
+    return displayName;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -142,18 +154,22 @@ class LessonCategories {
   static const slowPractice = LessonNoteCategory(
     id: 'slow_practice',
     displayName: '慢練',
+    displayNameEn: 'Slow Practice',
   );
   static const technique = LessonNoteCategory(
     id: 'technique',
     displayName: '技巧',
+    displayNameEn: 'Technique',
   );
   static const tone = LessonNoteCategory(
     id: 'tone',
     displayName: '音色',
+    displayNameEn: 'Tone',
   );
   static const other = LessonNoteCategory(
     id: 'other',
     displayName: '其他',
+    displayNameEn: 'Other',
   );
 
   static List<LessonNoteCategory> all = [

@@ -41,7 +41,8 @@ class _PlaybackPageState extends State<PlaybackPage> {
           color: AppColors.dynamicTextDark,
         ),
       ),
-      body: Padding(
+      body: SafeArea(
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -157,6 +158,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
