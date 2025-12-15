@@ -261,7 +261,7 @@ class _MetronomePageState extends State<MetronomePage>
     const double duration = 0.1; // 稍微延長以獲得更平滑的淡出
     final int numSamples = (sampleRate * duration).round();
     final double frequency = isAccent ? 1000.0 : 800.0; 
-    final double masterGain = 0.7; 
+    const double masterGain = 0.7; 
 
     final List<int> samples = [];
     samples.addAll('RIFF'.codeUnits);

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/utils/lru_cache.dart';
 import 'package:music_practice_app/models/drawing_data.dart';
 import 'package:music_practice_app/widgets/drawing_canvas.dart';
 import 'package:music_practice_app/models/sheet_annotation.dart';
@@ -15,13 +16,13 @@ import 'sheet_viewer_page.dart';
 /// 以緩存與逾時保護取得圖片尺寸，避免重複解析造成卡頓
 Future<Size?> _resolveImageSizeWithCache(
   File file,
-  Map<String, Size> cache,
+  LruCache<String, Size> cache,
 ) async {
   if (!file.existsSync()) return null;
 
   final cacheKey = file.path;
   if (cache.containsKey(cacheKey)) {
-    return cache[cacheKey];
+    return cache.get(cacheKey);
   }
 
   try {
@@ -46,7 +47,7 @@ Future<Size?> _resolveImageSizeWithCache(
                   info.image.width.toDouble(),
                   info.image.height.toDouble(),
                 );
-                cache[cacheKey] = size;
+                cache.put(cacheKey, size);
                 completer.complete(size);
               }
             },
@@ -147,8 +148,8 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
   final PageController _pageController = PageController();
   int _currentPageIndex = 0;
 
-  // 圖片尺寸緩存，避免重複解析
-  final Map<String, Size> _imageSizeCache = {};
+  // 圖片尺寸緩存，避免重複解析 (LRU 快取，最多 30 張)
+  final LruCache<String, Size> _imageSizeCache = LruCache(maxSize: 30);
 
   final TextEditingController _measureController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -560,7 +561,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
           labelColor: AppColors.dynamicPrimary,
           unselectedLabelColor: Colors.grey,
           indicatorColor: AppColors.dynamicPrimary,
-          tabs: [
+          tabs: const [
             Tab(text: '電子譜'),
             Tab(text: '練習筆記'),
           ],
@@ -1052,7 +1053,7 @@ class _SheetImageViewer extends StatefulWidget {
   final AnnotatedSheet sheet;
   final bool isEditMode;
   final bool isSelected;
-  final Map<String, Size> imageSizeCache;
+  final LruCache<String, Size> imageSizeCache;
   final VoidCallback onTap;
   final VoidCallback onToggleSelection;
 

@@ -156,7 +156,7 @@ class PracticeSessionService extends ChangeNotifier {
 
   /// 清理超過保留期限的舊數據
   Future<void> _cleanOldSessions() async {
-    final cutoffDate = DateTime.now().subtract(Duration(days: _maxRetentionDays));
+    final cutoffDate = DateTime.now().subtract(const Duration(days: _maxRetentionDays));
     final originalCount = _sessions.length;
 
     _sessions.removeWhere((session) {

@@ -5,6 +5,7 @@ import 'package:music_practice_app/services/firebase_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:music_practice_app/utils/error_handler.dart';
 
 /// 註冊頁面 - Firebase 版本
 class RegisterPage extends StatefulWidget {
@@ -109,13 +110,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (mounted) {
         final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(importData 
-              ? (l10n?.registerSuccessWithData ?? '註冊成功！已保留您的打卡和練習記錄') 
-              : (l10n?.registerSuccessWelcome ?? '註冊成功！歡迎加入')),
-            backgroundColor: Colors.green,
-          ),
+        ErrorHandler.showSuccess(
+          context,
+          importData 
+            ? (l10n?.registerSuccessWithData ?? '註冊成功！已保留您的打卡和練習記錄') 
+            : (l10n?.registerSuccessWelcome ?? '註冊成功！歡迎加入'),
         );
         context.go('/');
       }
@@ -124,12 +123,9 @@ class _RegisterPageState extends State<RegisterPage> {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        ErrorHandler.show(
+          context,
+          errorMessage,
         );
       }
     } finally {
@@ -161,13 +157,11 @@ class _RegisterPageState extends State<RegisterPage> {
         if (success) {
           // 登入/註冊成功
           final l10n = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(importData && hasLocalData
-                  ? (l10n?.registerGoogleSuccessWithData ?? 'Google 登入成功！已保留您的打卡和練習記錄')
-                  : (l10n?.registerGoogleSuccess ?? 'Google 登入成功！')),
-              backgroundColor: Colors.green,
-            ),
+          ErrorHandler.showSuccess(
+            context,
+            importData && hasLocalData
+                ? (l10n?.registerGoogleSuccessWithData ?? 'Google 登入成功！已保留您的打卡和練習記錄')
+                : (l10n?.registerGoogleSuccess ?? 'Google 登入成功！'),
           );
           context.go('/');
         } else {
@@ -180,12 +174,9 @@ class _RegisterPageState extends State<RegisterPage> {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        ErrorHandler.show(
+          context,
+          errorMessage,
         );
       }
     } finally {

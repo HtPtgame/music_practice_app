@@ -250,7 +250,7 @@ class ConfusionMatrix {
 
     // TN: 在音符檢測場景中通常為 0
     // (因為我們不會去統計「正確地沒有檢測到不存在的音符」這個數量)
-    final tn = 0;
+    const tn = 0;
 
     return ConfusionMatrix(
       truePositive: tp,

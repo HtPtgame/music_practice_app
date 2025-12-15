@@ -1,6 +1,7 @@
 // lib/widgets/check_in_card.dart
 import 'package:flutter/material.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/utils/error_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
@@ -191,13 +192,9 @@ class _CheckInCardState extends State<CheckInCard> {
       await _checkAndShowUnlockedAnimals();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text(l10n?.checkInSuccessMessage.replaceAll('{consecutive}', '$_consecutiveDays').replaceAll('{total}', '$_totalCheckInDays') ?? '打卡成功！連續 $_consecutiveDays 天，累計 $_totalCheckInDays 天 🎉'),
-            backgroundColor: AppColors.dynamicPrimary,
-            duration: const Duration(seconds: 2),
-          ),
+        ErrorHandler.showSuccess(
+          context,
+          l10n?.checkInSuccessMessage.replaceAll('{consecutive}', '$_consecutiveDays').replaceAll('{total}', '$_totalCheckInDays') ?? '打卡成功！連續 $_consecutiveDays 天，累計 $_totalCheckInDays 天 🎉',
         );
       }
     } catch (e) {
@@ -211,12 +208,9 @@ class _CheckInCardState extends State<CheckInCard> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n?.checkInFailure ?? '打卡失敗，請檢查網路連線'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        ErrorHandler.show(
+          context,
+          l10n?.checkInFailure ?? '打卡失敗，請檢查網路連線',
         );
       }
     }
@@ -401,7 +395,7 @@ class _CheckInCardState extends State<CheckInCard> {
                 // 連續打卡天數
                 Row(
                   children: [
-                    Icon(Icons.local_fire_department,
+                    const Icon(Icons.local_fire_department,
                         color: Colors.orange, size: 20),
                     const SizedBox(width: 4),
                     FittedBox(
@@ -421,7 +415,7 @@ class _CheckInCardState extends State<CheckInCard> {
                 // 累計打卡天數（移到下方）
                 Row(
                   children: [
-                    Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                    const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
                     const SizedBox(width: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,

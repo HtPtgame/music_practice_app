@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:music_practice_app/utils/error_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
@@ -356,15 +357,12 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
       await _savePracticeData();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n?.timerRecordedMessage
-                    .replaceAll('{session}', _formatTime(sessionSeconds))
-                    .replaceAll('{total}', _formatTime(_elapsedSeconds)) ??
-                '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
-            backgroundColor: AppColors.dynamicPrimary,
-            duration: const Duration(seconds: 2),
-          ),
+        ErrorHandler.showSuccess(
+          context,
+          l10n?.timerRecordedMessage
+              .replaceAll('{session}', _formatTime(sessionSeconds))
+              .replaceAll('{total}', _formatTime(_elapsedSeconds)) ??
+          '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}',
         );
       }
 
@@ -400,15 +398,12 @@ class _PracticeTimerCardState extends State<PracticeTimerCard>
       await _savePracticeData();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n?.timerRecordedMessage
-                    .replaceAll('{session}', _formatTime(sessionSeconds))
-                    .replaceAll('{total}', _formatTime(_elapsedSeconds)) ??
-                '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}'),
-            backgroundColor: AppColors.dynamicPrimary,
-            duration: const Duration(seconds: 2),
-          ),
+        ErrorHandler.showSuccess(
+          context,
+          l10n?.timerRecordedMessage
+              .replaceAll('{session}', _formatTime(sessionSeconds))
+              .replaceAll('{total}', _formatTime(_elapsedSeconds)) ??
+          '已記錄本次練習 ${_formatTime(sessionSeconds)}，今日累計 ${_formatTime(_elapsedSeconds)}',
         );
       }
 

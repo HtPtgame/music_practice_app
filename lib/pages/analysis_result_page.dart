@@ -149,7 +149,7 @@ class AnalysisResultPage extends StatelessWidget {
             ),
             Text(
               l10n?.analysisResultGrade ?? '級',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: Colors.white,
               ),
@@ -354,7 +354,7 @@ class AnalysisResultPage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   l10n?.analysisResultSuggestions ?? '練習建議',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),

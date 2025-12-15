@@ -13,6 +13,7 @@ import 'package:music_practice_app/core/services/auth_service_config.dart';
 import 'package:music_practice_app/services/user_data_sync_service.dart';
 import 'package:music_practice_app/services/practice_timer_service.dart';
 import 'package:music_practice_app/services/joke_service.dart';
+import 'package:music_practice_app/utils/error_handler.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -40,9 +41,6 @@ class _SettingsPageState extends State<SettingsPage> {
   // 練習計時器設定
   bool _showFloatingTimer = true; // 是否顯示浮動計時器
   bool _showNotification = false; // 是否顯示通知 (僅 Android)
-
-  // 防止重複顯示 SnackBar
-  bool _isShowingSnackBar = false;
 
   // 載入狀態
   bool _isLoading = true;
@@ -581,16 +579,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       if (!result.isGranted) {
                         // 權限被拒絕，提示用戶
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  l10n?.timerSettingsNotificationPermission ??
-                                      '需要通知權限才能顯示背景通知'),
-                              action: SnackBarAction(
-                                label: l10n?.timerSettingsOpenSettings ?? '設定',
-                                onPressed: () => openAppSettings(),
-                              ),
-                            ),
+                          ErrorHandler.showWarning(
+                            context,
+                            l10n?.timerSettingsNotificationPermission ??
+                                '需要通知權限才能顯示背景通知',
                           );
                         }
                         return; // 不開啟功能
@@ -621,7 +613,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                      const Icon(Icons.info_outline, color: Colors.orange, size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -662,16 +654,17 @@ class _SettingsPageState extends State<SettingsPage> {
 
       if (mounted) {
         final l10n = AppLocalizations.of(context);
-        _showSuccessMessage(l10n?.settingsVolumeReset ?? '已重置所有音量至標準值');
+        ErrorHandler.showSuccess(
+          context,
+          l10n?.settingsVolumeReset ?? '已重置所有音量至標準值',
+        );
       }
     } catch (e) {
       debugPrint('重置音量失敗: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('重置失敗，請重試'),
-            backgroundColor: Colors.red,
-          ),
+        ErrorHandler.show(
+          context,
+          '重置失敗，請重試',
         );
       }
     }
@@ -807,7 +800,7 @@ class _SettingsPageState extends State<SettingsPage> {
           icon: Icons.emoji_emotions,
           title: l10n?.settingsJokeTitle ?? '冷笑話',
           subtitle: l10n?.settingsJokeDesc ?? '音樂冷笑話，盡量不重複',
-          onTap: () => _showJokeDialog(),
+          onTap: () => _showJokeBottomSheet(),
         ),
       ],
     );
@@ -1066,7 +1059,10 @@ class _SettingsPageState extends State<SettingsPage> {
             await Future.delayed(const Duration(milliseconds: 50));
             if (mounted) {
               final l10n = AppLocalizations.of(context);
-              _showSuccessMessage('${l10n?.settingsThemeSwitched ?? '已切換到'}$name${l10n?.settingsThemeSwitched != null ? '' : '主題'}');
+              ErrorHandler.showSuccess(
+                context,
+                '${l10n?.settingsThemeSwitched ?? '已切換到'}$name${l10n?.settingsThemeSwitched != null ? '' : '主題'}',
+              );
             }
           }
         } catch (e) {
@@ -1077,30 +1073,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showSuccessMessage(String message) {
-    if (_isShowingSnackBar) return; // 防止重複顯示
-
-    _isShowingSnackBar = true;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.dynamicPrimary,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // 使用 Timer 來重置狀態，而不是依賴 .closed
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        _isShowingSnackBar = false;
-      }
-    });
-  }
-
-  /// 顯示冷笑話（附解釋）的底部彈窗
-  void _showJokeDialog() async {
-    await _hapticService.lightImpact();
-
+  void _showJokeBottomSheet() {
     final jokeService = JokeService();
     Map<String, String> currentJoke = jokeService.getNextJoke();
     bool showExplain = false;

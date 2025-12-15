@@ -581,7 +581,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                         )),
                   ],
                 ),
-                Divider(height: 12),
+                const Divider(height: 12),
                 Row(
                   children: [
                     SizedBox(
@@ -609,12 +609,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
   List<Widget> _buildColorButtons() {
     final colors = [
-      Color(0xFF1E88E5),
-      Color(0xFF26C6DA),
-      Color(0xFFFFFFFF),
-      Color(0xFFD7CCC8),
-      Color(0xFF8D6E63),
-      Color(0xFF4CAF50),
+      const Color(0xFF1E88E5),
+      const Color(0xFF26C6DA),
+      const Color(0xFFFFFFFF),
+      const Color(0xFFD7CCC8),
+      const Color(0xFF8D6E63),
+      const Color(0xFF4CAF50),
     ];
 
     return colors.map((color) {
@@ -1034,7 +1034,7 @@ class _DrawingPainter extends CustomPainter {
     }
 
     // 第1層: 底層擴散（簡化）
-    final diffusionCount = 6; // 減少數量
+    const diffusionCount = 6; // 減少數量
     for (int i = 0; i < diffusionCount; i++) {
       final angle = (i / diffusionCount) * 2 * math.pi;
       final distance = strokeWidth * (0.3 + nextRandom() * 0.5);

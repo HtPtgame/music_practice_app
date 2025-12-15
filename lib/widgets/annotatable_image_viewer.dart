@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../models/sheet_annotation.dart';
 import '../utils/app_colors.dart';
+import '../utils/lru_cache.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/error_handler.dart';
 
 /// 可標註的圖片檢視器
 class AnnotatableImageViewer extends StatefulWidget {
@@ -30,8 +32,8 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
   final TransformationController _transformationController =
       TransformationController();
 
-  // 圖片尺寸快取，避免重複解析造成卡頓
-  static final Map<String, Size> _imageSizeCache = {};
+  // 圖片尺寸快取，避免重複解析造成卡頓 (LRU 快取，最多 50 張)
+  static final LruCache<String, Size> _imageSizeCache = LruCache(maxSize: 50);
   Size? _imageSize;
   bool _isLoading = true;
   String? _errorMessage;
@@ -58,7 +60,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
     // 已有快取直接使用
     if (_imageSizeCache.containsKey(path)) {
       setState(() {
-        _imageSize = _imageSizeCache[path];
+        _imageSize = _imageSizeCache.get(path);
         _isLoading = false;
       });
       return;
@@ -106,7 +108,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
           _isLoading = false;
         });
       }
-      _imageSizeCache[path] = size;
+      _imageSizeCache.put(path, size);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -239,10 +241,9 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
               onPressed: () {
                 final note = noteController.text.trim();
                 if (note.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(AppLocalizations.of(context)!
-                            .annotationInputRequired)),
+                  ErrorHandler.showWarning(
+                    context,
+                    AppLocalizations.of(context)!.annotationInputRequired,
                   );
                   return;
                 }
@@ -308,7 +309,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                 Icon(Icons.broken_image, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 8),
                 Text('載入失敗: ${_errorMessage ?? '未知錯誤'}',
-                    style: TextStyle(color: Colors.grey[600])),
+                    style: const TextStyle(color: Colors.grey)),
               ],
             ),
           );

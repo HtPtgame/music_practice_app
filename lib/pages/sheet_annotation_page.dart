@@ -433,7 +433,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                             fit: BoxFit.cover,
                                             errorBuilder:
                                                 (context, error, stackTrace) {
-                                              return Icon(
+                                              return const Icon(
                                                 Icons.image,
                                                 color: Colors.white,
                                                 size: 36,

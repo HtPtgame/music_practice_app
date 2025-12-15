@@ -273,7 +273,7 @@ class NoteDetectorService implements INoteDetector {
     
     // 計算諧波附近的能量
     double harmonicEnergy = 0.0;
-    final windowSize = 3; // 諧波附近±3個bin
+    const windowSize = 3; // 諧波附近±3個in
     
     for (int h = 1; h <= numHarmonics; h++) {
       final harmonicFreq = fundamentalFreq * h;

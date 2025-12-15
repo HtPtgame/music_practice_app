@@ -93,7 +93,7 @@ class SpectralFluxOnsetDetector {
   /// 平滑信號 (移動平均)
   List<double> _smoothSignal(List<double> signal) {
     final smoothed = <double>[];
-    final halfWindow = smoothWindowSize ~/ 2;
+    const halfWindow = smoothWindowSize ~/ 2;
 
     for (int i = 0; i < signal.length; i++) {
       final start = max(0, i - halfWindow);

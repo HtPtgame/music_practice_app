@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
-import 'package:record/record.dart'; // 新增：record 套件
-import 'package:flutter_midi_pro/flutter_midi_pro.dart'; // 新增：MIDI 播放
+import 'package:record/record.dart';
+import 'package:music_practice_app/core/constants/audio_constants.dart';
+import 'package:music_practice_app/utils/error_handler.dart';
 
 import 'package:permission_handler/permission_handler.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
@@ -17,9 +18,6 @@ import 'package:music_practice_app/services/audio_analysis/performance_analyzer.
 import 'package:music_practice_app/pages/analysis_result_page.dart';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
-import 'dart:typed_data';
-import 'dart:math';
 import 'dart:async';
 
 class PracticePage extends StatefulWidget {
@@ -36,7 +34,6 @@ class _PracticePageState extends State<PracticePage> {
   final AudioRecorder _recordAlt = AudioRecorder(); // 新增：替代錄音器
   final bool _useAltRecorder = true; // 新增：預設啟用替代方案
   String? _audioPath;
-  String? _midiPath; // 新增：儲存轉換後的 MIDI 檔案路徑
   bool isPlaying = false;
   bool isRecording = false;
   bool isConverting = false; // 新增：轉換狀態
@@ -59,8 +56,6 @@ class _PracticePageState extends State<PracticePage> {
   // 錄音計時器將在錄音過程中自動處理
 
   // [已淘汰 2025/10/08] AI 模型相關變數 (保留以避免編譯錯誤,但不會被使用)
-  dynamic _interpreter; // 原本是 Interpreter? 類型
-  final bool _isModelLoaded = false;
 
   // Week 4 Phase 2: 分析功能狀態
   bool _isAnalyzing = false;
@@ -75,7 +70,6 @@ class _PracticePageState extends State<PracticePage> {
   void initState() {
     super.initState();
     _initAudio();
-    // _loadAIModel(); // 已淘汰 2025/10/08
   }
 
   Future<void> _initAudio() async {
@@ -101,6 +95,15 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('❌ 音訊初始化失敗: $e');
       debugPrint('堆疊追蹤: $stackTrace');
 
+      // 顯示給使用者
+      if (mounted) {
+        ErrorHandler.show(
+          context,
+          e,
+          customMessage: '音訊系統初始化失敗，請確認權限設定',
+        );
+      }
+
       // 嘗試重新初始化
       try {
         await Future.delayed(const Duration(milliseconds: 1000));
@@ -121,13 +124,9 @@ class _PracticePageState extends State<PracticePage> {
 
   // [已淘汰 2025/10/08] 載入 AI 模型
   // 此函數使用 tflite_flutter 依賴,已移除
-  // Future<void> _loadAIModel() async { ... }
-
-  @override
   void dispose() {
     _recordingTimer?.cancel();
     _closeAudio();
-    // _interpreter?.close(); // 已淘汰
     super.dispose();
   }
 
@@ -189,9 +188,9 @@ class _PracticePageState extends State<PracticePage> {
       await _recordAlt.start(
         const RecordConfig(
           encoder: AudioEncoder.wav,
-          sampleRate: 16000,
-          numChannels: 1,
-          bitRate: 256000,
+          sampleRate: AudioConstants.standardSampleRate,
+          numChannels: AudioConstants.monoChannel,
+          bitRate: AudioConstants.standardBitRate,
         ),
         path: altPath,
       );
@@ -236,12 +235,10 @@ class _PracticePageState extends State<PracticePage> {
     if (micStatus != PermissionStatus.granted) {
       debugPrint('❌ 麥克風權限被拒絕');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.errorMicPermission),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
+      ErrorHandler.show(
+        context,
+        Exception('Microphone permission denied'),
+        customMessage: AppLocalizations.of(context)!.errorMicPermission,
       );
       return;
     }
@@ -319,7 +316,6 @@ class _PracticePageState extends State<PracticePage> {
         isRecording = true;
         _recordingDurationSeconds = 0;
         _audioPath = wavPath; // 立即設置預期的檔案路徑
-        _midiPath = null; // 清除之前的 MIDI 檔案
       });
 
       // 啟動計時器
@@ -354,12 +350,11 @@ class _PracticePageState extends State<PracticePage> {
       _recordingTimer?.cancel();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.errorRecordingStart(e.toString())),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 6),
-        ),
+      ErrorHandler.show(
+        context,
+        e,
+        customMessage: '錄音啟動失敗，請確認麥克風權限',
+        onRetry: startRecording,
       );
     }
   }
@@ -501,13 +496,9 @@ class _PracticePageState extends State<PracticePage> {
         await _analyzeWAVFile(finalAudioPath);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  '✅ 錄音成功！\n時長: $_recordingDurationSeconds 秒\n大小: ${(fileSize / 1024).toStringAsFixed(1)} KB'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
+          ErrorHandler.showSuccess(
+            context,
+            '✅ 錄音成功！\n時長: $_recordingDurationSeconds 秒\n大小: ${(fileSize / 1024).toStringAsFixed(1)} KB',
           );
         }
       } else {
@@ -539,21 +530,14 @@ class _PracticePageState extends State<PracticePage> {
                 debugPrint('✅ WAV 格式檔案，準備進行 AI 處理');
               }
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text(AppLocalizations.of(context)!.errorRecordingFileSize(size)),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 2),
-                ),
+              ErrorHandler.showSuccess(
+                context,
+                AppLocalizations.of(context)!.errorRecordingFileSize(size),
               );
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(AppLocalizations.of(context)!.errorRecordingFileTooSmall(size)),
-                  backgroundColor: Colors.orange,
-                  duration: const Duration(seconds: 3),
-                ),
+              ErrorHandler.showWarning(
+                context,
+                AppLocalizations.of(context)!.errorRecordingFileTooSmall(size),
               );
               debugPrint('錄音檔案太小：實際 $size bytes，預期約 $expectedSize bytes');
             }
@@ -565,11 +549,10 @@ class _PracticePageState extends State<PracticePage> {
         } catch (e) {
           debugPrint('錄音檔案檢查失敗: $e');
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.errorRecordingFileCheck(e.toString())),
-              backgroundColor: Colors.red,
-            ),
+          ErrorHandler.show(
+            context,
+            e,
+            customMessage: AppLocalizations.of(context)!.errorRecordingFileCheck(e.toString()),
           );
         }
       } else {
@@ -590,12 +573,10 @@ class _PracticePageState extends State<PracticePage> {
       _recordingTimer = null;
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.errorRecordingStop(e.toString())),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
+      ErrorHandler.show(
+        context,
+        e,
+        customMessage: AppLocalizations.of(context)!.errorRecordingStop(e.toString()),
       );
     }
   }
@@ -642,13 +623,9 @@ class _PracticePageState extends State<PracticePage> {
                     debugPrint('✅ 設定錄音檔案路徑: $_audioPath');
 
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              '找到錄音檔案！檔案大小：${(size / 1024).toStringAsFixed(1)} KB'),
-                          backgroundColor: Colors.green,
-                          duration: const Duration(seconds: 2),
-                        ),
+                      ErrorHandler.showSuccess(
+                        context,
+                        '找到錄音檔案！檔案大小：${(size / 1024).toStringAsFixed(1)} KB',
                       );
                     }
                     return; // 找到就返回
@@ -664,12 +641,9 @@ class _PracticePageState extends State<PracticePage> {
 
       debugPrint('❌ 沒有找到合適的錄音檔案');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorRecordingFileNotFound),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-          ),
+        ErrorHandler.showWarning(
+          context,
+          AppLocalizations.of(context)!.errorRecordingFileNotFound,
         );
       }
     } catch (e) {
@@ -687,8 +661,10 @@ class _PracticePageState extends State<PracticePage> {
     }
     if (_audioPath == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.errorRecordingFileNotFound), backgroundColor: Colors.red),
+      ErrorHandler.show(
+        context,
+        Exception('No recording file'),
+        customMessage: AppLocalizations.of(context)!.errorRecordingFileNotFound,
       );
       return;
     }
@@ -699,9 +675,10 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('播放錄音檔案大小: $size bytes');
       if (size == 0) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(AppLocalizations.of(context)!.errorRecordingFileEmpty), backgroundColor: Colors.red),
+        ErrorHandler.show(
+          context,
+          Exception('Empty file'),
+          customMessage: AppLocalizations.of(context)!.errorRecordingFileEmpty,
         );
         return;
       }
@@ -746,8 +723,10 @@ class _PracticePageState extends State<PracticePage> {
         isPlaying = false;
         _isPaused = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.errorPlaybackFailed(e.toString())), backgroundColor: Colors.red),
+      ErrorHandler.show(
+        context,
+        e,
+        customMessage: AppLocalizations.of(context)!.errorPlaybackFailed(e.toString()),
       );
     }
   }
@@ -788,7 +767,8 @@ class _PracticePageState extends State<PracticePage> {
   // 啟動播放進度計時器 (2025/11/27 恢復)
   void _startPlaybackTimer() {
     _playbackTimer?.cancel();
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+    _playbackTimer =
+        Timer.periodic(const Duration(milliseconds: 100), (timer) async {
       if (!isPlaying || _player == null) {
         timer.cancel();
         return;
@@ -823,12 +803,12 @@ class _PracticePageState extends State<PracticePage> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        
+
         // 複製檔案到應用目錄
         final directory = await getApplicationDocumentsDirectory();
         final targetPath = '${directory.path}/uploaded_recording.wav';
         final targetFile = File(targetPath);
-        
+
         if (file.bytes != null) {
           await targetFile.writeAsBytes(file.bytes!);
         } else if (file.path != null) {
@@ -839,17 +819,15 @@ class _PracticePageState extends State<PracticePage> {
         if (await targetFile.exists()) {
           final fileSize = await targetFile.length();
           debugPrint('✅ WAV 檔案上傳成功: $targetPath (${fileSize} bytes)');
-          
+
           setState(() {
             _audioPath = targetPath;
           });
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('✅ 上傳成功：${file.name} (${(fileSize / 1024).toStringAsFixed(1)} KB)'),
-                backgroundColor: Colors.green,
-              ),
+            ErrorHandler.showSuccess(
+              context,
+              '✅ 上傳成功：${file.name} (${(fileSize / 1024).toStringAsFixed(1)} KB)',
             );
           }
         }
@@ -857,1667 +835,13 @@ class _PracticePageState extends State<PracticePage> {
     } catch (e) {
       debugPrint('❌ 上傳 WAV 檔案失敗: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ 上傳失敗: $e'),
-            backgroundColor: Colors.red,
-          ),
+        ErrorHandler.show(
+          context,
+          e,
+          customMessage: '❌ 上傳失敗: $e',
         );
       }
     }
-  }
-
-  // 新增：轉換為 MIDI 檔案的功能
-  Future<void> convertToMidi() async {
-    if (_audioPath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.errorRecordFirst), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    setState(() {
-      isConverting = true;
-      conversionProgress = 0.0;
-    });
-
-    try {
-      // 顯示轉換對話框
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          final l10n = AppLocalizations.of(context);
-          return StatefulBuilder(
-            builder: (context, setDialogState) {
-              return AlertDialog(
-                title: Row(
-                  children: [
-                    Icon(Icons.music_note, color: AppColors.dynamicPrimary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(l10n?.practiceAudioToMidi ?? '音訊轉 MIDI'),
-                      ),
-                    ),
-                  ],
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n?.practiceAnalyzingRecording ?? '🤖 使用 AI 模型分析您的完整錄音...',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _getProgressDescription(conversionProgress),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    LinearProgressIndicator(
-                      value: conversionProgress,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.dynamicPrimary),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('${(conversionProgress * 100).toInt()}%'),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      );
-
-      // 模擬轉換過程（實際應用需要音訊處理庫）
-      _midiPath = await _performAudioToMidiConversion();
-
-      // 關閉對話框
-      if (mounted) Navigator.of(context).pop();
-
-      if (_midiPath != null) {
-        // 快速檢查檔案大小和分析結果
-        final midiFile = File(_midiPath!);
-        final size = await midiFile.length();
-
-        // 簡單分析檔案內容
-        final analysisResult = await _getQuickAnalysis(midiFile);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  '⚠️ 基本 MIDI 檔案已生成\n檔案大小: $size bytes\n$analysisResult\n\n注意：這不是真正的音訊分析結果\n需要專業音訊處理庫才能實現真正的轉換'),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 8),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) Navigator.of(context).pop();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('MIDI 轉換失敗: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        isConverting = false;
-        conversionProgress = 0.0;
-      });
-    }
-  }
-
-  // 使用 AI 模型進行完整音訊轉 MIDI 分析 - 支援分塊處理
-  Future<String?> _performAudioToMidiConversion() async {
-    try {
-      // 檢查 AI 模型是否已載入
-      if (!_isModelLoaded || _interpreter == null) {
-        throw Exception('AI 模型尚未載入或載入失敗');
-      }
-
-      // 儲存位置
-      final directory = await getExternalStorageDirectory();
-      if (directory == null) {
-        throw Exception('無法存取外部儲存空間');
-      }
-
-      const downloadPath = '/storage/emulated/0/Download';
-      final downloadDir = Directory(downloadPath);
-
-      String finalPath;
-      if (await downloadDir.exists()) {
-        finalPath =
-            '$downloadPath/AIPracticeMIDI_${DateTime.now().millisecondsSinceEpoch}.mid';
-      } else {
-        finalPath =
-            '${directory.path}/AIPracticeMIDI_${DateTime.now().millisecondsSinceEpoch}.mid';
-      }
-
-      final midiPath = finalPath;
-
-      // 第一步：檢查和轉換音訊格式
-      setState(() {
-        conversionProgress = 0.02;
-      });
-      await Future.delayed(const Duration(milliseconds: 100));
-      debugPrint('🔄 步驟 1: 檢查音訊檔案格式...');
-
-      final audioFile = File(_audioPath!);
-      if (!await audioFile.exists()) {
-        throw Exception('音訊檔案不存在');
-      }
-
-      // 確定實際的檔案格式
-      final isAAC = _audioPath!.toLowerCase().endsWith('.aac');
-      final isWAV = _audioPath!.toLowerCase().endsWith('.wav');
-
-      debugPrint('檔案路徑: $_audioPath');
-      debugPrint('檔案格式 - AAC: $isAAC, WAV: $isWAV');
-
-      File processedAudioFile = audioFile;
-
-      if (!isWAV) {
-        throw Exception('只支援 WAV 格式檔案，目前檔案格式不符');
-      }
-
-      debugPrint('✅ 使用 WAV 格式檔案進行 AI 處理');
-
-      // 第二步：讀取完整 WAV 檔案
-      setState(() {
-        conversionProgress = 0.08;
-      });
-      await Future.delayed(const Duration(milliseconds: 200));
-      debugPrint('🔄 步驟 2: 讀取完整 WAV 音訊檔案...');
-
-      // 第三步：完整音訊預處理（不截斷）
-      setState(() {
-        conversionProgress = 0.12;
-      });
-      await Future.delayed(const Duration(milliseconds: 300));
-      debugPrint('🔄 步驟 3: 預處理完整音訊數據...');
-
-      final fullAudioData = await _preprocessFullWavFile(processedAudioFile);
-      final audioDurationSec = fullAudioData.length / 16000.0; // 16kHz 採樣率
-      debugPrint(
-          '完整音訊預處理完成：${fullAudioData.length} 樣本 (${audioDurationSec.toStringAsFixed(1)} 秒)');
-
-      // 第四步：分割音訊為 1 秒區塊
-      setState(() {
-        conversionProgress = 0.18;
-      });
-      await Future.delayed(const Duration(milliseconds: 200));
-      debugPrint('🔄 步驟 4: 分割音訊為 1 秒區塊...');
-
-      final audioChunks =
-          _splitAudioIntoChunks(fullAudioData, 16000); // 1 秒 = 16000 樣本
-      debugPrint('音訊分割完成：${audioChunks.length} 個區塊');
-
-      // 第五步：對每個區塊進行 AI 推論
-      debugPrint('🔄 步驟 5: 對每個區塊進行 AI 模型推論...');
-
-      List<List<Map<String, dynamic>>> allChunkNoteEvents = [];
-
-      for (int chunkIndex = 0; chunkIndex < audioChunks.length; chunkIndex++) {
-        // 更新進度 (0.22 到 0.8 之間分配給 AI 推論)
-        final chunkProgress = 0.22 + (chunkIndex / audioChunks.length) * 0.58;
-        setState(() {
-          conversionProgress = chunkProgress;
-        });
-
-        debugPrint('處理區塊 ${chunkIndex + 1}/${audioChunks.length}');
-
-        try {
-          // AI 推論
-          final aiOutput = await _runAIInference(audioChunks[chunkIndex]);
-
-          // 解析輸出
-          final noteEvents = _parseAIOutput(aiOutput);
-
-          // 添加時間偏移
-          final timeOffsetEvents = noteEvents
-              .map((note) => {
-                    ...note,
-                    'startTime':
-                        note['startTime'] + (chunkIndex * 1.0), // 每個區塊 1 秒
-                    'chunkIndex': chunkIndex,
-                  })
-              .toList();
-
-          allChunkNoteEvents.add(timeOffsetEvents);
-          debugPrint(
-              '區塊 ${chunkIndex + 1} 完成：${timeOffsetEvents.length} 個音符事件');
-        } catch (e, stackTrace) {
-          debugPrint('❌ 區塊 ${chunkIndex + 1} AI 推論失敗: $e');
-          debugPrint('錯誤堆疊: $stackTrace');
-
-          // 記錄失敗的區塊但繼續處理（允許部分失敗）
-          debugPrint('⚠️ 跳過失敗的區塊 ${chunkIndex + 1}，繼續處理下一個區塊');
-
-          // 如果太多區塊失敗（超過50%），則終止
-          final failedCount =
-              allChunkNoteEvents.where((events) => events.isEmpty).length + 1;
-          if (failedCount > audioChunks.length * 0.5) {
-            debugPrint('❌ 失敗區塊過多 ($failedCount/${audioChunks.length})，終止轉換');
-
-            if (mounted) {
-              setState(() {
-                isConverting = false;
-                conversionProgress = 0.0;
-              });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      'AI 模型推論失敗次數過多\n失敗: $failedCount/${audioChunks.length} 個區塊\n錯誤: ${e.toString()}'),
-                  backgroundColor: Colors.red,
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-            }
-
-            throw Exception(
-                'AI 推論失敗次數過多 ($failedCount/${audioChunks.length}): $e');
-          }
-
-          // 添加空結果，繼續處理
-          allChunkNoteEvents.add([]);
-        }
-
-        // 小延遲避免 UI 阻塞
-        await Future.delayed(const Duration(milliseconds: 50));
-      }
-
-      // 第六步：合併所有區塊的結果
-      setState(() {
-        conversionProgress = 0.85;
-      });
-      await Future.delayed(const Duration(milliseconds: 200));
-      debugPrint('🔄 步驟 6: 合併所有區塊的音符事件...');
-
-      final mergedNoteEvents = _mergeChunkResults(allChunkNoteEvents);
-      debugPrint('合併完成：${mergedNoteEvents.length} 個音符事件');
-
-      // 第七步：處理和優化音符
-      setState(() {
-        conversionProgress = 0.9;
-      });
-      await Future.delayed(const Duration(milliseconds: 200));
-      debugPrint('🔄 步驟 7: 處理和優化音符事件...');
-
-      final processedNotes = _processNoteEventsWithTiming(mergedNoteEvents);
-      debugPrint('處理後的音符: ${processedNotes.length} 個');
-
-      // 第八步：生成完整 MIDI
-      setState(() {
-        conversionProgress = 0.95;
-      });
-      await Future.delayed(const Duration(milliseconds: 200));
-      debugPrint('🔄 步驟 8: 生成完整 MIDI 檔案...');
-
-      final midiData =
-          _generateFullMidiFromAI(processedNotes, audioDurationSec);
-
-      // 第九步：寫入檔案
-      setState(() {
-        conversionProgress = 1.0;
-      });
-      await Future.delayed(const Duration(milliseconds: 100));
-      debugPrint('🔄 步驟 9: 寫入 MIDI 檔案...');
-
-      final midiFile = File(midiPath);
-      await midiFile.writeAsBytes(midiData);
-
-      debugPrint('🎵 完整 AI 音訊轉 MIDI 完成！');
-      debugPrint('MIDI 檔案已生成: $midiPath');
-      debugPrint(
-          '處理了 ${audioChunks.length} 個區塊，總時長 ${audioDurationSec.toStringAsFixed(1)} 秒');
-      debugPrint('最終音符數量: ${processedNotes.length} 個');
-      return midiPath;
-    } catch (e) {
-      debugPrint('AI MIDI 轉換錯誤: $e');
-      rethrow;
-    }
-  }
-
-  // 從 AAC 檔案創建測試 WAV 檔案用於 AI 處理
-  // 測試方法已移除 - 專注於實際錄音功能
-
-  // 預處理完整 WAV 檔案（不截斷）
-  Future<Float32List> _preprocessFullWavFile(File wavFile) async {
-    try {
-      final bytes = await wavFile.readAsBytes();
-      debugPrint('原始完整 WAV 檔案大小: ${bytes.length} bytes');
-
-      // 驗證 WAV 檔案格式
-      if (bytes.length < 44) {
-        throw Exception('檔案太小，不是有效的 WAV 檔案');
-      }
-
-      // 檢查 WAV 標頭
-      final header = String.fromCharCodes(bytes.sublist(0, 4));
-      if (header != 'RIFF') {
-        debugPrint('警告：檔案可能不是標準 WAV 格式 (標頭: $header)');
-      }
-
-      // 提取音頻格式信息 (Little-Endian)
-      final audioFormat = bytes[20] | (bytes[21] << 8);
-      final numChannels = bytes[22] | (bytes[23] << 8);
-      final sampleRate =
-          bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24);
-      final bitsPerSample = bytes[34] | (bytes[35] << 8);
-
-      debugPrint('完整 WAV 格式信息:');
-      debugPrint('  音頻格式: $audioFormat (1=PCM)');
-      debugPrint('  聲道數: $numChannels');
-      debugPrint('  採樣率: $sampleRate Hz');
-      debugPrint('  位深度: $bitsPerSample bits');
-
-      // 跳過 WAV 標頭，找到數據塊
-      int dataStart = 44;
-
-      // 更準確地找到數據開始位置
-      for (int i = 12; i < bytes.length - 8; i += 4) {
-        final chunkId = String.fromCharCodes(bytes.sublist(i, i + 4));
-        if (chunkId == 'data') {
-          dataStart = i + 8;
-          break;
-        }
-      }
-
-      if (dataStart >= bytes.length) {
-        throw Exception('找不到 WAV 數據塊');
-      }
-
-      // 提取完整 PCM 數據
-      final pcmData = bytes.sublist(dataStart);
-      debugPrint('完整 PCM 數據大小: ${pcmData.length} bytes');
-
-      List<double> samples = [];
-
-      // 根據位深度處理音頻數據 (Little-Endian)
-      if (bitsPerSample == 16) {
-        // 16-bit PCM (Little-Endian)
-        for (int i = 0; i < pcmData.length - 1; i += 2) {
-          // Little-Endian: 低位元組在前
-          int sample16 = pcmData[i] | (pcmData[i + 1] << 8);
-          // 轉換為有符號整數
-          if (sample16 >= 32768) sample16 -= 65536;
-          // 正規化到 [-1.0, 1.0]
-          double normalizedSample = sample16 / 32768.0;
-          samples.add(normalizedSample);
-        }
-      } else if (bitsPerSample == 8) {
-        // 8-bit PCM (unsigned)
-        for (int i = 0; i < pcmData.length; i++) {
-          double normalizedSample = (pcmData[i] - 128) / 128.0;
-          samples.add(normalizedSample);
-        }
-      } else {
-        debugPrint('警告：不支援的位深度 $bitsPerSample bits，嘗試當作16-bit處理');
-        // 嘗試當作 16-bit 處理
-        for (int i = 0; i < pcmData.length - 1; i += 2) {
-          int sample16 = pcmData[i] | (pcmData[i + 1] << 8);
-          if (sample16 >= 32768) sample16 -= 65536;
-          samples.add(sample16 / 32768.0);
-        }
-      }
-
-      // 處理多聲道 - 轉為單聲道
-      if (numChannels > 1) {
-        List<double> monoSamples = [];
-        for (int i = 0; i < samples.length; i += numChannels) {
-          double sum = 0.0;
-          for (int ch = 0; ch < numChannels && i + ch < samples.length; ch++) {
-            sum += samples[i + ch];
-          }
-          monoSamples.add(sum / numChannels);
-        }
-        samples = monoSamples;
-        debugPrint('已轉換為單聲道，樣本數: ${samples.length}');
-      }
-
-      // 重採樣到標準採樣率 (如果需要)
-      const targetSampleRate = 16000; // 大多數音訊 AI 模型使用 16kHz
-      if (sampleRate != targetSampleRate) {
-        samples = _resampleAudio(samples, sampleRate, targetSampleRate);
-        debugPrint('已重採樣從 ${sampleRate}Hz 到 ${targetSampleRate}Hz');
-      }
-
-      debugPrint('完整音訊預處理完成: ${samples.length} 樣本');
-
-      // 檢查音訊品質
-      if (samples.isEmpty) {
-        throw Exception('音訊預處理後沒有有效樣本');
-      }
-
-      final rms = _calculateRMS(samples);
-      final peak = samples.map((s) => s.abs()).reduce((a, b) => a > b ? a : b);
-      debugPrint(
-          '完整音訊品質 - RMS: ${rms.toStringAsFixed(4)}, Peak: ${peak.toStringAsFixed(4)}');
-
-      if (rms < 0.001) {
-        debugPrint('警告：音訊信號非常微弱（RMS < 0.001），可能影響 AI 分析效果');
-        if (rms < 0.0001) {
-          throw Exception('音訊信號太微弱，無法進行有效分析。請確保錄音時有足夠的音量。');
-        }
-      }
-
-      return Float32List.fromList(samples);
-    } catch (e) {
-      debugPrint('完整音訊預處理錯誤: $e');
-      debugPrint('錯誤堆疊: ${StackTrace.current}');
-      rethrow; // 重新拋出錯誤，因為我們需要完整音訊
-    }
-  }
-
-  // 將完整音訊分割為 1 秒區塊
-  List<Float32List> _splitAudioIntoChunks(
-      Float32List fullAudio, int chunkSize) {
-    List<Float32List> chunks = [];
-
-    for (int i = 0; i < fullAudio.length; i += chunkSize) {
-      int endIndex =
-          (i + chunkSize < fullAudio.length) ? i + chunkSize : fullAudio.length;
-
-      // 創建可變列表 (避免 fixed-length list 錯誤)
-      List<double> chunkData =
-          List<double>.from(fullAudio.sublist(i, endIndex));
-
-      // 如果區塊小於標準大小，用零填充
-      while (chunkData.length < chunkSize &&
-          i + chunkSize <= fullAudio.length + chunkSize) {
-        chunkData.add(0.0);
-      }
-
-      // 只保留完整的或最後一個區塊（即使不完整）
-      if (chunkData.length >= chunkSize * 0.5) {
-        // 至少要有一半長度
-        chunks.add(Float32List.fromList(chunkData.take(chunkSize).toList()));
-      }
-    }
-
-    debugPrint('音訊分割完成：${chunks.length} 個區塊，每個 $chunkSize 樣本 (1 秒)');
-    return chunks;
-  }
-
-  // 合併所有區塊的音符事件結果
-  List<Map<String, dynamic>> _mergeChunkResults(
-      List<List<Map<String, dynamic>>> allChunkResults) {
-    List<Map<String, dynamic>> mergedResults = [];
-
-    for (int chunkIndex = 0;
-        chunkIndex < allChunkResults.length;
-        chunkIndex++) {
-      final chunkResults = allChunkResults[chunkIndex];
-      final timeOffset = chunkIndex * 1.0; // 每個區塊 1 秒
-
-      // 為每個音符事件添加正確的時間偏移
-      for (var noteEvent in chunkResults) {
-        final startTime = (noteEvent['startTime'] as double? ?? 0.0);
-        final duration = (noteEvent['duration'] as double? ?? 1.0);
-        final endTime =
-            (noteEvent['endTime'] as double? ?? (startTime + duration));
-
-        mergedResults.add({
-          ...noteEvent,
-          'startTime': startTime + timeOffset,
-          'endTime': endTime + timeOffset,
-          'duration': duration, // 保持原始持續時間
-          'chunkIndex': chunkIndex,
-        });
-      }
-    }
-
-    // 按開始時間排序
-    mergedResults.sort((a, b) =>
-        (a['startTime'] as double).compareTo(b['startTime'] as double));
-
-    debugPrint('合併區塊結果完成：${mergedResults.length} 個音符事件');
-    return mergedResults;
-  }
-
-  // 處理帶有時間信息的音符事件
-  List<Map<String, dynamic>> _processNoteEventsWithTiming(
-      List<Map<String, dynamic>> noteEvents) {
-    if (noteEvents.isEmpty) {
-      debugPrint('沒有音符事件需要處理');
-      return [];
-    }
-
-    // 按 MIDI 音符和時間排序
-    noteEvents.sort((a, b) {
-      int midiCompare = (a['midiNote'] as int).compareTo(b['midiNote'] as int);
-      if (midiCompare != 0) return midiCompare;
-      return (a['startTime'] as double).compareTo(b['startTime'] as double);
-    });
-
-    // 濾除低信心度的音符
-    final filteredNotes = noteEvents
-        .where((note) => (note['confidence'] as double) > 0.15)
-        .toList();
-
-    // 合併相近的音符（去除重複檢測）
-    List<Map<String, dynamic>> mergedNotes = [];
-
-    for (var note in filteredNotes) {
-      bool merged = false;
-
-      // 檢查是否與現有音符重疊
-      for (int i = 0; i < mergedNotes.length; i++) {
-        var existingNote = mergedNotes[i];
-
-        // 相同音符且時間重疊
-        if (existingNote['midiNote'] == note['midiNote']) {
-          double existingStart = existingNote['startTime'] as double;
-          double existingEnd = existingNote['endTime'] as double;
-          double noteStart = note['startTime'] as double;
-          double noteEnd = note['endTime'] as double;
-
-          // 如果重疊超過 0.3 秒，合併音符
-          if ((noteStart < existingEnd && noteEnd > existingStart) &&
-              (min(existingEnd, noteEnd) - max(existingStart, noteStart)) >
-                  0.3) {
-            // 合併音符：取較早的開始時間和較晚的結束時間
-            mergedNotes[i] = {
-              ...existingNote,
-              'startTime': min(existingStart, noteStart),
-              'endTime': max(existingEnd, noteEnd),
-              'duration':
-                  max(existingEnd, noteEnd) - min(existingStart, noteStart),
-              'velocity':
-                  max(existingNote['velocity'] as int, note['velocity'] as int),
-              'confidence': max(existingNote['confidence'] as double,
-                  note['confidence'] as double),
-            };
-
-            merged = true;
-            break;
-          }
-        }
-      }
-
-      if (!merged) {
-        // 確保音符有正確的結束時間
-        if (!note.containsKey('endTime')) {
-          note['endTime'] =
-              (note['startTime'] as double) + (note['duration'] as double);
-        }
-        mergedNotes.add(note);
-      }
-    }
-
-    debugPrint(
-        '處理音符事件：${noteEvents.length} -> ${filteredNotes.length} -> ${mergedNotes.length}');
-    return mergedNotes;
-  }
-
-  // 生成完整的 MIDI 檔案（支援時間軌）
-  List<int> _generateFullMidiFromAI(
-      List<Map<String, dynamic>> noteEvents, double totalDurationSec) {
-    List<int> midiData = [];
-
-    // MIDI 檔案標頭
-    midiData.addAll([
-      0x4D, 0x54, 0x68, 0x64, // "MThd"
-      0x00, 0x00, 0x00, 0x06, // 標頭長度 6 bytes
-      0x00, 0x00, // 格式類型 0 (單軌道)
-      0x00, 0x01, // 軌道數量 1
-      0x01, 0xE0, // 時間分割 (480 ticks per quarter note)
-    ]);
-
-    List<int> trackEvents = [];
-
-    // 設定音色 (Piano)
-    trackEvents.addAll([0x00, 0xC0, 0x00]);
-
-    // 設定速度 (120 BPM)
-    trackEvents.addAll([0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]);
-
-    // 按時間排序所有事件
-    List<Map<String, dynamic>> allEvents = [];
-
-    for (var note in noteEvents) {
-      double startTime = note['startTime'] as double;
-      double endTime = note['endTime'] as double;
-      int midiNote = note['midiNote'] as int;
-      int velocity = note['velocity'] as int;
-
-      // Note On 事件
-      allEvents.add({
-        'time': startTime,
-        'type': 'noteOn',
-        'midiNote': midiNote,
-        'velocity': velocity,
-      });
-
-      // Note Off 事件
-      allEvents.add({
-        'time': endTime,
-        'type': 'noteOff',
-        'midiNote': midiNote,
-        'velocity': 0,
-      });
-    }
-
-    // 按時間排序
-    allEvents
-        .sort((a, b) => (a['time'] as double).compareTo(b['time'] as double));
-
-    // 轉換為 MIDI 事件
-    double currentTime = 0.0;
-    const int ticksPerQuarterNote = 480; // MIDI 時間分辨率
-    const int tempo = 500000; // 微秒/四分音符 (120 BPM)
-    const double ticksPerSecond =
-        ticksPerQuarterNote * 1000000.0 / tempo; // ~960 ticks/sec
-
-    for (var event in allEvents) {
-      double eventTime = event['time'] as double;
-      int deltaTicks = ((eventTime - currentTime) * ticksPerSecond)
-          .round()
-          .clamp(0, 0x0FFFFFFF);
-
-      int midiNote = event['midiNote'] as int;
-      int velocity = event['velocity'] as int;
-
-      // 使用變長編碼 (Variable Length Quantity)
-      List<int> deltaBytes = _encodeVariableLength(deltaTicks);
-
-      if (event['type'] == 'noteOn') {
-        trackEvents.addAll([...deltaBytes, 0x90, midiNote, velocity]);
-      } else {
-        trackEvents.addAll([...deltaBytes, 0x80, midiNote, velocity]);
-      }
-
-      currentTime = eventTime;
-    }
-
-    // 軌道結束
-    int finalDeltaTicks = ((totalDurationSec - currentTime) * ticksPerSecond)
-        .round()
-        .clamp(0, 0x0FFFFFFF);
-    List<int> finalDeltaBytes = _encodeVariableLength(finalDeltaTicks);
-    trackEvents.addAll([...finalDeltaBytes, 0xFF, 0x2F, 0x00]);
-
-    // 軌道標頭
-    midiData.addAll([0x4D, 0x54, 0x72, 0x6B]); // "MTrk"
-
-    // 軌道長度
-    final trackLength = trackEvents.length;
-    midiData.addAll([
-      (trackLength >> 24) & 0xFF,
-      (trackLength >> 16) & 0xFF,
-      (trackLength >> 8) & 0xFF,
-      trackLength & 0xFF,
-    ]);
-
-    midiData.addAll(trackEvents);
-
-    debugPrint(
-        '生成完整 MIDI：${midiData.length} 字節，${noteEvents.length} 個音符，時長 ${totalDurationSec.toStringAsFixed(1)} 秒');
-    return midiData;
-  }
-
-  // MIDI 變長編碼 (Variable Length Quantity)
-  List<int> _encodeVariableLength(int value) {
-    List<int> bytes = [];
-    bytes.add(value & 0x7F);
-
-    value >>= 7;
-    while (value > 0) {
-      bytes.insert(0, (value & 0x7F) | 0x80);
-      value >>= 7;
-    }
-
-    return bytes;
-  }
-
-  // 使用 MidiPro 播放 MIDI 檔案
-  Future<void> _playMidiWithMidiPro(
-      MidiPro midiPro, Uint8List midiBytes, int sfId) async {
-    try {
-      debugPrint('🎵 開始解析並播放 MIDI 檔案...');
-
-      // MIDI 解析
-      int offset = 0;
-
-      // 跳過 MIDI 檔案頭 (MThd)
-      if (midiBytes.length < 14) {
-        throw Exception('MIDI 檔案格式錯誤');
-      }
-
-      offset = 14; // 跳過 MThd header
-
-      // 讀取軌道 (MTrk)
-      if (offset + 8 > midiBytes.length) {
-        debugPrint('⚠️ MIDI 檔案過短');
-        return;
-      }
-
-      // 跳過 MTrk 標頭
-      offset += 8;
-
-      // 收集所有 MIDI 事件
-      List<Map<String, dynamic>> midiEvents = [];
-      double currentTicks = 0.0;
-      const double ticksPerSecond = 960.0;
-
-      while (offset < midiBytes.length - 3) {
-        // 讀取 delta time (變長編碼)
-        int deltaTime = 0;
-        while (offset < midiBytes.length) {
-          int byte = midiBytes[offset++];
-          deltaTime = (deltaTime << 7) | (byte & 0x7F);
-          if ((byte & 0x80) == 0) break;
-        }
-
-        currentTicks += deltaTime;
-        double eventTime = currentTicks / ticksPerSecond;
-
-        if (offset >= midiBytes.length) break;
-
-        int status = midiBytes[offset++];
-
-        // Note On (0x90)
-        if ((status & 0xF0) == 0x90) {
-          if (offset + 1 >= midiBytes.length) break;
-          int note = midiBytes[offset++];
-          int velocity = midiBytes[offset++];
-
-          if (velocity > 0) {
-            midiEvents.add({
-              'type': 'noteOn',
-              'time': eventTime,
-              'note': note,
-              'velocity': velocity,
-            });
-          } else {
-            // velocity=0 等同於 Note Off
-            midiEvents.add({
-              'type': 'noteOff',
-              'time': eventTime,
-              'note': note,
-            });
-          }
-        }
-        // Note Off (0x80)
-        else if ((status & 0xF0) == 0x80) {
-          if (offset + 1 >= midiBytes.length) break;
-          int note = midiBytes[offset++];
-          offset++; // skip velocity
-
-          midiEvents.add({
-            'type': 'noteOff',
-            'time': eventTime,
-            'note': note,
-          });
-        }
-        // Meta event (0xFF)
-        else if (status == 0xFF) {
-          if (offset >= midiBytes.length) break;
-          offset++; // skip type
-          if (offset >= midiBytes.length) break;
-          int length = midiBytes[offset++];
-          offset += length;
-        }
-        // Program Change (0xC0)
-        else if ((status & 0xF0) == 0xC0) {
-          if (offset < midiBytes.length) offset++;
-        }
-        // Control Change (0xB0)
-        else if ((status & 0xF0) == 0xB0) {
-          if (offset + 1 < midiBytes.length) offset += 2;
-        }
-        // 其他事件，跳過
-        else {
-          if (offset + 1 < midiBytes.length) {
-            offset += 2;
-          }
-        }
-      }
-
-      debugPrint('✅ 解析完成，共 ${midiEvents.length} 個事件');
-
-      // 播放事件
-      if (midiEvents.isEmpty) {
-        debugPrint('⚠️ 沒有可播放的 MIDI 事件');
-        return;
-      }
-
-      final startTime = DateTime.now();
-      double lastEventTime = 0.0;
-
-      for (var event in midiEvents) {
-        double eventTime = event['time'] as double;
-
-        // 等待到事件時間
-        double waitTime = eventTime - lastEventTime;
-        if (waitTime > 0) {
-          await Future.delayed(
-              Duration(milliseconds: (waitTime * 1000).round()));
-        }
-
-        if (event['type'] == 'noteOn') {
-          await midiPro.playNote(
-            key: event['note'] as int,
-            velocity: event['velocity'] as int,
-            sfId: sfId,
-          );
-        } else if (event['type'] == 'noteOff') {
-          await midiPro.stopNote(
-            key: event['note'] as int,
-            sfId: sfId,
-          );
-        }
-
-        lastEventTime = eventTime;
-      }
-
-      final elapsed = DateTime.now().difference(startTime);
-      debugPrint('🎉 MIDI 播放完成！播放時長: ${elapsed.inSeconds} 秒');
-    } catch (e, stackTrace) {
-      debugPrint('❌ MIDI 播放過程錯誤: $e');
-      debugPrint('堆疊: $stackTrace');
-      rethrow;
-    }
-  }
-
-  // 根據進度返回適當的描述文字
-  String _getProgressDescription(double progress) {
-    if (progress < 0.05) {
-      return '正在檢查音訊檔案格式...';
-    } else if (progress < 0.08) {
-      return '正在轉換音訊格式為 WAV...';
-    } else if (progress < 0.12) {
-      return '正在讀取和預處理音訊檔案...';
-    } else if (progress < 0.18) {
-      return '正在分割音訊為 1 秒分析區塊...';
-    } else if (progress < 0.85) {
-      return '正在對每個區塊進行 AI 音符檢測...';
-    } else if (progress < 0.9) {
-      return '正在合併所有區塊的分析結果...';
-    } else if (progress < 0.95) {
-      return '正在處理和優化檢測到的音符...';
-    } else if (progress < 1.0) {
-      return '正在生成完整的 MIDI 檔案...';
-    } else {
-      return '分析完成！正在儲存檔案...';
-    }
-  }
-
-  // 簡單的線性插值重採樣
-  List<double> _resampleAudio(
-      List<double> samples, int originalRate, int targetRate) {
-    if (originalRate == targetRate) return samples;
-
-    final ratio = originalRate / targetRate;
-    final targetLength = (samples.length / ratio).round();
-    List<double> resampled = [];
-
-    for (int i = 0; i < targetLength; i++) {
-      final sourceIndex = i * ratio;
-      final floorIndex = sourceIndex.floor();
-      final ceilIndex = (floorIndex + 1).clamp(0, samples.length - 1);
-      final fraction = sourceIndex - floorIndex;
-
-      if (floorIndex < samples.length && ceilIndex < samples.length) {
-        final interpolated = samples[floorIndex] * (1 - fraction) +
-            samples[ceilIndex] * fraction;
-        resampled.add(interpolated);
-      } else if (floorIndex < samples.length) {
-        resampled.add(samples[floorIndex]);
-      } else {
-        resampled.add(0.0);
-      }
-    }
-
-    return resampled;
-  }
-
-  // 計算音訊 RMS (均方根)
-  double _calculateRMS(List<double> samples) {
-    if (samples.isEmpty) return 0.0;
-
-    double sum = 0.0;
-    for (double sample in samples) {
-      sum += sample * sample;
-    }
-
-    return sqrt(sum / samples.length);
-  }
-
-  // 使用 AI 模型進行推論
-  Future<List<List<double>>> _runAIInference(Float32List audioData) async {
-    try {
-      debugPrint('🔄 開始 AI 模型推論，音訊數據長度: ${audioData.length}');
-
-      if (_interpreter == null || !_isModelLoaded) {
-        throw Exception('AI 模型未載入');
-      }
-
-      // 獲取模型的輸入張量信息
-      final inputTensors = _interpreter!.getInputTensors();
-      final outputTensors = _interpreter!.getOutputTensors();
-
-      if (inputTensors.isEmpty) {
-        throw Exception('模型沒有輸入張量');
-      }
-
-      final inputTensor = inputTensors[0];
-      debugPrint('輸入張量形狀: ${inputTensor.shape}');
-      debugPrint('輸入張量類型: ${inputTensor.type}');
-
-      // 準備輸入數據
-      dynamic inputData;
-
-      // 根據模型的輸入形狀調整數據
-      if (inputTensor.shape.length == 1) {
-        // 一維輸入 [samples]
-        final expectedLength = inputTensor.shape[0];
-        List<double> processedAudio;
-
-        debugPrint('模型期望輸入長度: $expectedLength, 實際音頻長度: ${audioData.length}');
-
-        if (audioData.length > expectedLength) {
-          // 如果音頻太長，截取前面部分
-          processedAudio = audioData.sublist(0, expectedLength);
-          debugPrint('音頻太長，截取到 $expectedLength 樣本');
-        } else {
-          // 如果音頻太短，用零填充
-          processedAudio = List<double>.from(audioData);
-          while (processedAudio.length < expectedLength) {
-            processedAudio.add(0.0);
-          }
-          debugPrint(
-              '音頻太短，填充到 $expectedLength 樣本 (添加了 ${expectedLength - audioData.length} 個零)');
-        }
-
-        inputData = processedAudio;
-        debugPrint('準備一維輸入數據: [$expectedLength]');
-      } else if (inputTensor.shape.length == 2) {
-        // 二維輸入 [batch_size, samples]
-        final expectedLength = inputTensor.shape[1];
-        List<double> processedAudio;
-
-        debugPrint('模型期望輸入長度: $expectedLength, 實際音頻長度: ${audioData.length}');
-
-        if (audioData.length > expectedLength) {
-          // 如果音頻太長，截取前面部分
-          processedAudio = audioData.sublist(0, expectedLength);
-          debugPrint('音頻太長，截取到 $expectedLength 樣本');
-        } else {
-          // 如果音頻太短，用零填充
-          processedAudio = List<double>.from(audioData);
-          while (processedAudio.length < expectedLength) {
-            processedAudio.add(0.0);
-          }
-          debugPrint(
-              '音頻太短，填充到 $expectedLength 樣本 (添加了 ${expectedLength - audioData.length} 個零)');
-        }
-
-        inputData = [processedAudio];
-        debugPrint('準備二維輸入數據: [1, ${processedAudio.length}]');
-      } else if (inputTensor.shape.length == 3) {
-        // 三維輸入 [batch_size, time_steps, features] 或 [batch_size, samples, channels]
-        final batchSize = inputTensor.shape[0];
-        final timeSteps = inputTensor.shape[1];
-        final features = inputTensor.shape[2];
-
-        debugPrint('模型期望三維輸入: [$batchSize, $timeSteps, $features]');
-
-        List<double> processedAudio;
-        final expectedLength = timeSteps * features;
-
-        if (audioData.length > expectedLength) {
-          processedAudio = audioData.sublist(0, expectedLength);
-          debugPrint('音頻太長，截取到 $expectedLength 樣本');
-        } else {
-          processedAudio = List<double>.from(audioData);
-          while (processedAudio.length < expectedLength) {
-            processedAudio.add(0.0);
-          }
-          debugPrint('音頻太短，填充到 $expectedLength 樣本');
-        }
-
-        // 重塑為三維 [batch_size, time_steps, features]
-        List<List<List<double>>> batchData = [];
-        List<List<double>> timeStepData = [];
-
-        int sampleIndex = 0;
-        for (int t = 0; t < timeSteps; t++) {
-          List<double> featureData = [];
-          for (int f = 0; f < features; f++) {
-            if (sampleIndex < processedAudio.length) {
-              featureData.add(processedAudio[sampleIndex]);
-            } else {
-              featureData.add(0.0);
-            }
-            sampleIndex++;
-          }
-          timeStepData.add(featureData);
-        }
-        batchData.add(timeStepData);
-
-        inputData = batchData;
-        debugPrint('準備三維輸入數據: [$batchSize, $timeSteps, $features]');
-      } else {
-        throw Exception('不支援的輸入張量維度: ${inputTensor.shape.length}');
-      }
-
-      // 準備輸出緩衝區 - 根據張量形狀創建正確的結構
-      Map<int, dynamic> outputBuffers = {};
-
-      for (int i = 0; i < outputTensors.length; i++) {
-        final outputTensor = outputTensors[i];
-        final shape = outputTensor.shape;
-        debugPrint('輸出張量 $i 形狀: $shape');
-
-        // 根據維度創建對應結構
-        if (shape.length == 3) {
-          // 三維輸出 [batch, time, features]
-          final batch = shape[0];
-          final time = shape[1];
-          final features = shape[2];
-
-          outputBuffers[i] = List.generate(
-              batch,
-              (_) => List.generate(
-                  time, (_) => List<double>.filled(features, 0.0)));
-          debugPrint('  創建三維輸出: [$batch, $time, $features]');
-        } else if (shape.length == 2) {
-          // 二維輸出 [batch, features]
-          final batch = shape[0];
-          final features = shape[1];
-          outputBuffers[i] =
-              List.generate(batch, (_) => List<double>.filled(features, 0.0));
-          debugPrint('  創建二維輸出: [$batch, $features]');
-        } else if (shape.length == 1) {
-          // 一維輸出
-          outputBuffers[i] = List<double>.filled(shape[0], 0.0);
-          debugPrint('  創建一維輸出: [${shape[0]}]');
-        }
-      }
-
-      // 執行推論
-      debugPrint('🧠 執行 AI 模型推論...');
-
-      // 將 outputBuffers 轉換為正確的類型 Map<int, Object>
-      final Map<int, Object> outputMap = {};
-      outputBuffers.forEach((key, value) {
-        outputMap[key] = value as Object;
-      });
-
-      _interpreter!.runForMultipleInputs([inputData], outputMap);
-
-      debugPrint('✅ AI 推論完成，輸出 ${outputMap.length} 個張量');
-
-      // 將三維輸出展平為二維 [time, features]
-      List<List<double>> flattenedOutputs = [];
-
-      for (int i = 0; i < outputMap.length; i++) {
-        final output = outputMap[i];
-
-        if (output is List<List<List<double>>>) {
-          // 三維: [batch, time, features] -> [time, features]
-          if (output.isNotEmpty) {
-            flattenedOutputs
-                .add(output[0].expand((timeStep) => timeStep).toList());
-            debugPrint('  輸出 $i: 三維 -> 一維 [${flattenedOutputs.last.length}]');
-          }
-        } else if (output is List<List<double>>) {
-          // 二維: [batch, features] -> [features]
-          if (output.isNotEmpty) {
-            flattenedOutputs.add(output[0]);
-            debugPrint('  輸出 $i: 二維 -> 一維 [${flattenedOutputs.last.length}]');
-          }
-        } else if (output is List<double>) {
-          // 一維: 直接使用
-          flattenedOutputs.add(output);
-          debugPrint('  輸出 $i: 一維 [${output.length}]');
-        }
-
-        // 顯示統計資訊
-        if (flattenedOutputs.isNotEmpty && flattenedOutputs.last.isNotEmpty) {
-          final values = flattenedOutputs.last;
-          final max = values.reduce((a, b) => a > b ? a : b);
-          final min = values.reduce((a, b) => a < b ? a : b);
-          final avg = values.reduce((a, b) => a + b) / values.length;
-          debugPrint(
-              '    統計: min=$min, max=$max, avg=${avg.toStringAsFixed(4)}');
-        }
-      }
-
-      return flattenedOutputs;
-    } catch (e, stackTrace) {
-      debugPrint('❌ AI 推論失敗: $e');
-      debugPrint('錯誤堆疊: $stackTrace');
-
-      // 直接拋出錯誤,不使用假數據
-      rethrow;
-    }
-  }
-
-  // Sigmoid 函數：將 logits 轉換為機率 [0, 1]
-  double _sigmoid(double x) {
-    return 1.0 / (1.0 + exp(-x));
-  }
-
-  // 解析 AI 輸出為音符事件 - 正確處理時間維度
-  List<Map<String, dynamic>> _parseAIOutput(List<List<double>> aiOutput) {
-    if (aiOutput.isEmpty) {
-      debugPrint('AI 輸出為空');
-      return [];
-    }
-
-    debugPrint('解析 AI 輸出，包含 ${aiOutput.length} 個張量');
-    for (int i = 0; i < aiOutput.length; i++) {
-      debugPrint('張量 $i: ${aiOutput[i].length} 個值');
-    }
-
-    List<Map<String, dynamic>> noteEvents = [];
-
-    // AI 模型輸出格式：[time_frames * notes]
-    // 展平後的格式：每個張量是 [32 * 88] = 2816 個值
-    // 需要重塑為 [32 time_frames, 88 notes]
-
-    if (aiOutput.length >= 2) {
-      // 假設有兩個輸出：onsets 和 frames
-      final onsetsFlat = aiOutput[0];
-      final framesFlat = aiOutput[1];
-
-      const int numTimeFrames = 32; // 模型輸出的時間幀數
-      const int numNotes = 88; // 鋼琴音符數
-
-      if (onsetsFlat.length != numTimeFrames * numNotes ||
-          framesFlat.length != numTimeFrames * numNotes) {
-        debugPrint('警告：輸出大小不符合預期');
-        debugPrint(
-            'Onsets: ${onsetsFlat.length}, Frames: ${framesFlat.length}');
-        debugPrint('預期: ${numTimeFrames * numNotes}');
-      }
-
-      // 重塑為 [time, note] 格式，同時將 logits 轉換為機率
-      List<List<double>> onsets = [];
-      List<List<double>> frames = [];
-
-      for (int t = 0; t < numTimeFrames; t++) {
-        List<double> onsetFrame = [];
-        List<double> frameFrame = [];
-
-        for (int n = 0; n < numNotes; n++) {
-          int idx = t * numNotes + n;
-          if (idx < onsetsFlat.length) {
-            // 將 logits 轉換為機率值 [0, 1]
-            onsetFrame.add(_sigmoid(onsetsFlat[idx]));
-          } else {
-            onsetFrame.add(0.0);
-          }
-          if (idx < framesFlat.length) {
-            // 將 logits 轉換為機率值 [0, 1]
-            frameFrame.add(_sigmoid(framesFlat[idx]));
-          } else {
-            frameFrame.add(0.0);
-          }
-        }
-
-        onsets.add(onsetFrame);
-        frames.add(frameFrame);
-      }
-
-      debugPrint('重塑完成：$numTimeFrames 時間幀 x $numNotes 音符 (已轉換為機率)');
-
-      // 🔍 調試：檢查轉換後的值範圍
-      double maxOnset = onsets.expand((f) => f).reduce((a, b) => a > b ? a : b);
-      double maxFrame = frames.expand((f) => f).reduce((a, b) => a > b ? a : b);
-      double avgOnset = onsets.expand((f) => f).reduce((a, b) => a + b) /
-          (numTimeFrames * numNotes);
-      double avgFrame = frames.expand((f) => f).reduce((a, b) => a + b) /
-          (numTimeFrames * numNotes);
-      debugPrint('🔍 Sigmoid轉換後 - Onset: max=$maxOnset, avg=$avgOnset');
-      debugPrint('🔍 Sigmoid轉換後 - Frame: max=$maxFrame, avg=$avgFrame');
-
-      // 設定閾值（進一步降低以捕捉更多音符）
-      const double onsetThreshold = 0.1; // Onset 閾值（從 0.15 降低到 0.1）
-      const double frameThreshold = 0.03; // Frame 閾值（從 0.05 降低到 0.03）
-      const double minNoteDuration = 0.05; // 最小音符持續時間（50ms）
-
-      // 追蹤每個音符的狀態
-      Map<int, Map<String, dynamic>> activeNotes = {};
-
-      // 每個時間幀的時間長度（秒）
-      const double frameTime = 1.0 / numTimeFrames; // ~0.03125 秒/幀
-
-      debugPrint('🎯 使用閾值 - Onset: $onsetThreshold, Frame: $frameThreshold');
-
-      // 🔍 計數檢測到的onset
-      int onsetCount = 0;
-
-      for (int t = 0; t < numTimeFrames; t++) {
-        double currentTime = t * frameTime;
-
-        for (int n = 0; n < numNotes; n++) {
-          double onsetValue = onsets[t][n];
-          double frameValue = frames[t][n];
-
-          int midiNote = 21 + n; // MIDI 21 = A0 (最低鋼琴音)
-
-          // 檢測音符開始 (onset)
-          if (onsetValue > onsetThreshold) {
-            onsetCount++;
-            if (onsetCount <= 5) {
-              // 只打印前5個
-              debugPrint(
-                  '  🎵 檢測onset: t=$t, note=$midiNote, onset=$onsetValue, frame=$frameValue');
-            }
-            // 如果該音符已經在活動中，先結束它
-            if (activeNotes.containsKey(midiNote)) {
-              var note = activeNotes[midiNote]!;
-              double duration = currentTime - (note['startTime'] as double);
-
-              // 只有持續時間足夠長才記錄
-              if (duration >= minNoteDuration) {
-                note['endTime'] = currentTime;
-                note['duration'] = duration;
-                noteEvents.add(note);
-              }
-            }
-
-            // 開始新音符
-            activeNotes[midiNote] = {
-              'midiNote': midiNote,
-              'startTime': currentTime,
-              'velocity': (onsetValue * 127).round().clamp(35, 127),
-              'confidence': onsetValue,
-              'onsetStrength': onsetValue,
-            };
-          }
-
-          // 檢查音符是否持續 (frame)
-          if (activeNotes.containsKey(midiNote)) {
-            if (frameValue < frameThreshold) {
-              // 音符結束
-              var note = activeNotes[midiNote]!;
-              double duration = currentTime - (note['startTime'] as double);
-
-              // 只有持續時間足夠長才記錄
-              if (duration >= minNoteDuration) {
-                note['endTime'] = currentTime;
-                note['duration'] = duration;
-                noteEvents.add(note);
-              }
-              activeNotes.remove(midiNote);
-            } else {
-              // 更新強度
-              activeNotes[midiNote]!['frameStrength'] = frameValue;
-            }
-          }
-        }
-      }
-
-      // 結束所有仍在活動的音符
-      activeNotes.forEach((midiNote, note) {
-        double duration = 1.0 - (note['startTime'] as double);
-
-        // 只有持續時間足夠長才記錄
-        if (duration >= minNoteDuration) {
-          note['endTime'] = 1.0; // 區塊結束時間
-          note['duration'] = duration;
-          noteEvents.add(note);
-        }
-      });
-
-      debugPrint(
-          '📊 本區塊檢測到 ${noteEvents.length} 個有效音符 (onset觸發: $onsetCount 次)');
-    } else if (aiOutput.length == 1) {
-      // 單一輸出，嘗試簡單處理
-      final combined = aiOutput[0];
-      final threshold = _calculateDynamicThreshold(combined, 0.2);
-
-      debugPrint('單一輸出處理，閾值: $threshold');
-
-      for (int i = 0; i < combined.length; i++) {
-        if (combined[i] > threshold) {
-          int midiNote = _mapToMidiNote(i, combined.length);
-
-          noteEvents.add({
-            'midiNote': midiNote,
-            'startTime': 0.0,
-            'duration': 0.5,
-            'endTime': 0.5,
-            'velocity': (combined[i] * 127).round().clamp(30, 127),
-            'confidence': combined[i],
-          });
-        }
-      }
-    }
-
-    debugPrint('從 AI 輸出解析出 ${noteEvents.length} 個音符事件');
-    return noteEvents;
-  }
-
-  // 計算動態閾值
-  double _calculateDynamicThreshold(
-      List<double> values, double defaultThreshold) {
-    if (values.isEmpty) return defaultThreshold;
-
-    // 計算統計信息
-    final sorted = List<double>.from(values)..sort();
-    final max = sorted.last;
-    final q75 = sorted[(sorted.length * 0.75).floor()];
-    final mean = values.reduce((a, b) => a + b) / values.length;
-
-    // 動態調整閾值
-    final dynamicThreshold =
-        (defaultThreshold > (mean * 2 < q75 * 0.5 ? mean * 2 : q75 * 0.5))
-            ? defaultThreshold
-            : (mean * 2 < q75 * 0.5 ? mean * 2 : q75 * 0.5);
-
-    debugPrint('統計: max=$max, q75=$q75, mean=$mean, 動態閾值=$dynamicThreshold');
-    return dynamicThreshold;
-  }
-
-  // 將模型輸出索引映射到 MIDI 音符
-  int _mapToMidiNote(int index, int totalNotes) {
-    if (totalNotes == 88) {
-      // 標準 88 鍵鋼琴映射 (A0 = 21)
-      return index + 21;
-    } else {
-      // 動態映射到鋼琴音域
-      final ratio = index / (totalNotes - 1);
-      const midiRange = 108 - 21; // C8 - A0
-      return (21 + ratio * midiRange).round();
-    }
-  }
-
-  // 快速分析轉換結果
-  Future<String> _getQuickAnalysis(File midiFile) async {
-    try {
-      final bytes = await midiFile.readAsBytes();
-      final noteCount = _countNotes(bytes);
-      final noteRange = _analyzeNoteRange(bytes);
-
-      String result = '檢測到 $noteCount 個音符';
-      if (noteRange.isNotEmpty) {
-        result +=
-            '\n音域: ${_noteToString(noteRange[0])} - ${_noteToString(noteRange[1])}';
-      }
-      return result;
-    } catch (e) {
-      return '基於錄音檔案內容生成';
-    }
-  }
-
-  // 播放 MIDI 檔案
-  Future<void> playMidiFile() async {
-    if (_midiPath == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(AppLocalizations.of(context)!.errorConvertMidiFirst), backgroundColor: Colors.red),
-        );
-      }
-      return;
-    }
-
-    // 檢查檔案是否存在
-    final midiFile = File(_midiPath!);
-    if (!await midiFile.exists()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('MIDI 檔案不存在: $_midiPath'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      debugPrint('播放 MIDI 檔案: $_midiPath');
-      debugPrint('檔案大小: ${await midiFile.length()} bytes');
-
-      // 使用 flutter_midi_pro 播放
-      final midiPro = MidiPro();
-
-      // 載入音色庫 (SoundFont) - 鋼琴音色
-      const soundfontPath = 'assets/TimGM6mb.sf2';
-      final sfId = await midiPro.loadSoundfont(
-        path: soundfontPath,
-        bank: 0,
-        program: 0, // 0 = Piano
-      );
-
-      debugPrint('音色庫載入成功: $sfId');
-
-      // 讀取並解析 MIDI 檔案
-      final midiBytes = await midiFile.readAsBytes();
-      await _playMidiWithMidiPro(midiPro, midiBytes, sfId);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎹 MIDI 播放完成'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('MIDI 播放錯誤: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('MIDI 播放失敗: $e\n\n💡 檔案已生成，可使用其他 MIDI 播放器播放'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    }
-  }
-
-  // 顯示 MIDI 檔案位置
-  Future<void> exportMidiFile() async {
-    if (_midiPath == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(AppLocalizations.of(context)!.errorConvertMidiFirst), backgroundColor: Colors.red),
-        );
-      }
-      return;
-    }
-
-    try {
-      final midiFile = File(_midiPath!);
-      if (!await midiFile.exists()) {
-        throw Exception('MIDI 檔案不存在: $_midiPath');
-      }
-
-      // 分析 MIDI 檔案
-      final midiAnalysis = await _analyzeMidiFile(midiFile);
-
-      // 檔案已經儲存在用戶可存取的位置，直接顯示路徑
-      final fileName = _midiPath!.split('/').last;
-      final l10n = AppLocalizations.of(context)!;
-      String locationMessage;
-
-      if (_midiPath!.contains('/Download/')) {
-        locationMessage = l10n.practiceFileSavedDownloads(fileName, midiAnalysis);
-      } else {
-        locationMessage = l10n.practiceFileSavedLocation(_midiPath!, fileName, midiAnalysis);
-      }
-
-      // 嘗試開啟檔案管理器到檔案位置
-      try {
-        final result = await OpenFile.open(_midiPath!);
-        if (result.type == ResultType.done) {
-          locationMessage += l10n.practiceFileOpenSuccess;
-        } else {
-          locationMessage += l10n.practiceFileOpenFailed;
-        }
-      } catch (openError) {
-        debugPrint('開啟檔案失敗: $openError');
-        locationMessage += '\n\n⚠️ 無法自動開啟，請手動搜索檔案';
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(locationMessage),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 8),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorFileAccess(e.toString())),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // 分析 MIDI 檔案內容
-  Future<String> _analyzeMidiFile(File midiFile) async {
-    try {
-      final bytes = await midiFile.readAsBytes();
-      final size = bytes.length;
-
-      // 基本檔案資訊
-      String analysis = '📊 MIDI 檔案分析:\n';
-      analysis += '• 檔案大小: $size bytes\n';
-
-      // 檢查 MIDI 標頭
-      if (size < 14) {
-        analysis += '• ❌ 檔案太小，可能損壞\n';
-        return analysis;
-      }
-
-      // 檢查 MIDI 魔術數字
-      String header = String.fromCharCodes(bytes.sublist(0, 4));
-      if (header == 'MThd') {
-        analysis += '• ✅ MIDI 格式正確\n';
-
-        // 讀取格式資訊
-        int format = (bytes[8] << 8) | bytes[9];
-        int tracks = (bytes[10] << 8) | bytes[11];
-        int division = (bytes[12] << 8) | bytes[13];
-
-        analysis += '• 格式類型: $format\n';
-        analysis += '• 軌道數量: $tracks\n';
-        analysis += '• 時間分割: $division ticks/quarter\n';
-
-        // 估算播放時長 (簡化估算)
-        int estimatedDuration = _estimateDuration(bytes);
-        analysis += '• 預估時長: $estimatedDuration秒\n';
-
-        // 分析音符內容
-        int noteCount = _countNotes(bytes);
-        analysis += '• 音符數量: $noteCount\n';
-
-        // 檢查音域
-
-        List<int> noteRange = _analyzeNoteRange(bytes);
-        if (noteRange.isNotEmpty) {
-          analysis +=
-              '• 音域: ${_noteToString(noteRange[0])} - ${_noteToString(noteRange[1])}\n';
-        }
-
-        // 品質評估
-        String quality = _assessQuality(size, noteCount, tracks);
-        analysis += '• 品質評估: $quality\n';
-      } else {
-        analysis += '• ❌ 不是有效的 MIDI 檔案\n';
-      }
-
-      return analysis;
-    } catch (e) {
-      return '📊 MIDI 檔案分析:\n• ❌ 分析失敗: $e';
-    }
-  }
-
-  // 估算播放時長
-  int _estimateDuration(List<int> bytes) {
-    // 簡化計算：基於檔案大小和音符密度
-    int size = bytes.length;
-    if (size < 200) return 5;
-    if (size < 500) return 10;
-    if (size < 1000) return 15;
-    return 20;
-  }
-
-  // 計算音符數量
-  int _countNotes(List<int> bytes) {
-    int count = 0;
-    for (int i = 0; i < bytes.length - 1; i++) {
-      // 尋找 Note On 事件 (0x90-0x9F)
-      if (bytes[i] >= 0x90 && bytes[i] <= 0x9F) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  // 分析音域範圍
-  List<int> _analyzeNoteRange(List<int> bytes) {
-    List<int> notes = [];
-    for (int i = 0; i < bytes.length - 2; i++) {
-      // 尋找 Note On 事件
-      if (bytes[i] >= 0x90 && bytes[i] <= 0x9F && i + 1 < bytes.length) {
-        notes.add(bytes[i + 1]); // 音符編號
-      }
-    }
-
-    if (notes.isEmpty) return [];
-    notes.sort();
-    return [notes.first, notes.last];
-  }
-
-  // 將 MIDI 音符編號轉換為音符名稱
-  String _noteToString(int midiNote) {
-    List<String> noteNames = [
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B'
-    ];
-    int octave = (midiNote ~/ 12) - 1;
-    String note = noteNames[midiNote % 12];
-    return '$note$octave';
-  }
-
-  // 評估 MIDI 檔案品質
-  String _assessQuality(int size, int noteCount, int tracks) {
-    if (size < 100) return '❌ 檔案太小';
-    if (noteCount == 0) return '❌ 沒有音符';
-    if (noteCount < 5) return '⚠️ 音符太少';
-    if (noteCount >= 5 && noteCount <= 20) return '✅ 簡單旋律';
-    if (noteCount > 20) return '✅ 豐富內容';
-    return '➖ 未知';
   }
 
   // 格式化時長顯示 (2025/11/27 新增)
@@ -2530,7 +854,7 @@ class _PracticePageState extends State<PracticePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    
+
     // 獲取檔案名稱（不包含副檔名）
     String getFileNameWithoutExtension() {
       if (widget.file?.name == null) return l10n?.practiceNoFile ?? '未指定曲目';
@@ -2548,7 +872,8 @@ class _PracticePageState extends State<PracticePage> {
         title: FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(l10n?.practiceTitle ?? '練習模式',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.white)),
         ),
         backgroundColor: AppColors.dynamicPrimary,
         centerTitle: true,
@@ -2619,14 +944,17 @@ class _PracticePageState extends State<PracticePage> {
                           const SizedBox(width: 8),
                           FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text(_isRecordMode ? (l10n?.practiceRecordControl ?? '錄音控制') : (l10n?.practiceUploadAudio ?? '上傳音檔'),
+                            child: Text(
+                                _isRecordMode
+                                    ? (l10n?.practiceRecordControl ?? '錄音控制')
+                                    : (l10n?.practiceUploadAudio ?? '上傳音檔'),
                                 style: const TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // 錄音/上傳模式切換 (2025/11/27 恢復)
                       Container(
                         padding: const EdgeInsets.all(4),
@@ -2647,9 +975,12 @@ class _PracticePageState extends State<PracticePage> {
                                   }
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 16),
                                   decoration: BoxDecoration(
-                                    color: _isRecordMode ? AppColors.dynamicPrimary : Colors.transparent,
+                                    color: _isRecordMode
+                                        ? AppColors.dynamicPrimary
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(25),
                                   ),
                                   child: Row(
@@ -2659,14 +990,20 @@ class _PracticePageState extends State<PracticePage> {
                                       Icon(
                                         Icons.mic,
                                         size: 18,
-                                        color: _isRecordMode ? Colors.white : Colors.grey[700],
+                                        color: _isRecordMode
+                                            ? Colors.white
+                                            : Colors.grey[700],
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         l10n?.practiceRecordMode ?? '錄音',
                                         style: TextStyle(
-                                          color: _isRecordMode ? Colors.white : Colors.grey[700],
-                                          fontWeight: _isRecordMode ? FontWeight.bold : FontWeight.normal,
+                                          color: _isRecordMode
+                                              ? Colors.white
+                                              : Colors.grey[700],
+                                          fontWeight: _isRecordMode
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
                                         ),
                                       ),
                                     ],
@@ -2684,9 +1021,12 @@ class _PracticePageState extends State<PracticePage> {
                                   }
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 16),
                                   decoration: BoxDecoration(
-                                    color: !_isRecordMode ? AppColors.dynamicPrimary : Colors.transparent,
+                                    color: !_isRecordMode
+                                        ? AppColors.dynamicPrimary
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(25),
                                   ),
                                   child: Row(
@@ -2696,14 +1036,20 @@ class _PracticePageState extends State<PracticePage> {
                                       Icon(
                                         Icons.upload_file,
                                         size: 18,
-                                        color: !_isRecordMode ? Colors.white : Colors.grey[700],
+                                        color: !_isRecordMode
+                                            ? Colors.white
+                                            : Colors.grey[700],
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         l10n?.practiceUploadMode ?? '上傳',
                                         style: TextStyle(
-                                          color: !_isRecordMode ? Colors.white : Colors.grey[700],
-                                          fontWeight: !_isRecordMode ? FontWeight.bold : FontWeight.normal,
+                                          color: !_isRecordMode
+                                              ? Colors.white
+                                              : Colors.grey[700],
+                                          fontWeight: !_isRecordMode
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
                                         ),
                                       ),
                                     ],
@@ -2715,20 +1061,22 @@ class _PracticePageState extends State<PracticePage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // 根據模式顯示不同內容
                       if (_isRecordMode) ...[
                         // 倒數計時開關
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.timer, size: 20, color: Colors.grey),
+                            const Icon(Icons.timer,
+                                size: 20, color: Colors.grey),
                             const SizedBox(width: 8),
                             FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text(l10n?.practiceEnableCountdown ?? '3秒倒數計時',
-                                  style:
-                                      const TextStyle(fontSize: 14, color: Colors.grey)),
+                              child: Text(
+                                  l10n?.practiceEnableCountdown ?? '3秒倒數計時',
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.grey)),
                             ),
                             const SizedBox(width: 12),
                             Switch(
@@ -2753,14 +1101,19 @@ class _PracticePageState extends State<PracticePage> {
                                   isRecording
                                       ? Icons.fiber_manual_record
                                       : Icons.stop_circle_outlined,
-                                  color: isRecording ? Colors.red : Colors.green,
+                                  color:
+                                      isRecording ? Colors.red : Colors.green,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   isRecording
                                       ? '${l10n?.practiceRecording ?? '正在錄音'}... ${_recordingDurationSeconds}${l10n?.practiceSeconds ?? 's'}'
-                                      : (_audioPath != null ? (l10n?.practiceRecordingSuccess ?? '錄音完成') : (l10n?.practiceNoRecording ?? '未錄音')),
+                                      : (_audioPath != null
+                                          ? (l10n?.practiceRecordingSuccess ??
+                                              '錄音完成')
+                                          : (l10n?.practiceNoRecording ??
+                                              '未錄音')),
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: isRecording
@@ -2783,7 +1136,9 @@ class _PracticePageState extends State<PracticePage> {
                                   : Icons.fiber_manual_record),
                               label: Text(isRecording
                                   ? (l10n?.practiceStopRecord ?? '停止')
-                                  : (_audioPath != null ? (l10n?.practiceRerecord ?? '重新錄音') : (l10n?.practiceRecord ?? '開始錄音'))),
+                                  : (_audioPath != null
+                                      ? (l10n?.practiceRerecord ?? '重新錄音')
+                                      : (l10n?.practiceRecord ?? '開始錄音'))),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
                                     isRecording ? Colors.grey : Colors.red,
@@ -2799,18 +1154,25 @@ class _PracticePageState extends State<PracticePage> {
                         Column(
                           children: [
                             Icon(
-                              _audioPath != null ? Icons.check_circle : Icons.upload_file,
+                              _audioPath != null
+                                  ? Icons.check_circle
+                                  : Icons.upload_file,
                               size: 48,
-                              color: _audioPath != null ? Colors.green : Colors.grey,
+                              color: _audioPath != null
+                                  ? Colors.green
+                                  : Colors.grey,
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              _audioPath != null 
-                                  ? (l10n?.practiceFileUploaded ?? '已上傳檔案') 
-                                  : (l10n?.practiceSelectWavFile ?? '請選擇 WAV 檔案'),
+                              _audioPath != null
+                                  ? (l10n?.practiceFileUploaded ?? '已上傳檔案')
+                                  : (l10n?.practiceSelectWavFile ??
+                                      '請選擇 WAV 檔案'),
                               style: TextStyle(
                                 fontSize: 16,
-                                color: _audioPath != null ? Colors.green : Colors.grey,
+                                color: _audioPath != null
+                                    ? Colors.green
+                                    : Colors.grey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -2818,7 +1180,8 @@ class _PracticePageState extends State<PracticePage> {
                               const SizedBox(height: 4),
                               Text(
                                 _audioPath!.split('/').last,
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -2827,7 +1190,9 @@ class _PracticePageState extends State<PracticePage> {
                             ElevatedButton.icon(
                               onPressed: uploadWavFile,
                               icon: const Icon(Icons.upload_file),
-                              label: Text(_audioPath != null ? (l10n?.practiceReupload ?? '重新上傳') : (l10n?.practiceSelectFile2 ?? '選擇檔案')),
+                              label: Text(_audioPath != null
+                                  ? (l10n?.practiceReupload ?? '重新上傳')
+                                  : (l10n?.practiceSelectFile2 ?? '選擇檔案')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.dynamicPrimary,
                                 foregroundColor: Colors.white,
@@ -2866,15 +1231,17 @@ class _PracticePageState extends State<PracticePage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // 播放進度條 (2025/11/27 新增)
-                      if (_audioPath != null && (isPlaying || _playbackPosition > 0)) ...[
+                      if (_audioPath != null &&
+                          (isPlaying || _playbackPosition > 0)) ...[
                         Column(
                           children: [
                             // 進度條
                             Slider(
-                              value: _playbackDuration > 0 
-                                  ? (_playbackPosition / _playbackDuration).clamp(0.0, 1.0) 
+                              value: _playbackDuration > 0
+                                  ? (_playbackPosition / _playbackDuration)
+                                      .clamp(0.0, 1.0)
                                   : 0.0,
                               onChanged: null, // 暫時不支援拖動
                               activeColor: AppColors.dynamicPrimary,
@@ -2882,17 +1249,21 @@ class _PracticePageState extends State<PracticePage> {
                             ),
                             // 時間顯示
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     _formatDuration(_playbackPosition),
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.grey),
                                   ),
                                   Text(
                                     _formatDuration(_playbackDuration),
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.grey),
                                   ),
                                 ],
                               ),
@@ -2901,7 +1272,7 @@ class _PracticePageState extends State<PracticePage> {
                         ),
                         const SizedBox(height: 8),
                       ],
-                      
+
                       // 播放控制按鈕
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -2909,27 +1280,27 @@ class _PracticePageState extends State<PracticePage> {
                           // 播放/停止按鈕
                           ElevatedButton.icon(
                             onPressed: (!isRecording && _audioPath != null)
-                                ? (isPlaying 
+                                ? (isPlaying
                                     ? (_isPaused ? resumePlaying : pausePlaying)
                                     : playRecording)
                                 : null,
-                            icon: Icon(
-                              isPlaying 
-                                  ? (_isPaused ? Icons.play_arrow : Icons.pause)
-                                  : Icons.play_arrow
-                            ),
-                            label: Text(
-                              isPlaying 
-                                  ? (_isPaused ? (l10n?.practiceResume ?? '繼續') : (l10n?.practicePause ?? '暫停'))
-                                  : (l10n?.practicePlayRecording ?? '播放錄音')
-                            ),
+                            icon: Icon(isPlaying
+                                ? (_isPaused ? Icons.play_arrow : Icons.pause)
+                                : Icons.play_arrow),
+                            label: Text(isPlaying
+                                ? (_isPaused
+                                    ? (l10n?.practiceResume ?? '繼續')
+                                    : (l10n?.practicePause ?? '暫停'))
+                                : (l10n?.practicePlayRecording ?? '播放錄音')),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isPlaying ? Colors.orange : Colors.green,
+                              backgroundColor:
+                                  isPlaying ? Colors.orange : Colors.green,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 16),
                             ),
                           ),
-                          
+
                           // 停止按鈕（僅在播放時顯示）
                           if (isPlaying) ...[
                             const SizedBox(width: 12),
@@ -2940,7 +1311,8 @@ class _PracticePageState extends State<PracticePage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 16),
                               ),
                             ),
                           ],
@@ -2986,7 +1358,8 @@ class _PracticePageState extends State<PracticePage> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            l10n?.practiceAnalysisDescription ?? '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
+                            l10n?.practiceAnalysisDescription ??
+                                '使用頻譜分析技術驗證您的演奏\n比對音準、節奏,並給予評分和建議',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.dynamicTextDark.withOpacity(0.7),
@@ -3012,7 +1385,9 @@ class _PracticePageState extends State<PracticePage> {
                                     strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.analytics_outlined),
-                        label: Text(_isAnalyzing ? (l10n?.practiceAnalyzing ?? '分析中...') : (l10n?.practiceAnalyze ?? '分析演奏')),
+                        label: Text(_isAnalyzing
+                            ? (l10n?.practiceAnalyzing ?? '分析中...')
+                            : (l10n?.practiceAnalyze ?? '分析演奏')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.purple,
                           foregroundColor: Colors.white,
@@ -3048,27 +1423,30 @@ class _PracticePageState extends State<PracticePage> {
       return;
     }
     if (widget.file == null || widget.file!.path == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('❌ 請先從樂庫選擇 MIDI 曲目'), backgroundColor: Colors.red),
+      ErrorHandler.show(
+        context,
+        Exception('No MIDI file selected'),
+        customMessage: '❌ 請先從樂庫選擇 MIDI 曲目',
       );
       return;
     }
     final audioFile = File(_audioPath!);
     if (!await audioFile.exists()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('❌ 錄音文件不存在，請重新錄音'), backgroundColor: Colors.red),
+      ErrorHandler.show(
+        context,
+        Exception('Recording file not found'),
+        customMessage: '❌ 錄音文件不存在，請重新錄音',
       );
       return;
     }
     final midiFile = File(widget.file!.path!);
     if (!await midiFile.exists()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('❌ MIDI文件不存在，請重新選擇'), backgroundColor: Colors.red),
+      ErrorHandler.show(
+        context,
+        Exception('MIDI file not found'),
+        customMessage: '❌ MIDI文件不存在，請重新選擇',
       );
       return;
     }
@@ -3116,11 +1494,10 @@ class _PracticePageState extends State<PracticePage> {
       debugPrint('❌ 分析失敗: $e\n$stackTrace');
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(AppLocalizations.of(context)!.errorAnalysisFailed(e.toString())),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 5)),
+        ErrorHandler.show(
+          context,
+          e,
+          customMessage: AppLocalizations.of(context)!.errorAnalysisFailed(e.toString()),
         );
       }
     } finally {
@@ -3135,7 +1512,8 @@ class _PracticePageState extends State<PracticePage> {
 
   String _getAnalysisPhaseDescription(double progress) {
     final l10n = AppLocalizations.of(context);
-    if (progress < 0.2) return l10n?.practiceAnalysisPhase1 ?? '正在解析 MIDI 標準答案...';
+    if (progress < 0.2)
+      return l10n?.practiceAnalysisPhase1 ?? '正在解析 MIDI 標準答案...';
     if (progress < 0.6) return l10n?.practiceAnalysisPhase2 ?? '正在分析音訊頻譜...';
     if (progress < 0.8) return l10n?.practiceAnalysisPhase3 ?? '正在驗證音符準確性...';
     if (progress < 1.0) return l10n?.practiceAnalysisPhase4 ?? '正在分類錯誤類型...';

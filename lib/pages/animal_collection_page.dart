@@ -1125,7 +1125,7 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     final start = widget.startPosition;
     final end = widget.targetPosition;
     
-    final padding = 40.0;
+    const padding = 40.0;
     double clampX(double x) => x.clamp(padding, screenSize.width - padding);
     double clampY(double y) => y.clamp(padding, screenSize.height - padding);
     
