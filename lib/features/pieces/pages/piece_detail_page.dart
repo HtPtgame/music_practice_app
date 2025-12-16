@@ -148,6 +148,10 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
   final PageController _pageController = PageController();
   int _currentPageIndex = 0;
 
+  // 練習筆記編輯模式
+  bool _isNoteEditMode = false;
+  final Set<int> _selectedNoteIndices = {};
+
   // 圖片尺寸緩存，避免重複解析 (LRU 快取，最多 30 張)
   final LruCache<String, Size> _imageSizeCache = LruCache(maxSize: 30);
 
@@ -290,49 +294,6 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
         );
       },
     );
-  }
-
-  void _deleteNote(int index) {
-    final l10n = AppLocalizations.of(context);
-    showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.dynamicCard,
-          title: Text(
-            l10n?.sheetDetailConfirmDelete ?? '確認刪除',
-            style: TextStyle(color: AppColors.dynamicTextDark),
-          ),
-          content: Text(
-            l10n?.sheetDetailConfirmDeleteMessage ?? '確定要刪除這條筆記嗎？',
-            style: TextStyle(color: AppColors.dynamicTextDark),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                l10n?.sheetDetailCancel ?? '取消',
-                style: TextStyle(color: AppColors.dynamicTextLight),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(
-                l10n?.sheetDetailDelete ?? '刪除',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    ).then((confirmed) {
-      if (confirmed == true) {
-        setState(() {
-          _notes.removeAt(index);
-        });
-        widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
-      }
-    });
   }
 
   void _showDrawingDialog(int index) {
@@ -588,6 +549,27 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
               onPressed: _deleteSelectedAnnotatedSheets,
               icon: const Icon(Icons.delete, color: Colors.red),
             ),
+          if (!isSheetTab && _notes.isNotEmpty)
+            TextButton(
+              onPressed: _toggleNoteEditMode,
+              child: Text(
+                _isNoteEditMode
+                    ? (l10n?.notePageCancel ?? '取消')
+                    : (l10n?.notePageEdit ?? '編輯'),
+                style: TextStyle(
+                  color:
+                      _isNoteEditMode ? Colors.red : AppColors.dynamicPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          if (!isSheetTab &&
+              _isNoteEditMode &&
+              _selectedNoteIndices.isNotEmpty)
+            IconButton(
+              onPressed: _deleteSelectedNotes,
+              icon: const Icon(Icons.delete, color: Colors.red),
+            ),
         ],
       ),
       body: SafeArea(
@@ -599,7 +581,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
           ],
         ),
       ),
-      floatingActionButton: _isSheetEditMode
+      floatingActionButton: (_isSheetEditMode || _isNoteEditMode)
           ? null
           : FloatingActionButton(
               onPressed: isSheetTab ? _pickAndAddSheet : _addNote,
@@ -682,79 +664,13 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
                 : ListView.builder(
                     itemCount: _notes.length,
                     itemBuilder: (context, index) {
-                      return Card(
-                        color: AppColors.dynamicCard,
-                        elevation: 1,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                AppColors.dynamicPrimary.withValues(alpha: 0.1),
-                            child: Text(
-                              '${_notes[index].measure}',
-                              style: TextStyle(
-                                color: AppColors.dynamicPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            _notes[index].content,
-                            style: TextStyle(
-                              color: AppColors.dynamicTextDark,
-                              fontSize: 16,
-                            ),
-                          ),
-                          subtitle: _notes[index].drawing?.isNotEmpty == true
-                              ? Row(
-                                  children: [
-                                    Icon(Icons.brush,
-                                        size: 14,
-                                        color: AppColors.dynamicPrimary),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        l10n?.sheetDetailDrawingIncluded ??
-                                            '包含音樂畫面',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.dynamicPrimary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : null,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.brush_outlined,
-                                  color:
-                                      _notes[index].drawing?.isNotEmpty == true
-                                          ? AppColors.dynamicPrimary
-                                          : Colors.grey,
-                                ),
-                                onPressed: () => _showDrawingDialog(index),
-                                tooltip:
-                                    l10n?.sheetDetailDrawingEdit ?? '編輯音樂畫面',
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.edit_outlined,
-                                    color: AppColors.dynamicPrimary),
-                                onPressed: () => _editNote(index),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline,
-                                    color: Colors.red),
-                                onPressed: () => _deleteNote(index),
-                              ),
-                            ],
-                          ),
-                        ),
+                      return _PracticeNoteItem(
+                        note: _notes[index],
+                        onEdit: () => _editNote(index),
+                        onDrawing: () => _showDrawingDialog(index),
+                        isEditMode: _isNoteEditMode,
+                        isSelected: _selectedNoteIndices.contains(index),
+                        onToggleSelection: () => _toggleNoteSelection(index),
                       );
                     },
                   ),
@@ -917,6 +833,37 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
         _selectedSheetIndices.clear();
       }
     });
+  }
+
+  void _toggleNoteEditMode() {
+    setState(() {
+      _isNoteEditMode = !_isNoteEditMode;
+      if (!_isNoteEditMode) {
+        _selectedNoteIndices.clear();
+      }
+    });
+  }
+
+  void _toggleNoteSelection(int index) {
+    setState(() {
+      if (_selectedNoteIndices.contains(index)) {
+        _selectedNoteIndices.remove(index);
+      } else {
+        _selectedNoteIndices.add(index);
+      }
+    });
+  }
+
+  void _deleteSelectedNotes() {
+    setState(() {
+      final sortedIndices = _selectedNoteIndices.toList()..sort((a, b) => b.compareTo(a));
+      for (final index in sortedIndices) {
+        _notes.removeAt(index);
+      }
+      _selectedNoteIndices.clear();
+      _isNoteEditMode = false;
+    });
+    widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
   }
 
   void _toggleSheetSelection(int index) {
@@ -1260,6 +1207,180 @@ class _SheetImageViewerState extends State<_SheetImageViewer>
                         );
                       },
                     ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 練習要點項目元件 - 支援展開/收起多行顯示
+class _PracticeNoteItem extends StatefulWidget {
+  final PracticeNote note;
+  final VoidCallback onEdit;
+  final VoidCallback onDrawing;
+  final bool isEditMode;
+  final bool isSelected;
+  final VoidCallback onToggleSelection;
+
+  const _PracticeNoteItem({
+    required this.note,
+    required this.onEdit,
+    required this.onDrawing,
+    required this.isEditMode,
+    required this.isSelected,
+    required this.onToggleSelection,
+  });
+
+  @override
+  State<_PracticeNoteItem> createState() => _PracticeNoteItemState();
+}
+
+class _PracticeNoteItemState extends State<_PracticeNoteItem> {
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
+    return Card(
+      color: AppColors.dynamicCard,
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: widget.isEditMode ? widget.onToggleSelection : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Leading - 小節數或勾選框
+              if (widget.isEditMode)
+                GestureDetector(
+                  onTap: widget.onToggleSelection,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: widget.isSelected
+                          ? AppColors.dynamicPrimary
+                          : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: widget.isSelected
+                            ? AppColors.dynamicPrimary
+                            : Colors.grey,
+                        width: 2,
+                      ),
+                    ),
+                    child: widget.isSelected
+                        ? const Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                )
+              else
+                CircleAvatar(
+                  backgroundColor: AppColors.dynamicPrimary.withValues(alpha: 0.1),
+                  radius: 20,
+                  child: Text(
+                    '${widget.note.measure}',
+                    style: TextStyle(
+                      color: AppColors.dynamicPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 12),
+              
+              // Content - 練習內容
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.note.content,
+                      style: TextStyle(
+                        color: AppColors.dynamicTextDark,
+                        fontSize: 16,
+                        height: 1.4,
+                      ),
+                    ),
+                    
+                    // 畫面指示器
+                    if (widget.note.drawing?.isNotEmpty == true)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            Icon(Icons.brush, size: 14, color: AppColors.dynamicPrimary),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n?.sheetDetailDrawingIncluded ?? '包含音樂畫面',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.dynamicPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // 操作按鈕 (水平排列在文字下方)
+                    if (!widget.isEditMode)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.edit, size: 18),
+                                label: Text(l10n?.sheetDetailEditNote ?? '編輯'),
+                                onPressed: widget.onEdit,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.dynamicPrimary,
+                                  side: BorderSide(color: AppColors.dynamicPrimary),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: Icon(
+                                  Icons.brush,
+                                  size: 18,
+                                  color: widget.note.drawing?.isNotEmpty == true
+                                      ? AppColors.dynamicPrimary
+                                      : Colors.grey,
+                                ),
+                                label: Text(l10n?.sheetDetailDrawing ?? '畫面'),
+                                onPressed: widget.onDrawing,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: widget.note.drawing?.isNotEmpty == true
+                                      ? AppColors.dynamicPrimary
+                                      : Colors.grey,
+                                  side: BorderSide(
+                                    color: widget.note.drawing?.isNotEmpty == true
+                                        ? AppColors.dynamicPrimary
+                                        : Colors.grey,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

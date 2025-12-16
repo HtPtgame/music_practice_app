@@ -4,7 +4,190 @@
 **核心功能**: 鋼琴演奏分析系統 + 用戶認證與數據同步  
 **開發期間**: 2025年9月-12月  
 **專案狀態**: 🔄 持續開發中  
-**最後更新**: 2025年12月10日 (v6.6 UI/UX 全面優化 + 偵錯系統智能化)
+**最後更新**: 2025年12月16日 (v6.7 繪圖功能全面優化)
+
+---
+
+## 📅 v6.7 繪圖功能全面優化 (2025/12/16)
+
+### 🎨 自訂顏色選擇器完整實現
+
+#### 功能概述
+為練習筆記的繪圖功能新增專業級顏色選擇器，支援 HSV 色輪、RGB 調整、5 色槽位管理。
+
+#### 核心功能
+
+**1. CustomColorPickerDialog 組件 (569 行)**
+- ✅ **HSV 圓形色輪**：使用極座標系統 (atan2, sqrt) 實現精確顏色選擇
+  - 360° 色相環，從紅色開始順時針旋轉
+  - SweepGradient 實現平滑色彩過渡
+  - 支援飽和度與明度調整
+- ✅ **RGB 滑桿系統**：完整 0-255 範圍支援
+  - 紅、綠、藍三個獨立滑桿
+  - 即時顏色預覽
+  - 與 HSV 色輪雙向同步
+- ✅ **5 色槽位管理**：
+  - 固定 5 個顏色槽位（空槽顯示灰色）
+  - 支援顏色排序（拖曳交換位置）
+  - 雙模式操作：正常選色 / 排序模式
+- ✅ **SharedPreferences 持久化**：自訂顏色自動保存，下次開啟保留
+
+**2. 雙模式操作系統**
+```dart
+// 狀態變數
+bool _isSortMode = false;      // 排序模式開關
+int? _selectedColorIndex;       // 排序時選中的槽位
+int? _editingColorIndex;        // 正在編輯的顏色槽
+```
+
+**正常模式**：
+1. 點擊顏色槽 → 載入該顏色到編輯區
+2. 調整 RGB/HSV → 即時同步更新該槽位顏色
+3. 視覺回饋：選中槽位顯示勾選圖示
+
+**排序模式**：
+1. 點擊排序按鈕（右上角 swap_vert 圖示）進入排序模式
+2. 點擊第一個顏色槽 → 藍色邊框標記
+3. 點擊第二個顏色槽 → 兩者交換位置
+4. 退出排序模式回到正常編輯
+
+**3. 顏色同步機制**
+```dart
+void _updateColor(Color color) {
+  setState(() {
+    _currentColor = color;
+    _hsvColor = HSVColor.fromColor(color);
+    // 關鍵：如果正在編輯某個槽位，同步更新
+    if (_editingColorIndex != null && !_isSortMode) {
+      _tempSavedColors[_editingColorIndex!] = color;
+    }
+  });
+}
+```
+
+#### 整合到繪圖系統
+
+**DrawingCanvas 修改 (drawing_canvas.dart)**
+- ✅ 預設 5 色系統：黑、紅、藍、綠、黃
+- ✅ 載入自訂顏色邏輯：
+  ```dart
+  final savedColors = prefs.getStringList('custom_drawing_colors');
+  if (savedColors != null && savedColors.isNotEmpty) {
+    _customColors = savedColors.map((hex) => 
+      Color(int.parse(hex.substring(1), radix: 16) + 0xFF000000)
+    ).toList();
+  }
+  ```
+- ✅ 彩虹按鈕開啟顏色選擇器
+
+**PieceDetailPage 修改 (piece_detail_page.dart)**
+- ✅ 練習筆記文字完整顯示（移除省略號限制）
+- ✅ 移除展開/收起功能（文字直接顯示全部內容）
+
+### 🖌️ 畫筆大小優化
+
+#### 問題
+原畫筆大小 [8, 12, 18, 25] 像素，最粗的 25px 對於樂譜標註過大。
+
+#### 解決方案
+```dart
+// 優化前
+final sizes = [8.0, 12.0, 18.0, 25.0];
+double _strokeWidth = 8.0;
+
+// 優化後
+final sizes = [4.0, 8.0, 12.0, 16.0];
+double _strokeWidth = 4.0;  // 預設更細，適合精細標註
+```
+
+**按鈕圖示調整**：
+```dart
+// 縮放比例從 /25*14 調整為 /16*12
+width: (width / 16 * 12).clamp(3.0, 12.0)
+```
+
+### 🐛 程式碼品質改進
+
+**修復問題**：
+1. ✅ `custom_color_picker_dialog.dart`：
+   - 移除重複定義的 `_isSortMode` (第 32-33 行)
+   - 移除未使用的 `_replaceColorAtIndex` 方法
+2. ✅ `piece_detail_page.dart`：
+   - 移除未使用的 `_deleteNote` 方法（已改用批次刪除）
+   - 移除死代碼：`_isExpanded` 狀態變數和相關邏輯
+   - 移除未使用的 `shouldShowExpandButton` 變數
+
+**分析結果**：
+```bash
+# custom_color_picker_dialog.dart
+13 issues found (全為 deprecated API 提示)
+
+# piece_detail_page.dart  
+3 issues found (全為程式碼風格建議)
+
+# drawing_canvas.dart
+38 issues found (全為 deprecated API 提示)
+```
+
+### 📊 技術細節
+
+**HSV 色輪實現**：
+```dart
+// 極座標轉換
+final dx = localPosition.dx - center.dx;
+final dy = localPosition.dy - center.dy;
+final distance = sqrt(dx * dx + dy * dy);
+final angle = atan2(dy, dx);
+
+// 色相計算（0-360度）
+double hue = (angle * 180 / pi + 360) % 360;
+
+// 飽和度計算（基於距離中心的距離）
+double saturation = (distance / radius).clamp(0.0, 1.0);
+```
+
+**顏色槽位視覺狀態**：
+```dart
+Widget _buildColorSlot(int index, Color color) {
+  final isEditing = _editingColorIndex == index && !_isSortMode;
+  final isCurrentColor = (_currentColor.value == color.value || isEditing);
+  
+  // 正常模式：顯示勾選圖示
+  // 排序模式：顯示排序圖示（灰色/藍色）
+}
+```
+
+### 🎯 用戶體驗提升
+
+1. **直覺操作**：
+   - 正常情況自由點選 5 色使用
+   - 需要排序時點擊專用按鈕
+   - 視覺回饋清晰（顏色變化、圖示提示）
+
+2. **即時同步**：
+   - RGB 滑桿 ↔ HSV 色輪
+   - 編輯區 ↔ 顏色槽位
+   - 記憶體 ↔ SharedPreferences
+
+3. **無縫整合**：
+   - 與現有繪圖系統完全相容
+   - 保留原有筆刷、橡皮擦功能
+   - 支援撤銷/重做操作
+
+### 📝 檔案清單
+
+**新增檔案**：
+- `lib/widgets/custom_color_picker_dialog.dart` (569 行)
+
+**修改檔案**：
+- `lib/widgets/drawing_canvas.dart`
+- `lib/features/pieces/pages/piece_detail_page.dart`
+
+**技術棧**：
+- Flutter Material Design
+- SharedPreferences (持久化)
+- 數學運算 (dart:math - atan2, sqrt)
+- HSV 色彩空間轉換
 
 ---
 

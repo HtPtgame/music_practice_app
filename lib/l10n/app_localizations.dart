@@ -897,6 +897,8 @@ class AppLocalizations {
   String get sheetDetailDrawingIncluded => '包含音樂畫面';
   String get sheetDetailMeasurePrefix => '第';
   String get sheetDetailMeasureSuffix => '小節';
+  String get sheetDetailExpand => '展開全文';
+  String get sheetDetailCollapse => '收起';
 
   // ========== 倒數計時 ==========
   String get countdownCancel => '取消';
@@ -2390,6 +2392,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sheetDetailMeasurePrefix => 'Measure';
   @override
   String get sheetDetailMeasureSuffix => '';
+  @override
+  String get sheetDetailExpand => 'Expand';
+  @override
+  String get sheetDetailCollapse => 'Collapse';
 
   @override
   String get countdownCancel => 'Cancel';

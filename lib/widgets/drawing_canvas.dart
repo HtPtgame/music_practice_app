@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 import 'dart:async';
 import '../models/drawing_data.dart';
 import '../l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'custom_color_picker_dialog.dart';
 
 class DrawingCanvas extends StatefulWidget {
   final DrawingData initialDrawing;
@@ -29,9 +31,12 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   late DrawingData _drawingData;
   List<Offset> _currentStroke = [];
   Color _selectedColor = const Color(0xFF1E88E5);
-  double _strokeWidth = 8.0; // 預設最細的筆刷
+  double _strokeWidth = 4.0; // 預設最細的筆刷
   bool _isEraser = false;
   BrushType _brushType = BrushType.texture;
+
+  // 🎨 自訂顏色列表
+  List<Color> _customColors = [];
 
   // 🎨 筆刷紋理快取池
   BrushTexturePool? _texturePool;
@@ -57,6 +62,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     super.initState();
     _drawingData = widget.initialDrawing;
     _initializeTexturePool();
+    _loadCustomColors(); // 載入自訂顏色
 
     // 如果有舊紀錄，建立背景快取並保存到歷史
     if (_drawingData.strokes.isNotEmpty) {
@@ -69,6 +75,64 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
       // 空畫布也要保存初始狀態
       _saveToHistory();
     }
+  }
+
+  /// 載入自訂顏色 (從 SharedPreferences)
+  Future<void> _loadCustomColors() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? hexList = prefs.getStringList('custom_drawing_colors');
+      if (hexList != null && mounted) {
+        setState(() {
+          _customColors = hexList
+              .map((hex) => Color(int.parse(hex.replaceFirst('#', '0xFF'))))
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading custom colors: $e');
+    }
+  }
+
+  /// 儲存自訂顏色
+  Future<void> _saveCustomColors() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> hexList = _customColors
+          .map((color) =>
+              '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}')
+          .toList();
+      await prefs.setStringList('custom_drawing_colors', hexList);
+    } catch (e) {
+      debugPrint('Error saving custom colors: $e');
+    }
+  }
+
+  /// 開啟自訂顏色對話框
+  void _showCustomColorPicker() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return CustomColorPickerDialog(
+          initialColor: _selectedColor,
+          savedColors: _customColors,
+          onColorsSaved: (List<Color> newColors) async {
+            setState(() {
+              _customColors = newColors;
+            });
+            await _saveCustomColors();
+          },
+          onColorSelected: (Color color) async {
+            setState(() {
+              _selectedColor = color;
+              _isEraser = false;
+              _isPoolReady = false;
+            });
+            await _rebuildTexturePool();
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -608,44 +672,106 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   }
 
   List<Widget> _buildColorButtons() {
-    final colors = [
-      const Color(0xFF1E88E5),
-      const Color(0xFF26C6DA),
-      const Color(0xFFFFFFFF),
-      const Color(0xFFD7CCC8),
-      const Color(0xFF8D6E63),
-      const Color(0xFF4CAF50),
-    ];
+    final List<Widget> buttons = [];
 
-    return colors.map((color) {
-      final isSelected = _selectedColor == color && !_isEraser;
-      return GestureDetector(
-        onTap: () async {
-          setState(() {
-            _selectedColor = color;
-            _isEraser = false;
-            _isPoolReady = false; // 標記為未準備
-          });
-          await _rebuildTexturePool(); // 重建紋理池
-        },
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isSelected ? Colors.blue[700]! : Colors.grey[400]!,
-              width: isSelected ? 3 : 2,
-            ),
+    // 如果有自訂顏色，使用自訂顏色；否則使用預設顏色
+    if (_customColors.isNotEmpty) {
+      // 使用自訂顏色（最多5個）
+      for (int i = 0; i < _customColors.length && i < 5; i++) {
+        buttons.add(_buildColorButton(_customColors[i], isCustom: true));
+      }
+    } else {
+      // 預設5種顏色
+      final defaultColors = [
+        const Color(0xFF000000), // 黑色
+        const Color(0xFFFF0000), // 紅色
+        const Color(0xFF0000FF), // 藍色
+        const Color(0xFF00FF00), // 綠色
+        const Color(0xFFFFFF00), // 黃色
+      ];
+      
+      for (final color in defaultColors) {
+        buttons.add(_buildColorButton(color));
+      }
+    }
+
+    // 彩虹漸層按鈕（開啟自訂顏色選擇器）
+    buttons.add(_buildCustomColorAddButton());
+
+    return buttons;
+  }
+
+  /// 構建單個顏色按鈕
+  Widget _buildColorButton(Color color, {bool isCustom = false}) {
+    final isSelected = _selectedColor == color && !_isEraser;
+    return GestureDetector(
+      onTap: () async {
+        setState(() {
+          _selectedColor = color;
+          _isEraser = false;
+          _isPoolReady = false;
+        });
+        await _rebuildTexturePool();
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? Colors.blue[700]! : Colors.grey[400]!,
+            width: isSelected ? 3 : 2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.4),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+      ),
+    );
+  }
+
+  /// 構建自訂顏色入口按鈕 (彩虹按鈕)
+  Widget _buildCustomColorAddButton() {
+    return GestureDetector(
+      onTap: _showCustomColorPicker,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const SweepGradient(
+            colors: [
+              Colors.red,
+              Colors.orange,
+              Colors.yellow,
+              Colors.green,
+              Colors.blue,
+              Color(0xFF4B0082), // Indigo
+              Color(0xFF9400D3), // Violet
+              Colors.red
+            ],
+          ),
+          border: Border.all(
+            color: Colors.grey[400]!,
+            width: 2,
           ),
         ),
-      );
-    }).toList();
+        child: const Icon(Icons.palette, color: Colors.white, size: 20),
+      ),
+    );
   }
 
   List<Widget> _buildSizeButtons() {
-    final sizes = [8.0, 12.0, 18.0, 25.0];
+    final sizes = [4.0, 8.0, 12.0, 16.0];
     final buttons = sizes.map((width) {
       final isSelected = _strokeWidth == width && !_isEraser;
       return GestureDetector(
@@ -669,8 +795,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
           ),
           child: Center(
             child: Container(
-              width: (width / 25 * 14).clamp(4.0, 14.0),
-              height: (width / 25 * 14).clamp(4.0, 14.0),
+              width: (width / 16 * 12).clamp(3.0, 12.0),
+              height: (width / 16 * 12).clamp(3.0, 12.0),
               decoration: BoxDecoration(
                   color: Colors.grey[800], shape: BoxShape.circle),
             ),
