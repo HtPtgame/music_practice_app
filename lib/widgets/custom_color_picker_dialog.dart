@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 
 /// 自訂顏色選擇對話框
-/// 
+///
 /// 提供 HSV 色盤、RGB 滑桿、以及最多 5 個自訂顏色的管理功能
 /// 支援拖曳排序、刪除、新增顏色
 class CustomColorPickerDialog extends StatefulWidget {
@@ -21,7 +21,8 @@ class CustomColorPickerDialog extends StatefulWidget {
   });
 
   @override
-  State<CustomColorPickerDialog> createState() => _CustomColorPickerDialogState();
+  State<CustomColorPickerDialog> createState() =>
+      _CustomColorPickerDialogState();
 }
 
 class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
@@ -72,7 +73,9 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
-      child: ConstrainedBox(
+      child: PopScope(
+        canPop: false, // 防止返回鍵關閉對話框
+        child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 750),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -115,6 +118,11 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
                           setState(() {
                             _hsvColor = hsv;
                             _currentColor = hsv.toColor();
+                            // 如果正在編輯某個顏色槽，同步更新該槽位的顏色
+                            if (_editingColorIndex != null && !_isSortMode) {
+                              _tempSavedColors[_editingColorIndex!] =
+                                  _currentColor;
+                            }
                           });
                         },
                       ),
@@ -161,7 +169,8 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
               // 2. RGB 滑桿區
               Text(
                 "RGB 調整",
-                style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 14),
+                style:
+                    TextStyle(color: AppColors.dynamicTextDark, fontSize: 14),
               ),
               const SizedBox(height: 8),
               _buildRGBSlider(
@@ -182,6 +191,8 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
                 Colors.blue,
                 (val) => _updateColor(_currentColor.withBlue(val)),
               ),
+              const SizedBox(height: 8),
+              _buildValueSlider(),
 
               const SizedBox(height: 24),
               const Divider(),
@@ -192,7 +203,10 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
                 children: [
                   Text(
                     "當前畫筆顏色",
-                    style: TextStyle(color: AppColors.dynamicTextDark, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: AppColors.dynamicTextDark,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold),
                   ),
                   Row(
                     children: [
@@ -201,7 +215,10 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
                           padding: const EdgeInsets.only(right: 8),
                           child: Text(
                             "點擊其他顏色交換位置",
-                            style: TextStyle(color: AppColors.dynamicPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: AppColors.dynamicPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       // 排序按鈕
@@ -218,13 +235,17 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: _isSortMode ? AppColors.dynamicPrimary : Colors.grey.shade200,
+                            color: _isSortMode
+                                ? AppColors.dynamicPrimary
+                                : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             Icons.swap_vert,
                             size: 20,
-                            color: _isSortMode ? Colors.white : Colors.grey.shade600,
+                            color: _isSortMode
+                                ? Colors.white
+                                : Colors.grey.shade600,
                           ),
                         ),
                       ),
@@ -236,7 +257,8 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
 
               Container(
                 height: 80,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.dynamicCard.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(40),
@@ -294,6 +316,7 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
               )
             ],
           ),
+        ),
         ),
       ),
     );
@@ -354,14 +377,79 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
     );
   }
 
+  /// 構建明度滑桿組件
+  Widget _buildValueSlider() {
+    // 將 HSV 的 Value (0-1) 轉換為 0-100 的百分比顯示
+    int valuePercent = (_hsvColor.value * 100).round();
+    
+    return Row(
+      children: [
+        SizedBox(
+          width: 20,
+          child: Text(
+            "V",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.dynamicTextLight,
+            ),
+          ),
+        ),
+        Expanded(
+          child: SizedBox(
+            height: 30,
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                activeTrackColor: Colors.grey.shade700,
+                thumbColor: Colors.grey.shade700,
+                inactiveTrackColor: Colors.grey.shade300,
+              ),
+              child: Slider(
+                value: _hsvColor.value,
+                min: 0,
+                max: 1,
+                onChanged: (v) {
+                  setState(() {
+                    _hsvColor = _hsvColor.withValue(v);
+                    _currentColor = _hsvColor.toColor();
+                    // 如果正在編輯某個顏色槽，同步更新
+                    if (_editingColorIndex != null) {
+                      _tempSavedColors[_editingColorIndex!] = _currentColor;
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 35,
+          child: Text(
+            "$valuePercent%",
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// 構建顏色槽位（支援點擊替換和排序交換）
   Widget _buildColorSlot(int index, Color color) {
     final bool isSelected = _selectedColorIndex == index;
     final bool isEditing = _editingColorIndex == index && !_isSortMode;
-    final bool isCurrentColor = (_currentColor.value == color.value || isEditing) && color != Colors.grey.shade300;
+    final bool isCurrentColor =
+        (_currentColor.value == color.value || isEditing) &&
+            color != Colors.grey.shade300;
     final bool isEmpty = color == Colors.grey.shade300;
-    final bool showSortIcon = _isSortMode && (_selectedColorIndex == null || _selectedColorIndex != index);
-    
+    final bool showSortIcon = _isSortMode &&
+        (_selectedColorIndex == null || _selectedColorIndex != index);
+
     return GestureDetector(
       onTap: () {
         if (_isSortMode) {
@@ -585,9 +673,10 @@ class _SimpleHSVColorPickerState extends State<_SimpleHSVColorPicker> {
     // 計算 Saturation (0-1)
     double saturation = (dist / radius).clamp(0.0, 1.0);
 
-    // 保持目前的 Value (Brightness)
+    // 圓形色盤固定使用明度 1.0（100% 明度），這樣 RGB 才能達到 255
+    // 圓形色盤的漸層繪製本身就是基於明度 100% 的假設
     widget.onChanged(
-      HSVColor.fromAHSV(1.0, hue, saturation, widget.hsvColor.value),
+      HSVColor.fromAHSV(1.0, hue, saturation, 1.0),
     );
   }
 
