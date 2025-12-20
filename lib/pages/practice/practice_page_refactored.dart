@@ -12,6 +12,7 @@ import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:music_practice_app/pages/analysis_result_page.dart';
 import 'package:music_practice_app/utils/error_handler.dart';
+import 'package:music_practice_app/widgets/countdown_overlay.dart';
 
 // 新的模組化元件
 import 'practice.dart';
@@ -250,11 +251,49 @@ class _PracticePageContentState extends State<_PracticePageContent> {
       enableCountdown: recordingController.enableCountdown,
       recordingDurationSeconds: recordingController.recordingDurationSeconds,
       audioPath: recordingController.audioPath,
-      onStartRecording: () => recordingController.startRecording(),
+      onStartRecording: () => _handleStartRecording(recordingController),
       onStopRecording: () => recordingController.stopRecording(),
       onCountdownChanged: (enabled) =>
           recordingController.setEnableCountdown(enabled),
     );
+  }
+
+  /// 處理開始錄音（含倒數計時）
+  Future<void> _handleStartRecording(RecordingController recordingController) async {
+    bool countdownCancelled = false;
+
+    // 根據開關狀態決定是否顯示倒數計時
+    if (recordingController.enableCountdown) {
+      // Phase 1B: 顯示倒數計時
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return CountdownOverlay(
+            onCountdownComplete: () {
+              Navigator.of(dialogContext).pop();
+            },
+            onCancel: () {
+              countdownCancelled = true;
+              Navigator.of(dialogContext).pop();
+            },
+          );
+        },
+      );
+
+      // 如果取消了倒數計時，則不開始錄音
+      if (countdownCancelled) {
+        debugPrint('⏸️ 用戶取消了倒數計時');
+        return;
+      }
+
+      debugPrint('🎤 倒數計時完成，開始錄音');
+    } else {
+      debugPrint('🎤 已關閉倒數計時，直接開始錄音');
+    }
+
+    // 開始錄音
+    await recordingController.startRecording();
   }
 
   /// 構建上傳區域

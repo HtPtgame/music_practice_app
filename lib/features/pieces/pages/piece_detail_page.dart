@@ -9,7 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:music_practice_app/utils/app_colors.dart';
 import 'package:music_practice_app/utils/lru_cache.dart';
 import 'package:music_practice_app/models/drawing_data.dart';
-import 'package:music_practice_app/widgets/drawing_canvas.dart';
+import 'package:music_practice_app/widgets/drawing/drawing.dart';
 import 'package:music_practice_app/models/sheet_annotation.dart';
 import 'sheet_viewer_page.dart';
 
@@ -337,7 +337,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: DrawingCanvas(
+                  child: DrawingCanvasRefactored(
                     initialDrawing: drawingData,
                     onDrawingChanged: (newDrawing) {
                       drawingData = newDrawing;

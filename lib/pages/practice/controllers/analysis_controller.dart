@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../services/audio_analysis/performance_analyzer.dart';
 import '../../../services/audio_analysis/models/analysis_report.dart';
-import '../../../utils/error_handler.dart';
 
 /// 演奏分析控制器
 /// 

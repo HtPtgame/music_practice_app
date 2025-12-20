@@ -6,7 +6,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:music_practice_app/pages/analysis_page.dart';
 import 'package:music_practice_app/pages/home_page.dart';
 import 'package:music_practice_app/pages/playback_page.dart';
-import 'package:music_practice_app/pages/practice_page.dart';
+// Phase 3: 使用重構版本的練習頁面
+import 'package:music_practice_app/pages/practice/practice_page_refactored.dart';
+// 舊版本保留用於回退: import 'package:music_practice_app/pages/practice_page.dart';
 import 'package:music_practice_app/pages/upload_page.dart';
 import 'package:music_practice_app/pages/upload_page2.dart';
 import 'package:music_practice_app/pages/library_page.dart';
@@ -155,14 +157,14 @@ final GoRouter appRouter = GoRouter(
         child: AnimalCollectionPage(),
       ),
     ),
-    // 練習頁面 (演奏偵錯)
+    // 練習頁面 (演奏偵錯) - Phase 3 重構版本
     GoRoute(
       path: '/practice',
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) {
         final file = state.extra as PlatformFile?;
         return NoTransitionPage(
-          child: PracticePage(file: file),
+          child: PracticePageRefactored(file: file),
         );
       },
     ),

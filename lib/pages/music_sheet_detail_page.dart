@@ -8,7 +8,7 @@ import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
 import '../models/drawing_data.dart';
-import '../widgets/drawing_canvas.dart';
+import '../widgets/drawing/drawing.dart';
 import '../models/sheet_annotation.dart';
 import 'package:music_practice_app/features/pieces/pages/sheet_viewer_page.dart';
 
@@ -354,7 +354,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: DrawingCanvas(
+                  child: DrawingCanvasRefactored(
                     initialDrawing: drawingData,
                     onDrawingChanged: (newDrawing) {
                       drawingData = newDrawing;
