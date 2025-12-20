@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
-import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:veloria/services/audio_analysis/models/analysis_report.dart';
+import 'package:veloria/services/audio_analysis/models/performance_error.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// Week 4 Phase 1: 演奏分析結果頁面
 ///

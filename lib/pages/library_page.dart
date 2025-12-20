@@ -1,9 +1,9 @@
-// lib/pages/library_page.dart
+﻿// lib/pages/library_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart'; // 確保這個導入也存在
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 // 全域MIDI檔案管理類別
 // 這些類別必須放在這裡 (文件頂層)，才能被其他文件導入和使用

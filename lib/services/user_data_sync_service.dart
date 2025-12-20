@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:music_practice_app/models/user.dart';
-import 'package:music_practice_app/services/firebase_auth_service.dart';
-import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:veloria/models/user.dart';
+import 'package:veloria/services/firebase_auth_service.dart';
+import 'package:veloria/services/practice_timer_service.dart';
 
 /// 使用者數據同步服務 - 負責將本地數據同步到 Firestore
 class UserDataSyncService extends ChangeNotifier {

@@ -1,16 +1,16 @@
-import 'dart:math';
-import 'package:music_practice_app/services/audio_analysis/performance_analysis_service.dart';
-import 'package:music_practice_app/services/audio_analysis/audio_analyzer_service_impl.dart';
-import 'package:music_practice_app/services/audio_analysis/midi_parser_service.dart';
-import 'package:music_practice_app/services/audio_analysis/note_verification_service_impl.dart';
-import 'package:music_practice_app/services/audio_analysis/note_detector_service.dart';
-import 'package:music_practice_app/services/audio_analysis/error_classification_service_impl_v2.dart';
-import 'package:music_practice_app/services/audio_analysis/auto_alignment_service.dart';
-import 'package:music_practice_app/services/audio_analysis/timeline_analysis_service.dart';
-import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
-import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
-import 'package:music_practice_app/services/audio_analysis/models/confusion_matrix.dart';
-import 'package:music_practice_app/services/audio_analysis/models/spectrogram.dart';
+﻿import 'dart:math';
+import 'package:veloria/services/audio_analysis/performance_analysis_service.dart';
+import 'package:veloria/services/audio_analysis/audio_analyzer_service_impl.dart';
+import 'package:veloria/services/audio_analysis/midi_parser_service.dart';
+import 'package:veloria/services/audio_analysis/note_verification_service_impl.dart';
+import 'package:veloria/services/audio_analysis/note_detector_service.dart';
+import 'package:veloria/services/audio_analysis/error_classification_service_impl_v2.dart';
+import 'package:veloria/services/audio_analysis/auto_alignment_service.dart';
+import 'package:veloria/services/audio_analysis/timeline_analysis_service.dart';
+import 'package:veloria/services/audio_analysis/models/analysis_report.dart';
+import 'package:veloria/services/audio_analysis/models/performance_error.dart';
+import 'package:veloria/services/audio_analysis/models/confusion_matrix.dart';
+import 'package:veloria/services/audio_analysis/models/spectrogram.dart';
 
 /// Week 3 演奏分析器實現 (已恢復 v3.4-v3.6 功能 - 2025/11/27)
 ///

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/services/firebase_auth_service.dart';
-import 'package:music_practice_app/services/user_data_sync_service.dart';
-import 'package:music_practice_app/utils/error_handler.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/services/firebase_auth_service.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
+import 'package:veloria/utils/error_handler.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// 登入頁面 - Firebase 版本
 class LoginPage extends StatefulWidget {

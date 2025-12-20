@@ -1,8 +1,8 @@
-// lib/pages/playback_page_simple.dart
+﻿// lib/pages/playback_page_simple.dart
 import 'package:flutter/material.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class PlaybackPage extends StatefulWidget {
   final PlatformFile? file;

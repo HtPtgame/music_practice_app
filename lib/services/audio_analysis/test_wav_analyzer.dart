@@ -1,7 +1,7 @@
-import 'dart:io';
-import 'package:music_practice_app/services/audio_analysis/audio_analyzer_service_impl.dart';
-import 'package:music_practice_app/services/audio_analysis/note_verification_service_impl.dart';
-import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
+﻿import 'dart:io';
+import 'package:veloria/services/audio_analysis/audio_analyzer_service_impl.dart';
+import 'package:veloria/services/audio_analysis/note_verification_service_impl.dart';
+import 'package:veloria/services/audio_analysis/models/note_event.dart';
 
 /// WAV 音訊分析測試腳本
 ///

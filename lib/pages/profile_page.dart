@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
-import 'package:music_practice_app/utils/error_handler.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
+import 'package:veloria/l10n/app_localizations.dart';
+import 'package:veloria/utils/error_handler.dart';
 
 /// 個人資料頁面
 class ProfilePage extends StatefulWidget {

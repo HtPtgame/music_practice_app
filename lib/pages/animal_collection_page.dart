@@ -1,12 +1,12 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/animal_collection.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
 import '../services/user_data_sync_service.dart';
 import '../services/sound_effect_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 // import '../widgets/unlock_animation_dialog.dart';
 
 /// 動物圖鑑頁面

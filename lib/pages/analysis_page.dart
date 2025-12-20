@@ -1,8 +1,8 @@
-// lib/pages/analysis_page.dart
+﻿// lib/pages/analysis_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class AnalysisPage extends StatelessWidget {
   const AnalysisPage({super.key});

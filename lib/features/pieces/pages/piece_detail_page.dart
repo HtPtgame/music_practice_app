@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/utils/lru_cache.dart';
-import 'package:music_practice_app/models/drawing_data.dart';
-import 'package:music_practice_app/widgets/drawing_canvas.dart';
-import 'package:music_practice_app/models/sheet_annotation.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/utils/lru_cache.dart';
+import 'package:veloria/models/drawing_data.dart';
+import 'package:veloria/widgets/drawing_canvas.dart';
+import 'package:veloria/models/sheet_annotation.dart';
 import 'sheet_viewer_page.dart';
 
 /// 以緩存與逾時保護取得圖片尺寸，避免重複解析造成卡頓

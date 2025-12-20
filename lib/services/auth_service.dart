@@ -1,7 +1,7 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/models/user.dart';
+import 'package:veloria/models/user.dart';
 
 /// 認證服務 - 管理使用者登入、註冊、登出等功能
 class AuthService extends ChangeNotifier {

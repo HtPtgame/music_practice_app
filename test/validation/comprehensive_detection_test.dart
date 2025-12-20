@@ -1,6 +1,6 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:async';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 🎯 完整音檔檢測測試系統 (2025/10/25)
 ///

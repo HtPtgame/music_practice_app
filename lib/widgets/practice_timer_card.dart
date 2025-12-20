@@ -1,13 +1,13 @@
-// lib/widgets/practice_timer_card.dart
+﻿// lib/widgets/practice_timer_card.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/utils/error_handler.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/utils/error_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
-import 'package:music_practice_app/services/user_data_sync_service.dart';
-import 'package:music_practice_app/services/practice_timer_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
+import 'package:veloria/services/practice_timer_service.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 

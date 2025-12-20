@@ -1,10 +1,10 @@
-// integration/performance_test.dart
+﻿// integration/performance_test.dart
 // Round 10 動態參數系統 - 整合測試
 // 整合自：test_round10_full.dart, test_comprehensive.dart, test_round10_comprehensive.dart
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 測試配置
 class TestConfig {

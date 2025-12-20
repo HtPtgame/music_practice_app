@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/features/practice/models/slow_practice_task.dart';
-import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
-import 'package:music_practice_app/features/lessons/services/lesson_service.dart';
+import 'package:veloria/features/practice/models/slow_practice_task.dart';
+import 'package:veloria/features/lessons/models/lesson_note.dart';
+import 'package:veloria/features/lessons/services/lesson_service.dart';
 
 class SlowPracticeService extends ChangeNotifier {
   static final SlowPracticeService _instance = SlowPracticeService._internal();

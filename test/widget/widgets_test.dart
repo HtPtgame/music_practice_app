@@ -1,7 +1,7 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:music_practice_app/widgets/check_in_card.dart';
-import 'package:music_practice_app/widgets/practice_timer_card.dart';
+import 'package:veloria/widgets/check_in_card.dart';
+import 'package:veloria/widgets/practice_timer_card.dart';
 
 void main() {
   group('CheckInCard Widget 測試', () {

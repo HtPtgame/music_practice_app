@@ -1,5 +1,5 @@
-import 'package:music_practice_app/services/auth_service.dart';
-import 'package:music_practice_app/services/firebase_auth_service.dart';
+import 'package:veloria/services/auth_service.dart';
+import 'package:veloria/services/firebase_auth_service.dart';
 
 /// 認證服務配置
 ///

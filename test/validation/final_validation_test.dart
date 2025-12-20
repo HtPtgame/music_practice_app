@@ -1,6 +1,6 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:async';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 最終驗證測試 - energyThreshold = 0.38
 /// 4 輪 × 8 音檔 = 32 測試案例

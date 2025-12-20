@@ -1,7 +1,7 @@
-import 'dart:io';
-import 'package:music_practice_app/services/audio_analysis/audio_analyzer_service_impl.dart';
-import 'package:music_practice_app/services/audio_analysis/midi_parser_service.dart';
-import 'package:music_practice_app/services/audio_analysis/note_verification_service_impl.dart';
+﻿import 'dart:io';
+import 'package:veloria/services/audio_analysis/audio_analyzer_service_impl.dart';
+import 'package:veloria/services/audio_analysis/midi_parser_service.dart';
+import 'package:veloria/services/audio_analysis/note_verification_service_impl.dart';
 
 /// 完整音符驗證測試 (MIDI + WAV)
 ///

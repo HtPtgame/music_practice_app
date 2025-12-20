@@ -1,8 +1,8 @@
-// lib/services/practice_session_service.dart
+﻿// lib/services/practice_session_service.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
 
 /// 練習會話記錄
 class PracticeSession {

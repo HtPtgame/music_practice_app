@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/services/auth_service.dart';
+import 'package:veloria/services/auth_service.dart';
 
 void main() {
   group('AuthService 測試', () {

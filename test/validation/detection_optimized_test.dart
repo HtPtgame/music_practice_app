@@ -1,5 +1,5 @@
-import 'dart:io';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+﻿import 'dart:io';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 錄音偵測優化測試腳本 (2025/10/25)
 ///

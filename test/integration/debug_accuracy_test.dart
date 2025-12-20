@@ -1,11 +1,11 @@
-// debug_accuracy_test.dart
+﻿// debug_accuracy_test.dart
 // 偵錯系統準確度測試 - 2025/10/27
 // 用於測試偵錯功能的準確性和穩定性
 
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 測試模式
 enum TestMode {

@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/midi_player_service.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:veloria/services/midi_player_service.dart';
 import '../../helpers/test_helpers.dart';
 
 void main() {

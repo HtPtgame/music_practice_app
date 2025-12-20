@@ -1,6 +1,6 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:async';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 參數掃描測試 - 找出最佳 energyThreshold
 ///

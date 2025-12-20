@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/features/practice/models/slow_practice_task.dart';
-import 'package:music_practice_app/features/practice/services/slow_practice_service.dart';
-import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
-import 'package:music_practice_app/services/metronome_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/features/practice/models/slow_practice_task.dart';
+import 'package:veloria/features/practice/services/slow_practice_service.dart';
+import 'package:veloria/features/lessons/models/lesson_note.dart';
+import 'package:veloria/services/metronome_service.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 // For FontFeature

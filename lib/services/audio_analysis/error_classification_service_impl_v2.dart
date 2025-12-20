@@ -1,7 +1,7 @@
-import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
-import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
-import 'package:music_practice_app/services/audio_analysis/models/spectrogram.dart';
-import 'package:music_practice_app/services/audio_analysis/spectral_flux_onset_detector.dart';
+﻿import 'package:veloria/services/audio_analysis/models/note_event.dart';
+import 'package:veloria/services/audio_analysis/models/performance_error.dart';
+import 'package:veloria/services/audio_analysis/models/spectrogram.dart';
+import 'package:veloria/services/audio_analysis/spectral_flux_onset_detector.dart';
 
 /// 錯誤分類服務實現 (固定參數版 - 2025/10/27)
 ///

@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/audio_analysis/audio_analyzer_service_impl.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:veloria/services/audio_analysis/audio_analyzer_service_impl.dart';
 import '../../helpers/test_helpers.dart';
 
 void main() {

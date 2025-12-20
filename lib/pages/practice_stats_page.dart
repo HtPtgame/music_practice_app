@@ -1,8 +1,8 @@
-// lib/pages/practice_stats_page.dart
+﻿// lib/pages/practice_stats_page.dart
 import 'package:flutter/material.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/services/practice_session_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/services/practice_session_service.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 

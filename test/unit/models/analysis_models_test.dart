@@ -1,7 +1,7 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/audio_analysis/models/analysis_report.dart';
-import 'package:music_practice_app/services/audio_analysis/models/confusion_matrix.dart';
-import 'package:music_practice_app/services/audio_analysis/models/performance_error.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:veloria/services/audio_analysis/models/analysis_report.dart';
+import 'package:veloria/services/audio_analysis/models/confusion_matrix.dart';
+import 'package:veloria/services/audio_analysis/models/performance_error.dart';
 import '../../helpers/test_helpers.dart';
 
 void main() {

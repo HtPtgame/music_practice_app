@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
-import 'package:music_practice_app/features/lessons/services/lesson_service.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/features/lessons/models/lesson_note.dart';
+import 'package:veloria/features/lessons/services/lesson_service.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// 獲取分類的本地化名稱
 String getCategoryDisplayName(LessonNoteCategory category, AppLocalizations? l10n) {

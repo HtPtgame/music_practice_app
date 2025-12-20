@@ -1,6 +1,6 @@
-import 'dart:io';
-import 'package:music_practice_app/services/audio_analysis/midi_parser_service.dart';
-import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
+﻿import 'dart:io';
+import 'package:veloria/services/audio_analysis/midi_parser_service.dart';
+import 'package:veloria/services/audio_analysis/models/note_event.dart';
 
 /// MIDI 解析測試腳本
 ///

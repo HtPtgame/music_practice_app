@@ -1,15 +1,15 @@
-// lib/widgets/check_in_card.dart
+﻿// lib/widgets/check_in_card.dart
 import 'package:flutter/material.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/utils/error_handler.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/utils/error_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
-import 'package:music_practice_app/services/user_data_sync_service.dart';
-import 'package:music_practice_app/services/sound_effect_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
-import 'package:music_practice_app/models/animal_collection.dart';
-import 'package:music_practice_app/widgets/unlock_animation_dialog.dart';
-import 'package:music_practice_app/router/app_router.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
+import 'package:veloria/services/sound_effect_service.dart';
+import 'package:veloria/l10n/app_localizations.dart';
+import 'package:veloria/models/animal_collection.dart';
+import 'package:veloria/widgets/unlock_animation_dialog.dart';
+import 'package:veloria/router/app_router.dart';
 import 'dart:convert';
 
 class CheckInCard extends StatefulWidget {

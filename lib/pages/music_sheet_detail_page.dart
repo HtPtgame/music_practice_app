@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
 import '../models/drawing_data.dart';
 import '../widgets/drawing_canvas.dart';
 import '../models/sheet_annotation.dart';
-import 'package:music_practice_app/features/pieces/pages/sheet_viewer_page.dart';
+import 'package:veloria/features/pieces/pages/sheet_viewer_page.dart';
 
 // 練習要點數據模型
 class PracticeNote {

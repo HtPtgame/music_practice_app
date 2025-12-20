@@ -1,9 +1,9 @@
-// lib/widgets/floating_timer_widget.dart
+﻿// lib/widgets/floating_timer_widget.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:music_practice_app/services/practice_timer_service.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/services/practice_timer_service.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// 浮動計時器 Widget
 /// 在所有頁面上方顯示當前計時狀態

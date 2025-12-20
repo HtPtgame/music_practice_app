@@ -1,12 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Uint8List, rootBundle;
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
-import 'package:music_practice_app/core/services/settings_service.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/core/services/settings_service.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class MetronomePage extends StatefulWidget {
   const MetronomePage({super.key});

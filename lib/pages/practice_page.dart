@@ -1,21 +1,21 @@
-import 'package:file_picker/file_picker.dart';
+﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 import 'package:record/record.dart';
-import 'package:music_practice_app/core/constants/audio_constants.dart';
-import 'package:music_practice_app/utils/error_handler.dart';
+import 'package:veloria/core/constants/audio_constants.dart';
+import 'package:veloria/utils/error_handler.dart';
 
 import 'package:permission_handler/permission_handler.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/widgets/countdown_overlay.dart'; // Phase 1B: 倒數計時
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/widgets/countdown_overlay.dart'; // Phase 1B: 倒數計時
+import 'package:veloria/l10n/app_localizations.dart';
 import 'dart:io';
 
 // Week 4 Phase 2: 分析功能
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
-import 'package:music_practice_app/pages/analysis_result_page.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/pages/analysis_result_page.dart';
 
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
