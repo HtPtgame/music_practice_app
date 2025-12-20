@@ -930,7 +930,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn(super.locale);
 
   @override
-  String get appName => 'Sound Spirit Detective';
+  String get appName => 'Veloria';
   @override
   String get yes => 'Yes';
   @override

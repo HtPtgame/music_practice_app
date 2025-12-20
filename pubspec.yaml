@@ -1,5 +1,5 @@
-name: music_practice_app
-description: "A new Flutter project."
+name: veloria
+description: "音靈偵探 (Veloria) - 基於 AI 音訊檢測的智能音樂練習系統"
 publish_to: 'none'
 version: 1.0.0+1
 

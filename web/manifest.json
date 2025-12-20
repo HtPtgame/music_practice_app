@@ -1,11 +1,11 @@
 {
-    "name": "music_practice_app",
-    "short_name": "music_practice_app",
+    "name": "音靈偵探 Veloria",
+    "short_name": "Veloria",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "基於 AI 音訊檢測的智能音樂練習系統",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
