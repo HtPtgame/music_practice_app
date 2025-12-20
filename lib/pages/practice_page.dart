@@ -124,6 +124,7 @@ class _PracticePageState extends State<PracticePage> {
 
   // [已淘汰 2025/10/08] 載入 AI 模型
   // 此函數使用 tflite_flutter 依賴,已移除
+  @override
   void dispose() {
     _recordingTimer?.cancel();
     _closeAudio();
@@ -818,7 +819,7 @@ class _PracticePageState extends State<PracticePage> {
         // 驗證檔案
         if (await targetFile.exists()) {
           final fileSize = await targetFile.length();
-          debugPrint('✅ WAV 檔案上傳成功: $targetPath (${fileSize} bytes)');
+          debugPrint('✅ WAV 檔案上傳成功: $targetPath ($fileSize bytes)');
 
           setState(() {
             _audioPath = targetPath;
@@ -1086,7 +1087,7 @@ class _PracticePageState extends State<PracticePage> {
                                   _enableCountdown = value;
                                 });
                               },
-                              activeColor: AppColors.dynamicPrimary,
+                              activeThumbColor: AppColors.dynamicPrimary,
                             ),
                           ],
                         ),
@@ -1108,7 +1109,7 @@ class _PracticePageState extends State<PracticePage> {
                                 const SizedBox(width: 8),
                                 Text(
                                   isRecording
-                                      ? '${l10n?.practiceRecording ?? '正在錄音'}... ${_recordingDurationSeconds}${l10n?.practiceSeconds ?? 's'}'
+                                      ? '${l10n?.practiceRecording ?? '正在錄音'}... $_recordingDurationSeconds${l10n?.practiceSeconds ?? 's'}'
                                       : (_audioPath != null
                                           ? (l10n?.practiceRecordingSuccess ??
                                               '錄音完成')
@@ -1501,19 +1502,21 @@ class _PracticePageState extends State<PracticePage> {
         );
       }
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isAnalyzing = false;
           _analysisProgress = 0.0;
           _analysisPhase = '';
         });
+      }
     }
   }
 
   String _getAnalysisPhaseDescription(double progress) {
     final l10n = AppLocalizations.of(context);
-    if (progress < 0.2)
+    if (progress < 0.2) {
       return l10n?.practiceAnalysisPhase1 ?? '正在解析 MIDI 標準答案...';
+    }
     if (progress < 0.6) return l10n?.practiceAnalysisPhase2 ?? '正在分析音訊頻譜...';
     if (progress < 0.8) return l10n?.practiceAnalysisPhase3 ?? '正在驗證音符準確性...';
     if (progress < 1.0) return l10n?.practiceAnalysisPhase4 ?? '正在分類錯誤類型...';

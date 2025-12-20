@@ -28,7 +28,7 @@ class TestConfig {
 /// Round 11 測試配置（四輪測試）- 使用實際音檔路徑
 final List<TestConfig> round10Tests = [
   // 第一輪：生日快樂（簡單基準）
-  TestConfig(
+  const TestConfig(
     name: '生日快樂',
     midiPath: 'assets/test_voice/生日快樂.mid',
     audioPath: 'assets/test_voice',
@@ -38,7 +38,7 @@ final List<TestConfig> round10Tests = [
   ),
 
   // 第二輪：測試音檔（單音無伴奏）
-  TestConfig(
+  const TestConfig(
     name: '測試音檔',
     midiPath: 'assets/test_voice/測試音檔.mid',
     audioPath: 'assets/test_voice',
@@ -48,7 +48,7 @@ final List<TestConfig> round10Tests = [
   ),
 
   // 第三輪：小星星（有伴奏）
-  TestConfig(
+  const TestConfig(
     name: '小星星',
     midiPath: 'assets/test_voice/小星星.mid',
     audioPath: 'assets/test_voice',
@@ -58,7 +58,7 @@ final List<TestConfig> round10Tests = [
   ),
 
   // 第四輪：名偵探柯南（複雜長曲）
-  TestConfig(
+  const TestConfig(
     name: '名偵探柯南',
     midiPath: 'assets/test_voice/名偵探柯南.mid',
     audioPath: 'assets/test_voice',
@@ -162,7 +162,7 @@ void main() {
 
         var testNum = 1;
         for (final (fileName, testType, description) in testAudioFiles) {
-          test('$description', () async {
+          test(description, () async {
             final audioFile = '${config.audioPath}/$fileName';
             await _runTest(
               analyzer: analyzer,

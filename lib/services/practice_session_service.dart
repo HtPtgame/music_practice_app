@@ -20,7 +20,7 @@ class PracticeSession {
     required this.durationSeconds,
     required this.startTime,
     required this.endTime,
-  }) : id = id ?? '${DateTime.now().millisecondsSinceEpoch}_${durationSeconds}';
+  }) : id = id ?? '${DateTime.now().millisecondsSinceEpoch}_$durationSeconds';
 
   Map<String, dynamic> toJson() => {
         'id': id,

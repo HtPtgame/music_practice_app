@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:music_practice_app/services/firebase_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';

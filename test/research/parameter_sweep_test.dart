@@ -11,7 +11,7 @@ void main() async {
   print('║        🔬 參數掃描測試 - energyThreshold 優化              ║');
   print('╚══════════════════════════════════════════════════════════════╝\n');
 
-  final midiPath = 'assets/test_voice/生日快樂.mid';
+  const midiPath = 'assets/test_voice/生日快樂.mid';
 
   final tests = [
     // 正確演奏 (期望高召回率)
@@ -100,7 +100,7 @@ void main() async {
         results.add(recall);
 
         // 小延遲避免檔案鎖定
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
       } catch (e) {
         results.add(-1);
       }

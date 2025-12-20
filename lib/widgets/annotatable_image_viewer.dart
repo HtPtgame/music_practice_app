@@ -476,7 +476,7 @@ class _AnnotatableImageViewerState extends State<AnnotatableImageViewer> {
                                 ),
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),

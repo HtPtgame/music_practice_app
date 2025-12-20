@@ -306,7 +306,7 @@ void main() async {
         if (passed) passedTests++;
 
         print(
-            '  $emoji $status ${name.padRight(18)} │ 召回率:${recall.toStringAsFixed(1).padLeft(5)}% (目標${type == 'correct' ? '≥' : '≤'}${target}%) │ $correct/$total');
+            '  $emoji $status ${name.padRight(18)} │ 召回率:${recall.toStringAsFixed(1).padLeft(5)}% (目標${type == 'correct' ? '≥' : '≤'}$target%) │ $correct/$total');
       } catch (e) {
         print('  ❌ $name - 錯誤: $e\n');
       }

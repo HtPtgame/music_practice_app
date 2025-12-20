@@ -263,9 +263,9 @@ void main() {
       );
 
       // F1 = 2 * (P * R) / (P + R)
-      final precision = 0.8;
-      final recall = 80 / 90;
-      final expectedF1 = 2 * (precision * recall) / (precision + recall);
+      const precision = 0.8;
+      const recall = 80 / 90;
+      const expectedF1 = 2 * (precision * recall) / (precision + recall);
       
       expect(matrix.f1Score, NumericMatcher.closeTo(expectedF1, delta: 0.01));
     });

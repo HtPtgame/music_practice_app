@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:async';
@@ -33,7 +33,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   Color _selectedColor = const Color(0xFF1E88E5);
   double _strokeWidth = 4.0; // 預設最細的筆刷
   bool _isEraser = false;
-  BrushType _brushType = BrushType.texture;
+  final BrushType _brushType = BrushType.texture;
 
   // 🎨 自訂顏色列表
   List<Color> _customColors = [];
@@ -1312,7 +1312,7 @@ class BrushTexturePool {
     final canvas = Canvas(recorder);
     final paint = Paint()..style = PaintingStyle.fill;
 
-    final center = Offset(_stampSize / 2, _stampSize / 2);
+    const center = Offset(_stampSize / 2, _stampSize / 2);
     final scale = _stampSize / (strokeWidth * 4); // 縮放到合適大小
 
     // ✨ 確定性偽隨機數生成器

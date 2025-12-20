@@ -9,7 +9,7 @@ import 'package:music_practice_app/services/metronome_service.dart';
 import 'package:music_practice_app/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:ui'; // For FontFeature
+// For FontFeature
 
 class SlowPracticePage extends StatefulWidget {
   const SlowPracticePage({super.key});
@@ -657,7 +657,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                               )),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<_PieceOption?>(
-                            value: selectedPiece,
+                            initialValue: selectedPiece,
                             decoration: InputDecoration(
                               hintText: l10n?.slowPracticeSelectSheet ?? '選擇樂譜',
                               filled: true,
@@ -1895,7 +1895,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                             _bpmController.text.isEmpty
                                 ? '100'
                                 : _bpmController.text,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.w900,
                               color: colorSpeed, // 數字跟著主題色
@@ -1954,10 +1954,10 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                           ),
                           boxShadow: isSelected
                               ? [
-                                  BoxShadow(
+                                  const BoxShadow(
                                       color: colorCheck,
                                       blurRadius: 0,
-                                      offset: const Offset(0, 4))
+                                      offset: Offset(0, 4))
                                 ] // 硬邊陰影
                               : [
                                   BoxShadow(
@@ -2019,7 +2019,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                             ),
                             child: Text(
                               '${_task.initialSpeedPercent}%',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 color: colorStart,
@@ -2154,10 +2154,10 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
         const SizedBox(width: 8),
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: const Color(0xFF455A64),
+            color: Color(0xFF455A64),
           ),
         ),
       ],

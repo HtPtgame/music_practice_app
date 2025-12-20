@@ -58,13 +58,13 @@ class MidiPlayerService {
   // 播放狀態
   int _currentIndex = 0;
   List<MidiNoteEvent> _events = [];
-  List<_ScheduledNote> _scheduledNotes = [];
+  final List<_ScheduledNote> _scheduledNotes = [];
   String? _currentMidiPath;
   bool _isPaused = false;
 
   // Tempo 管理
   List<TempoChange> _tempoChanges = [];
-  List<_CachedTempo> _cachedTempos = [];
+  final List<_CachedTempo> _cachedTempos = [];
   int _tpq = 480;
 
   final _playingStateController = StreamController<bool>.broadcast();
@@ -106,8 +106,8 @@ class MidiPlayerService {
     try {
       // 嘗試直接從 assets 載入 SoundFont
       try {
-        _soundfontId = await _midiPro.loadSoundfont(
-            path: 'assets/TimGM6mb.sf2', bank: 0, program: 0);
+        _soundfontId = await _midiPro.loadSoundfontAsset(
+            assetPath: 'assets/TimGM6mb.sf2', bank: 0, program: 0);
 
         if (_soundfontId != null) {
           // 選擇鋼琴音色 (Program 0 = Acoustic Grand Piano)
@@ -154,7 +154,7 @@ class MidiPlayerService {
 
       // 載入 SoundFont
       _soundfontId =
-          await _midiPro.loadSoundfont(path: sfPath, bank: 0, program: 0);
+          await _midiPro.loadSoundfontFile(filePath: sfPath, bank: 0, program: 0);
 
       if (_soundfontId != null) {
         // 設定鋼琴音色

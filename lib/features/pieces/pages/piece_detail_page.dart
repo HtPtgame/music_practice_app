@@ -1170,7 +1170,7 @@ class _SheetImageViewerState extends State<_SheetImageViewer>
                                     ),
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             // 編輯模式勾選框
                             if (widget.isEditMode)
                               Positioned(

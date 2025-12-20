@@ -195,7 +195,7 @@ class AnimalCollectionService extends ChangeNotifier {
     ),
   ];
 
-  List<AnimalCollection> _unlockedAnimals = [];
+  final List<AnimalCollection> _unlockedAnimals = [];
 
   List<AnimalCollection> get allAnimals => _allAnimals;
   List<AnimalCollection> get unlockedAnimals => _unlockedAnimals;

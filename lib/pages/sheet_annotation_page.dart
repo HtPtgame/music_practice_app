@@ -20,7 +20,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   List<AnnotatedSheet> _sheets = [];
   bool _isLoading = true;
   bool _isEditMode = false;
-  Set<int> _selectedIndices = {};
+  final Set<int> _selectedIndices = {};
 
   @override
   void initState() {

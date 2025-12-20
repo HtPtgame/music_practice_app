@@ -509,7 +509,7 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
               ),
               _buildStatItem(
                 l10n?.animalCollectionConsecutiveStreak ?? '連續打卡',
-                '${_consecutiveDays}${l10n?.animalCollectionDaysUnit ?? '天'}',
+                '$_consecutiveDays${l10n?.animalCollectionDaysUnit ?? '天'}',
                 Icons.local_fire_department,
               ),
             ],
@@ -888,7 +888,7 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
                   Colors.blue),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.emoji_events, widget.l10n?.animalUnlockCondition ?? '解鎖條件',
-                  '${widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天'}', Colors.orange),
+                  widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天', Colors.orange),
               const SizedBox(height: 12),
               // 命名理由
               _buildReasonSection(widget.animal.id, widget.l10n),
@@ -896,12 +896,12 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
               _buildInfoRow(Icons.lock, widget.l10n?.animalStatus ?? '狀態', widget.l10n?.animalLockedValue ?? '未解鎖', Colors.grey),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.emoji_events, widget.l10n?.animalUnlockCondition ?? '解鎖條件',
-                  '${widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天'}', Colors.orange),
+                  widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天', Colors.orange),
               const SizedBox(height: 12),
               _buildInfoRow(
                   Icons.show_chart,
                   widget.l10n?.animalCurrentProgress ?? '目前進度',
-                  '${widget.l10n?.animalProgressDays.replaceFirst('%d', '${widget.currentDays}').replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '${widget.currentDays} / ${widget.animal.requiredCheckInDays} 天'}',
+                  widget.l10n?.animalProgressDays.replaceFirst('%d', '${widget.currentDays}').replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '${widget.currentDays} / ${widget.animal.requiredCheckInDays} 天',
                   Colors.blue),
               const SizedBox(height: 12),
               // 進度條

@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -700,11 +699,11 @@ class PracticeTimerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     } else {
       if (hours > 0) {
-        sessionTime = '${hours}小時${minutes}分${secs}秒';
+        sessionTime = '$hours小時$minutes分$secs秒';
       } else if (minutes > 0) {
-        sessionTime = '${minutes}分${secs}秒';
+        sessionTime = '$minutes分$secs秒';
       } else {
-        sessionTime = '${secs}秒';
+        sessionTime = '$secs秒';
       }
     }
 

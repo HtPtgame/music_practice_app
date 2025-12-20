@@ -9,6 +9,7 @@
 /// # 分析目錄中的所有 MIDI 檔案
 /// dart tools/midi_tools.dart batch <目錄路徑>
 /// ```
+library;
 
 import 'dart:io';
 import 'dart:typed_data';

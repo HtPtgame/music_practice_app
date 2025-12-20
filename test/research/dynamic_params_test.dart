@@ -1,6 +1,7 @@
 /// 動態參數測試腳本 (Round 9)
 ///
 /// 測試 DynamicParameterService 對不同樂曲的參數計算
+library;
 import 'package:music_practice_app/services/audio_analysis/dynamic_parameter_service.dart';
 import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
 

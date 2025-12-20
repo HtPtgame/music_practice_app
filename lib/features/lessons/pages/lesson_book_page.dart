@@ -747,7 +747,7 @@ class _PointEditor extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<_PieceOption?>(
-                  value: point.relatedPiece,
+                  initialValue: point.relatedPiece,
                   decoration: InputDecoration(
                     hintText: l10n?.lessonBookSheetHint ?? '樂譜',
                     filled: true,

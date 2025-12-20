@@ -9,6 +9,7 @@
 /// - 使用現有測試音檔 (生日快樂.mid + 對應 WAV)
 /// - 手動添加不同長度的靜音前綴
 /// - 驗證能否正確檢測並對齊
+library;
 
 import 'dart:io';
 import 'package:music_practice_app/services/audio_analysis/auto_alignment_service.dart';

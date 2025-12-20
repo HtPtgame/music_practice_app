@@ -921,13 +921,13 @@ class AppLocalizations {
 
 /// 繁體中文（台灣）
 class AppLocalizationsZhTw extends AppLocalizations {
-  AppLocalizationsZhTw(Locale locale) : super(locale);
+  AppLocalizationsZhTw(super.locale);
   // 使用預設實現（所有字串已在基類定義）
 }
 
 /// 英文（美國）
 class AppLocalizationsEn extends AppLocalizations {
-  AppLocalizationsEn(Locale locale) : super(locale);
+  AppLocalizationsEn(super.locale);
 
   @override
   String get appName => 'Sound Spirit Detective';
@@ -2643,13 +2643,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
 /// 簡體中文（中國）- 保留占位，暫不翻譯
 class AppLocalizationsZhCn extends AppLocalizations {
-  AppLocalizationsZhCn(Locale locale) : super(locale);
+  AppLocalizationsZhCn(super.locale);
   // 使用預設實現（繁體中文）
 }
 
 /// 日文（日本）- 保留占位，暫不翻譯
 class AppLocalizationsJa extends AppLocalizations {
-  AppLocalizationsJa(Locale locale) : super(locale);
+  AppLocalizationsJa(super.locale);
   // 使用預設實現（繁體中文）
 }
 

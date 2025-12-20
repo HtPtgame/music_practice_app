@@ -334,8 +334,9 @@ class _MetronomePageState extends State<MetronomePage>
 
   void _showTimeSignatureDialog(BuildContext context) {
       setState(() {
-         if(_timeSignature == 4) _timeSignature = 3;
-         else if (_timeSignature == 3) _timeSignature = 2;
+         if(_timeSignature == 4) {
+           _timeSignature = 3;
+         } else if (_timeSignature == 3) _timeSignature = 2;
          else _timeSignature = 4;
       });
   }
@@ -774,11 +775,15 @@ class _BPMInputPageState extends State<_BPMInputPage> {
     setState(() {
       if (value == 'C') { inputValue = '0'; } 
       else if (value == '⌫') {
-        if (inputValue.length > 1) inputValue = inputValue.substring(0, inputValue.length - 1);
-        else inputValue = '0';
+        if (inputValue.length > 1) {
+          inputValue = inputValue.substring(0, inputValue.length - 1);
+        } else {
+          inputValue = '0';
+        }
       } else {
-        if (inputValue == '0') inputValue = value;
-        else if (inputValue.length < 3) inputValue += value;
+        if (inputValue == '0') {
+          inputValue = value;
+        } else if (inputValue.length < 3) inputValue += value;
       }
     });
   }

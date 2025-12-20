@@ -36,13 +36,14 @@ dependencies:
   # Firebase 認證套件
   firebase_core: ^3.8.1  # Firebase 核心
   firebase_auth: ^5.3.3  # Firebase 認證
-  cloud_firestore: ^5.5.2  # Firestore 資料庫（儲存使用者資料）
+  cloud_firestore: ^5.6.12  # Firestore 資料庫（儲存使用者資料） - 明確版本
   google_sign_in: ^6.2.2  # Google 登入
   
   # 音效套件
   audioplayers: ^6.1.0  # 用於播放短音效
   flutter_local_notifications: ^19.5.0
 
+  logger: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

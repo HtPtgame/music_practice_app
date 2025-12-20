@@ -1,6 +1,7 @@
 /// 測試輔助工具
 ///
 /// 提供常用的測試工具函數、Mock 物件和測試數據
+library;
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
