@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:veloria/l10n/app_localizations.dart';
@@ -985,17 +986,17 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
   Future<Size?> _getImageSize(File file) async {
     if (!file.existsSync()) return null;
     try {
-      final image = Image.file(file);
-      final completer = Completer<Size>();
-      image.image.resolve(const ImageConfiguration()).addListener(
-        ImageStreamListener((ImageInfo info, bool _) {
-          completer.complete(Size(
-            info.image.width.toDouble(),
-            info.image.height.toDouble(),
-          ));
-        }),
+      // 直接解碼圖片獲取尺寸，避免建立 Image widget
+      final bytes = await file.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final size = Size(
+        image.width.toDouble(),
+        image.height.toDouble(),
       );
-      return completer.future;
+      image.dispose();
+      return size;
     } catch (e) {
       return null;
     }

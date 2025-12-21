@@ -29,14 +29,14 @@ class _FloatingTimerWidgetState extends State<FloatingTimerWidget> {
   }
 
   void _onTimerChanged() {
-    if (mounted) setState(() {});
+    if (mounted) setState(() {}); // 觸發 UI 重繪以顯示計時器狀態變化
   }
 
   void _startUIUpdateTimer() {
     _uiUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       // 運行或暫停時都需要更新 UI（顯示/隱藏狀態可能改變）
       if (mounted && (_timerService.isRunning || _timerService.isPaused)) {
-        setState(() {});
+        setState(() {}); // 每秒更新 UI 顯示最新時間
       }
     });
   }

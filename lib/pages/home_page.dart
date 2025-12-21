@@ -89,6 +89,13 @@ class _UserButton extends StatelessWidget {
                         width: 36,
                         height: 36,
                         fit: BoxFit.cover,
+                        cacheWidth: 72, // 2x 解析度足夠
+                        cacheHeight: 72,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     )
                   : Text(
