@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.example.music_practice_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Android 16 (依賴套件要求)
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -30,7 +30,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24  // flutter_sound 套件需要 Android 7.0 以上
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36  // Android 16 (依賴套件要求)
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
