@@ -114,6 +114,19 @@ class _LessonBookPageState extends State<LessonBookPage> {
         };
         notes.add(jsonEncode(practiceNote));
 
+        // 按小節數排序筆記
+        notes.sort((a, b) {
+          try {
+            final mapA = jsonDecode(a) as Map<String, dynamic>;
+            final mapB = jsonDecode(b) as Map<String, dynamic>;
+            final measureA = mapA['measure'] as int? ?? 0;
+            final measureB = mapB['measure'] as int? ?? 0;
+            return measureA.compareTo(measureB);
+          } catch (e) {
+            return 0;
+          }
+        });
+
         pieceJson['notes'] = notes;
         jsonList[pieceIndex] = pieceJson;
       }
@@ -747,6 +760,7 @@ class _PointEditor extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<_PieceOption?>(
+                  isExpanded: true, // 關鍵：讓下拉框內容展開填充可用空間
                   initialValue: point.relatedPiece,
                   decoration: InputDecoration(
                     hintText: l10n?.lessonBookSheetHint ?? '樂譜',
@@ -760,10 +774,20 @@ class _PointEditor extends StatelessWidget {
                     isDense: true,
                   ),
                   items: [
-                    DropdownMenuItem(value: null, child: Text(l10n?.lessonBookNoAssociate ?? '不關聯')),
+                    DropdownMenuItem(
+                      value: null, 
+                      child: Text(
+                        l10n?.lessonBookNoAssociate ?? '不關聯',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     ...pieceOptions.map((p) => DropdownMenuItem(
                       value: p,
-                      child: Text(p.name, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        p.name, 
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     )),
                   ],
                   onChanged: (value) {

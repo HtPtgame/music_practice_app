@@ -788,7 +788,9 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
             color: AppColors.dynamicBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
+          child: SafeArea(
+            top: false,
+            child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -832,7 +834,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                   children: [
                     if (_service.inProgressTasks.isNotEmpty) ...[
                       _buildHistorySection(
@@ -849,6 +851,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                 ),
               ),
             ],
+            ),
           ),
         );
       },
@@ -1426,6 +1429,17 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
       if (_task.checklistSelected.contains(item)) {
         _task.checklistSelected.remove(item);
       } else {
+        // 互斥邏輯：左手單獨 vs 右手單獨
+        final l10n = AppLocalizations.of(context);
+        final decompositions = l10n?.slowPracticeDecompositions ?? 
+            ['左手單獨', '右手單獨', '節奏拆解', '只彈重拍', '唱譜', '不踩踏板'];
+        
+        if (item == decompositions[0]) { // 左手單獨
+          _task.checklistSelected.remove(decompositions[1]); // 移除右手單獨
+        } else if (item == decompositions[1]) { // 右手單獨
+          _task.checklistSelected.remove(decompositions[0]); // 移除左手單獨
+        }
+        
         _task.checklistSelected.add(item);
       }
     });
