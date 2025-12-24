@@ -552,12 +552,13 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     );
     
     // 使用 Painter 的渲染方法，會調用 _drawFullStampAtPoint（確定性8層渲染）
+    // 🔧 修復：useSkipping 設為 false，確保載入後的筆跡和原畫一致
     painter._drawFullTextureBrush(
       canvas,
       stroke.points,
       stroke.color,
       stroke.strokeWidth,
-      useSkipping: true,
+      useSkipping: false, // 🎯 關鍵修復：不跳點，保持原始密度
     );
   }
   
@@ -879,11 +880,11 @@ class _DrawingPainter extends CustomPainter {
       // 直接繪製快取的背景圖片
       canvas.drawImage(cachedBackground!, Offset.zero, Paint());
     } else {
-      // 沒有快取時，渲染所有已完成的筆劃
+      // 🎯 沒有快取時，渲染所有已完成的筆劃（不跳點，確保品質）
       for (final stroke in strokes) {
         _drawFullTextureBrush(
             canvas, stroke.points, stroke.color, stroke.strokeWidth,
-            useSkipping: true);
+            useSkipping: false); // 修復：不跳點，保持原始品質
       }
     }
 
@@ -1128,12 +1129,12 @@ class _DrawingPainter extends CustomPainter {
       if (isPoolReady && texturePool != null) {
         _drawStampFromPool(canvas, points[i], strokeWidth, i);
       } else {
-        // 降級方案：使用簡化渲染（當前筆劃）或完整渲染（已完成筆劃）
-        if (!useSkipping) {
-          // 當前筆劃：使用快速簡化版本
-          _drawQuickStamp(canvas, points[i], color, strokeWidth);
+        // 🎯 根據是否跳點決定渲染品質
+        if (useSkipping) {
+          // 已完成筆劃（需要優化）：跳點 + 完整8層渲染
+          _drawFullStampAtPoint(canvas, points[i], color, strokeWidth, i);
         } else {
-          // 已完成筆劃：使用完整8層渲染
+          // 當前筆劃或載入的筆劃（需要品質）：不跳點 + 完整8層渲染
           _drawFullStampAtPoint(canvas, points[i], color, strokeWidth, i);
         }
       }
