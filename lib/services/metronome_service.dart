@@ -1,135 +1,163 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:metronome/metronome.dart' as metro;
+import 'dart:isolate';
+import 'dart:math';
+import 'package:flutter/services.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:logger/logger.dart' show Level;
 
-/// 共用的節拍器服務，使用 metronome 套件實現高精度跨平台節拍
-/// 
-/// 優點：
-/// 1. 原生平台實作，比 Dart Timer 更精確
-/// 2. 支援 BPM > 600 的高速節拍
-/// 3. 低延遲音訊引擎
-/// 4. 支援拍號和強拍
+/// 共用的節拍器服務，使用 Isolate 確保穩定計時
 class MetronomeService {
   static final MetronomeService _instance = MetronomeService._internal();
   factory MetronomeService() => _instance;
   MetronomeService._internal();
 
-  final metro.Metronome _metronome = metro.Metronome();
-  bool _isInitialized = false;
+  FlutterSoundPlayer? _audioPlayer;
+  bool _audioPlayerReady = false;
+  Uint8List? _beepBuffer;
   int _activeListeners = 0;
   
+  // Isolate 相關
+  Isolate? _timerIsolate;
+  ReceivePort? _receivePort;
+  SendPort? _sendPort;
+  StreamSubscription? _subscription;
+  
   // 回調
-  void Function()? _onBeat;
-  StreamSubscription<int>? _tickSubscription;
+  VoidCallback? _onBeat;
   bool _isRunning = false;
   int _currentBpm = 100;
 
-  /// 初始化節拍器
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_audioPlayer != null && _audioPlayerReady) return;
 
     try {
-      // 使用 assets 中的節拍器音效（慢練只用普通拍聲音）
-      _metronome.init(
-        'assets/audio/Perc_MetronomeQuartz_lo.wav',
-        accentedPath: 'assets/audio/Perc_MetronomeQuartz_lo.wav',
-        bpm: 100,
-        volume: 70,
-        enableTickCallback: true,
-        timeSignature: 4,
-        sampleRate: 44100,
-      );
-      
-      _isInitialized = true;
+      _beepBuffer = _generateBeepSound();
+      _audioPlayer = FlutterSoundPlayer();
+      _audioPlayer!.setLogLevel(Level.error);
+      await _audioPlayer!.openPlayer();
+      await _audioPlayer!.setVolume(0.5);
+      _audioPlayerReady = true;
       _activeListeners++;
     } catch (e) {
-      debugPrint('❌ Metronome Service Init Error: $e');
-      _isInitialized = false;
+      print('❌ Metronome Service Init Error: $e');
+      _audioPlayer = null;
+      _audioPlayerReady = false;
     }
   }
   
-  /// 開始節拍器
-  Future<void> startMetronome(int bpm, {void Function()? onBeat}) async {
+  /// 開始節拍器 (使用 Isolate 確保穩定)
+  Future<void> startMetronome(int bpm, {VoidCallback? onBeat}) async {
     if (_isRunning) {
       stopMetronome();
-    }
-    
-    if (!_isInitialized) {
-      await initialize();
     }
     
     _currentBpm = bpm;
     _onBeat = onBeat;
     _isRunning = true;
     
-    // 設定 BPM
-    _metronome.setBPM(bpm);
+    // 建立接收 Port
+    _receivePort = ReceivePort();
     
-    // 監聽節拍回調
-    if (onBeat != null) {
-      _tickSubscription = _metronome.tickStream.listen((int tick) {
+    // 監聽 Isolate 發來的拍子訊號
+    _subscription = _receivePort!.listen((message) {
+      if (message is String && message == 'beat' && _isRunning) {
+        playBeat();
         _onBeat?.call();
-      });
-    }
+      } else if (message is SendPort) {
+        _sendPort = message;
+        // 發送 BPM 給 Isolate 開始計時
+        _sendPort!.send(_currentBpm);
+      }
+    });
     
-    // 開始播放
-    _metronome.play();
+    // 啟動 Isolate
+    _timerIsolate = await Isolate.spawn(
+      _metronomeIsolateEntry,
+      _receivePort!.sendPort,
+    );
   }
   
   /// 停止節拍器
   void stopMetronome() {
     _isRunning = false;
-    _metronome.stop();
-    _tickSubscription?.cancel();
-    _tickSubscription = null;
+    _sendPort?.send('stop');
+    _subscription?.cancel();
+    _subscription = null;
+    _receivePort?.close();
+    _receivePort = null;
+    _timerIsolate?.kill(priority: Isolate.immediate);
+    _timerIsolate = null;
+    _sendPort = null;
     _onBeat = null;
-  }
-  
-  /// 暫停節拍器
-  void pauseMetronome() {
-    _metronome.pause();
-    _isRunning = false;
   }
   
   /// 更新 BPM (不需要重啟)
   void updateBpm(int bpm) {
     _currentBpm = bpm;
-    _metronome.setBPM(bpm);
+    _sendPort?.send(bpm);
   }
   
-  /// 設定音量 (0-100)
-  void setVolume(int volume) {
-    _metronome.setVolume(volume.clamp(0, 100));
+  /// Isolate 入口點 - 在獨立線程中運行高精度計時
+  static void _metronomeIsolateEntry(SendPort mainSendPort) {
+    final receivePort = ReceivePort();
+    mainSendPort.send(receivePort.sendPort);
+    
+    int bpm = 100;
+    bool running = true;
+    Stopwatch? stopwatch;
+    int lastBeatCount = 0;
+    
+    receivePort.listen((message) {
+      if (message is int) {
+        bpm = message;
+        // 重置計時
+        stopwatch = Stopwatch()..start();
+        lastBeatCount = 0;
+        // 立即發送第一拍
+        mainSendPort.send('beat');
+      } else if (message == 'stop') {
+        running = false;
+        stopwatch?.stop();
+        receivePort.close();
+      }
+    });
+    
+    // 高精度計時循環
+    Timer.periodic(const Duration(microseconds: 500), (timer) {
+      if (!running) {
+        timer.cancel();
+        return;
+      }
+      
+      if (stopwatch != null && stopwatch!.isRunning) {
+        final intervalMs = 60000.0 / bpm;
+        final elapsedMs = stopwatch!.elapsedMilliseconds;
+        final expectedBeats = (elapsedMs / intervalMs).floor();
+        
+        if (expectedBeats > lastBeatCount) {
+          lastBeatCount = expectedBeats;
+          mainSendPort.send('beat');
+        }
+      }
+    });
   }
-  
-  /// 取得目前音量
-  Future<int> getVolume() async {
-    return await _metronome.getVolume();
-  }
-  
-  /// 設定拍號
-  void setTimeSignature(int beats) {
-    _metronome.setTimeSignature(beats);
-  }
-  
-  /// 是否正在播放
-  Future<bool> getIsPlaying() async {
-    return await _metronome.isPlaying() ?? false;
-  }
-  
-  /// 同步取得播放狀態（使用內部追蹤）
-  bool get isPlaying => _isRunning;
-  
-  /// 是否已初始化
-  bool get isInitialized => _isInitialized;
-  
-  /// 取得目前 BPM
-  int get currentBpm => _currentBpm;
 
-  /// 播放一次節拍音效（向後相容）
   Future<void> playBeat() async {
-    // metronome 套件沒有單次播放功能
-    // 保留空實作以維持 API 相容性
+    if (!_audioPlayerReady || _beepBuffer == null || _audioPlayer == null) {
+      return;
+    }
+
+    try {
+      // 使用 fire-and-forget 方式播放，避免阻塞
+      _audioPlayer!.startPlayer(
+        fromDataBuffer: _beepBuffer!,
+        codec: Codec.pcm16WAV,
+        sampleRate: 44100,
+        whenFinished: () {},
+      ).catchError((e) => null);
+    } catch (e) {
+      // 忽略播放錯誤
+    }
   }
 
   void release() {
@@ -146,7 +174,59 @@ class MetronomeService {
   }
 
   void _cleanup() {
-    _metronome.destroy();
-    _isInitialized = false;
+    _audioPlayer?.closePlayer().catchError((e) => null);
+    _audioPlayer = null;
+    _audioPlayerReady = false;
+    _beepBuffer = null;
   }
+
+  Uint8List _generateBeepSound() {
+    const int sampleRate = 44100;
+    const double duration = 0.05;
+    final int numSamples = (sampleRate * duration).round();
+    const double frequency = 1000.0;
+    const double masterGain = 0.5;
+
+    final List<int> samples = [];
+    samples.addAll('RIFF'.codeUnits);
+    samples.addAll(_int32ToBytes(36 + numSamples * 2));
+    samples.addAll('WAVE'.codeUnits);
+    samples.addAll('fmt '.codeUnits);
+    samples.addAll(_int32ToBytes(16));
+    samples.addAll(_int16ToBytes(1));
+    samples.addAll(_int16ToBytes(1));
+    samples.addAll(_int32ToBytes(sampleRate));
+    samples.addAll(_int32ToBytes(sampleRate * 2));
+    samples.addAll(_int16ToBytes(2));
+    samples.addAll(_int16ToBytes(16));
+    samples.addAll('data'.codeUnits);
+    samples.addAll(_int32ToBytes(numSamples * 2));
+
+    const int fadeInSamples = 50;
+    const int fadeOutSamples = 200;
+
+    for (int i = 0; i < numSamples; i++) {
+      final double t = i / sampleRate;
+      double envelope = 1.0;
+
+      if (i < fadeInSamples) {
+        envelope = i / fadeInSamples;
+      } else if (i > numSamples - fadeOutSamples) {
+        envelope = (numSamples - i) / fadeOutSamples;
+      }
+
+      final double sample = masterGain * envelope * sin(2 * pi * frequency * t);
+      final int sampleInt = (sample * 32767).round().clamp(-32768, 32767);
+      samples.addAll(_int16ToBytes(sampleInt));
+    }
+    return Uint8List.fromList(samples);
+  }
+
+  List<int> _int32ToBytes(int value) => [
+        value & 0xFF,
+        (value >> 8) & 0xFF,
+        (value >> 16) & 0xFF,
+        (value >> 24) & 0xFF
+      ];
+  List<int> _int16ToBytes(int value) => [value & 0xFF, (value >> 8) & 0xFF];
 }
