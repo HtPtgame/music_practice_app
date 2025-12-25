@@ -1,6 +1,6 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:async';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 最終驗證測試 - energyThreshold = 0.38
 /// 4 輪 × 8 音檔 = 32 測試案例
@@ -306,7 +306,7 @@ void main() async {
         if (passed) passedTests++;
 
         print(
-            '  $emoji $status ${name.padRight(18)} │ 召回率:${recall.toStringAsFixed(1).padLeft(5)}% (目標${type == 'correct' ? '≥' : '≤'}${target}%) │ $correct/$total');
+            '  $emoji $status ${name.padRight(18)} │ 召回率:${recall.toStringAsFixed(1).padLeft(5)}% (目標${type == 'correct' ? '≥' : '≤'}$target%) │ $correct/$total');
       } catch (e) {
         print('  ❌ $name - 錯誤: $e\n');
       }

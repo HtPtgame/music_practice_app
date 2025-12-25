@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
+import 'package:veloria/features/lessons/models/lesson_note.dart';
 
 class LessonService extends ChangeNotifier {
   static final LessonService _instance = LessonService._internal();

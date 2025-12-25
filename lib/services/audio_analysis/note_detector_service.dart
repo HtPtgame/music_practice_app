@@ -34,7 +34,7 @@ class NoteDetectorService implements INoteDetector {
   /// v2.5: 從 0.45 提升至 0.55 (防止人聲/噪音誤判)
   /// v2.6: 從 0.55 降至 0.48 (平衡準確率與靈敏度) - 過於激進
   /// v2.7: 從 0.48 回調至 0.52 (精細平衡，Recall目標75%+)
-  static const double minEnergyThreshold = 0.52;
+  static const double minEnergyThreshold = 0.60;
   
   /// v2.5 新增：諧波比例驗證參數
   /// v2.7 精調：在v2.5和v2.6之間找平衡
@@ -273,7 +273,7 @@ class NoteDetectorService implements INoteDetector {
     
     // 計算諧波附近的能量
     double harmonicEnergy = 0.0;
-    final windowSize = 3; // 諧波附近±3個bin
+    const windowSize = 3; // 諧波附近±3個in
     
     for (int h = 1; h <= numHarmonics; h++) {
       final harmonicFreq = fundamentalFreq * h;

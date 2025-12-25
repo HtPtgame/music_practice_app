@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
-import 'package:music_practice_app/features/lessons/services/lesson_service.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/features/lessons/models/lesson_note.dart';
+import 'package:veloria/features/lessons/services/lesson_service.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// 獲取分類的本地化名稱
 String getCategoryDisplayName(LessonNoteCategory category, AppLocalizations? l10n) {
@@ -114,6 +114,19 @@ class _LessonBookPageState extends State<LessonBookPage> {
         };
         notes.add(jsonEncode(practiceNote));
 
+        // 按小節數排序筆記
+        notes.sort((a, b) {
+          try {
+            final mapA = jsonDecode(a) as Map<String, dynamic>;
+            final mapB = jsonDecode(b) as Map<String, dynamic>;
+            final measureA = mapA['measure'] as int? ?? 0;
+            final measureB = mapB['measure'] as int? ?? 0;
+            return measureA.compareTo(measureB);
+          } catch (e) {
+            return 0;
+          }
+        });
+
         pieceJson['notes'] = notes;
         jsonList[pieceIndex] = pieceJson;
       }
@@ -167,7 +180,8 @@ class _LessonBookPageState extends State<LessonBookPage> {
         elevation: 0,
       ),
       backgroundColor: AppColors.dynamicBackground,
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListenableBuilder(
               listenable: _lessonService,
@@ -179,6 +193,7 @@ class _LessonBookPageState extends State<LessonBookPage> {
                 return _buildRecordsList(records);
               },
             ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddRecordDialog(),
         backgroundColor: AppColors.dynamicPrimary,
@@ -745,7 +760,8 @@ class _PointEditor extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<_PieceOption?>(
-                  value: point.relatedPiece,
+                  isExpanded: true, // 關鍵：讓下拉框內容展開填充可用空間
+                  initialValue: point.relatedPiece,
                   decoration: InputDecoration(
                     hintText: l10n?.lessonBookSheetHint ?? '樂譜',
                     filled: true,
@@ -758,10 +774,20 @@ class _PointEditor extends StatelessWidget {
                     isDense: true,
                   ),
                   items: [
-                    DropdownMenuItem(value: null, child: Text(l10n?.lessonBookNoAssociate ?? '不關聯')),
+                    DropdownMenuItem(
+                      value: null, 
+                      child: Text(
+                        l10n?.lessonBookNoAssociate ?? '不關聯',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     ...pieceOptions.map((p) => DropdownMenuItem(
                       value: p,
-                      child: Text(p.name, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        p.name, 
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     )),
                   ],
                   onChanged: (value) {

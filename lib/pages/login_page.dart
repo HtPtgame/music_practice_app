@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/services/firebase_auth_service.dart';
-import 'package:music_practice_app/services/user_data_sync_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/services/firebase_auth_service.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
+import 'package:veloria/utils/error_handler.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// 登入頁面 - Firebase 版本
 class LoginPage extends StatefulWidget {
@@ -50,11 +51,9 @@ class _LoginPageState extends State<LoginPage> {
 
         if (!mounted) return;
         final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n?.loginSuccess ?? '登入成功！'),
-            backgroundColor: Colors.green,
-          ),
+        ErrorHandler.showSuccess(
+          context,
+          l10n?.loginSuccess ?? '登入成功！',
         );
         context.go('/');
       }
@@ -63,12 +62,9 @@ class _LoginPageState extends State<LoginPage> {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        ErrorHandler.show(
+          context,
+          errorMessage,
         );
       }
     } finally {
@@ -96,11 +92,9 @@ class _LoginPageState extends State<LoginPage> {
 
           if (!mounted) return;
           final l10n = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n?.loginGoogleSuccess ?? 'Google 登入成功！'),
-              backgroundColor: Colors.green,
-            ),
+          ErrorHandler.showSuccess(
+            context,
+            l10n?.loginGoogleSuccess ?? 'Google 登入成功！',
           );
           context.go('/');
         } else {
@@ -113,12 +107,9 @@ class _LoginPageState extends State<LoginPage> {
         // 提取錯誤訊息（移除 "Exception: " 前綴）
         String errorMessage = e.toString().replaceFirst('Exception: ', '');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        ErrorHandler.show(
+          context,
+          errorMessage,
         );
       }
     } finally {

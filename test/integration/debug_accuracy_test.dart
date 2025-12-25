@@ -1,11 +1,11 @@
-// debug_accuracy_test.dart
+﻿// debug_accuracy_test.dart
 // 偵錯系統準確度測試 - 2025/10/27
 // 用於測試偵錯功能的準確性和穩定性
 
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/audio_analysis/performance_analyzer.dart';
+import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 
 /// 測試模式
 enum TestMode {
@@ -69,7 +69,7 @@ enum TestType {
 /// 四輪測試配置
 final List<TestConfig> testRounds = [
   // 第一輪：生日快樂
-  TestConfig(
+  const TestConfig(
     name: '生日快樂',
     midiPath: 'assets/test_voice/生日快樂.mid',
     noteCount: 25,
@@ -78,7 +78,7 @@ final List<TestConfig> testRounds = [
   ),
 
   // 第二輪：測試音檔
-  TestConfig(
+  const TestConfig(
     name: '測試音檔',
     midiPath: 'assets/test_voice/測試音檔.mid',
     noteCount: 94,
@@ -87,7 +87,7 @@ final List<TestConfig> testRounds = [
   ),
 
   // 第三輪：小星星
-  TestConfig(
+  const TestConfig(
     name: '小星星',
     midiPath: 'assets/test_voice/小星星.mid',
     noteCount: 147,
@@ -96,7 +96,7 @@ final List<TestConfig> testRounds = [
   ),
 
   // 第四輪：名偵探柯南
-  TestConfig(
+  const TestConfig(
     name: '名偵探柯南',
     midiPath: 'assets/test_voice/名偵探柯南.mid',
     noteCount: 1431,
@@ -145,12 +145,12 @@ List<TestSample> getTestSamples(int roundIndex) {
           type: TestType.wrongSong,
         )),
     // 8-9. 環境噪音
-    TestSample(
+    const TestSample(
       name: '環境背景',
       audioPath: 'assets/test_voice/環境背景.wav',
       type: TestType.environmentNoise,
     ),
-    TestSample(
+    const TestSample(
       name: '環境背景2',
       audioPath: 'assets/test_voice/環境背景2.wav',
       type: TestType.environmentNoise,
@@ -159,7 +159,7 @@ List<TestSample> getTestSamples(int roundIndex) {
 
   // 第四輪（名偵探柯南）增加短錄音測試
   if (roundIndex == 3) {
-    samples.add(TestSample(
+    samples.add(const TestSample(
       name: '名偵探柯南(30秒)',
       audioPath: 'assets/test_voice/名偵探柯南(30秒).wav',
       type: TestType.shortRecording,

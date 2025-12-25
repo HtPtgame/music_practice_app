@@ -1,4 +1,4 @@
-/// Phase 1A 測試: 自動時間對齊驗證
+﻿/// Phase 1A 測試: 自動時間對齊驗證
 ///
 /// 測試目標:
 /// 1. 驗證自動檢測錄音起始點功能
@@ -9,11 +9,12 @@
 /// - 使用現有測試音檔 (生日快樂.mid + 對應 WAV)
 /// - 手動添加不同長度的靜音前綴
 /// - 驗證能否正確檢測並對齊
+library;
 
 import 'dart:io';
-import 'package:music_practice_app/services/audio_analysis/auto_alignment_service.dart';
-import 'package:music_practice_app/services/audio_analysis/audio_analyzer_service_impl.dart';
-import 'package:music_practice_app/services/audio_analysis/midi_parser_service.dart';
+import 'package:veloria/services/audio_analysis/auto_alignment_service.dart';
+import 'package:veloria/services/audio_analysis/audio_analyzer_service_impl.dart';
+import 'package:veloria/services/audio_analysis/midi_parser_service.dart';
 
 void main(List<String> args) async {
   print('╔══════════════════════════════════════════════════════════════╗');

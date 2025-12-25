@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:music_practice_app/models/user.dart';
-import 'package:music_practice_app/services/firebase_auth_service.dart';
+import 'package:veloria/models/user.dart';
+import 'package:veloria/services/firebase_auth_service.dart';
+import 'package:veloria/services/practice_timer_service.dart';
 
 /// 使用者數據同步服務 - 負責將本地數據同步到 Firestore
 class UserDataSyncService extends ChangeNotifier {
@@ -210,7 +211,8 @@ class UserDataSyncService extends ChangeNotifier {
   }
 
   /// 同步練習會話記錄到雲端
-  Future<void> syncPracticeSessions(List<Map<String, dynamic>> practiceSessions) async {
+  Future<void> syncPracticeSessions(
+      List<Map<String, dynamic>> practiceSessions) async {
     final user = _authService.currentUser;
     if (user == null) {
       debugPrint('用戶未登入，跳過練習會話同步');
@@ -314,18 +316,32 @@ class UserDataSyncService extends ChangeNotifier {
 
     try {
       debugPrint('🔄 開始從雲端同步數據...');
-      
+
       // 從 Firestore 讀取使用者文檔
       final doc = await _firestore.collection('users').doc(user.id).get();
-      
+
       if (doc.exists) {
         final data = doc.data()!;
-        
+
         // 更新 AuthService 中的使用者數據
         // 這會觸發 notifyListeners 並更新整個 app
         final updatedUser = User.fromJson(data);
         _authService.updateCurrentUser(updatedUser);
-        
+
+        // 套用雲端的計時器顯示設定到本地（含 SharedPreferences）
+        final timer = PracticeTimerService();
+        final cloudSettings = updatedUser.settings;
+        final bool? cloudFloating =
+            cloudSettings['timer_show_floating'] as bool?;
+        final bool? cloudNotification =
+            cloudSettings['timer_show_notification'] as bool?;
+        if (cloudFloating != null || cloudNotification != null) {
+          await timer.updateSettings(
+            showFloatingTimer: cloudFloating,
+            showNotification: cloudNotification,
+          );
+        }
+
         debugPrint('✅ 成功從雲端同步數據');
         debugPrint('  - 打卡記錄: ${updatedUser.checkInDates.length} 筆');
         debugPrint('  - 練習時間: ${updatedUser.practiceTime.length} 天');

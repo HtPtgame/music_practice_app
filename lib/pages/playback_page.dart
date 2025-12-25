@@ -1,10 +1,10 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/services/midi_player_service.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/services/midi_player_service.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class PlaybackPage extends StatefulWidget {
   final PlatformFile? file;
@@ -155,7 +155,8 @@ class _PlaybackPageState extends State<PlaybackPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
           : LayoutBuilder(
               builder: (context, constraints) {
@@ -335,6 +336,7 @@ class _PlaybackPageState extends State<PlaybackPage> {
                 );
               },
             ),
+      ),
     );
   }
 }

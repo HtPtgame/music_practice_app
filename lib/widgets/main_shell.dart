@@ -1,9 +1,9 @@
-// lib/widgets/main_shell.dart
+﻿// lib/widgets/main_shell.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -90,7 +90,7 @@ class MainShell extends StatelessWidget {
 
   Widget _buildHomeIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
-      'assets/首頁.svg',
+      'assets/icon/首頁.svg',
       width: 35,
       height: 35,
       colorFilter: ColorFilter.mode(
@@ -102,7 +102,7 @@ class MainShell extends StatelessWidget {
 
   Widget _buildLibraryIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
-      'assets/音樂庫.svg',
+      'assets/icon/音樂庫.svg',
       width: 35,
       height: 35,
       colorFilter: ColorFilter.mode(
@@ -114,7 +114,7 @@ class MainShell extends StatelessWidget {
 
   Widget _buildMetronomeIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
-      'assets/節拍器.svg',
+      'assets/icon/節拍器.svg',
       width: 35,
       height: 35,
       colorFilter: ColorFilter.mode(
@@ -126,7 +126,7 @@ class MainShell extends StatelessWidget {
 
   Widget _buildNotesIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
-      'assets/筆記_5.svg',
+      'assets/icon/筆記.svg',
       width: 35,
       height: 35,
       colorFilter: ColorFilter.mode(
@@ -138,7 +138,7 @@ class MainShell extends StatelessWidget {
 
   Widget _buildSettingsIcon(BuildContext context, bool isActive) {
     return SvgPicture.asset(
-      'assets/設定.svg',
+      'assets/icon/設定.svg',
       width: 35,
       height: 35,
       colorFilter: ColorFilter.mode(

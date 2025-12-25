@@ -1,12 +1,12 @@
-// lib/pages/upload_page2.dart
+﻿// lib/pages/upload_page2.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // 用於檢測平台
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 // 導入 Uint8List
-import 'package:music_practice_app/pages/library_page.dart'; // <<== 確保這一行存在且正確導入 MidiFileManager
+import 'package:veloria/pages/library_page.dart'; // <<== 確保這一行存在且正確導入 MidiFileManager
 
 class UploadPage2 extends StatefulWidget {
   const UploadPage2({super.key});

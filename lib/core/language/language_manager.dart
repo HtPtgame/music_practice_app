@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/services/practice_timer_service.dart';
+import 'package:veloria/services/practice_timer_service.dart';
 
 class LanguageManager extends ChangeNotifier {
   static final LanguageManager _instance = LanguageManager._internal();

@@ -17,7 +17,7 @@ class NoteVerificationServiceImpl implements INoteVerifier {
   static const int numHarmonics = 3; // 檢查的諧波數量
 
   /// 固定能量閾值 (已停用動態調整功能)
-  static const double energyThreshold = 0.38;
+  static const double energyThreshold = 0.60;
 
   @override
   Future<bool> verifyNote(

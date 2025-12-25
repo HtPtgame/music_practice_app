@@ -1,11 +1,11 @@
-// lib/pages/home_page.dart
+﻿// lib/pages/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/widgets/check_in_card.dart';
-import 'package:music_practice_app/widgets/practice_timer_card.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/widgets/check_in_card.dart';
+import 'package:veloria/widgets/practice_timer_card.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -89,6 +89,13 @@ class _UserButton extends StatelessWidget {
                         width: 36,
                         height: 36,
                         fit: BoxFit.cover,
+                        cacheWidth: 72, // 2x 解析度足夠
+                        cacheHeight: 72,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     )
                   : Text(

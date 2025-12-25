@@ -1,10 +1,10 @@
-# Music Practice App
+# 音靈偵探 Veloria
 
-音樂練習應用程式 - 基於 AI 音訊檢測的智能練習系統
+基於 AI 音訊檢測的智能音樂練習系統
 
 ## 🎵 專案簡介
 
-本專案是一個 Flutter 開發的音樂練習應用，採用先進的音訊檢測技術，幫助使用者練習樂器演奏。
+音靈偵探 (Veloria) 是一個 Flutter 開發的音樂練習應用，採用先進的音訊檢測技術，幫助使用者練習樂器演奏。
 
 ### 核心功能
 
@@ -129,7 +129,49 @@ dart tools/fix_test_audio.dart <audio_directory>
 - [AI 開發日誌](AI_WORK_LOG.md) - 開發過程記錄
 - [測試指南](TEST_GUIDE.md) - 測試執行指引
 
-## 🗂️ 最近更新（2025/01/26）
+## 🗂️ 最近更新
+
+### 2025/12/21 - Phase 5 程式碼品質優化完成 ✨
+
+- ✅ **Task 5.1**: 移除重複程式碼
+  - ErrorHandler 已在主要檔案中使用
+  - SharedPreferences 使用模式統一
+  - 減少程式碼重複性
+
+- ✅ **Task 5.2**: Lint 規則優化
+  - 新增 20+ 個嚴格 lint 規則
+  - lib/ 目錄 0 個錯誤
+  - 提升程式碼品質和一致性
+
+- ✅ **Task 5.3**: 文件註解完善
+  - 核心工具類已有完整文檔
+  - 公開 API 附有使用範例
+
+- ✅ **Task 5.4**: README 更新（本次更新）
+
+### 2025/12/16 - Phase 4 測試框架建立完成 🧪
+
+- ✅ 建立完整測試目錄結構
+- ✅ 新增 6 個測試檔案（services、models、widgets）
+- ✅ 測試輔助工具 `test_helpers.dart`
+
+### 2025/12/15 - Phase 1-2 優化完成 🚀
+
+**程式碼優化成果**:
+- ✅ 刪除 2,175 行淘汰程式碼（59.7% 減少）
+- ✅ 新增 22 個 const 建構子（減少 widget 重建）
+- ✅ 修復 StreamController 記憶體洩漏
+- ✅ 實作 LRU 快取限制圖片記憶體
+- ✅ 建立統一錯誤處理工具（ErrorHandler）
+- ✅ 提取魔術數字至常數類別
+
+**新增工具類**:
+- `lib/utils/error_handler.dart` (164 行)
+- `lib/utils/lru_cache.dart` (55 行)
+- `lib/core/constants/audio_constants.dart` (71 行)
+- `lib/core/constants/midi_constants.dart` (59 行)
+
+### 2025/01/26 - 測試系統重構完成
 
 - ✅ **測試檔案整合完成**
   - 整合 15+ 舊版測試檔案至 `test/integration/`

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 /// Phase 1B: 倒數計時 Overlay Widget
 ///

@@ -1,12 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Uint8List, rootBundle;
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
-import 'package:music_practice_app/core/services/settings_service.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/core/services/settings_service.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class MetronomePage extends StatefulWidget {
   const MetronomePage({super.key});
@@ -213,13 +213,24 @@ class _MetronomePageState extends State<MetronomePage>
 
   void _playBeatSound(bool isAccent) {
     if (!_soundEnabled || !_audioPlayerReady || _normalBeepBuffer == null) return;
-    final buffer = isAccent ? _accentBeepBuffer! : _normalBeepBuffer!;
-    _audioPlayer!.startPlayer(
-      fromDataBuffer: buffer,
-      codec: Codec.pcm16WAV,
-      sampleRate: 44100,
-      whenFinished: () {},
-    ).catchError((e) => null);
+    
+    // 選擇音效 buffer (如果 accent buffer 不存在則使用 normal)
+    final buffer = (isAccent && _accentBeepBuffer != null) 
+        ? _accentBeepBuffer! 
+        : _normalBeepBuffer!;
+    
+    // 在播放前設定音量
+    _audioPlayer!.setVolume(_cachedVolume).then((_) {
+      return _audioPlayer!.startPlayer(
+        fromDataBuffer: buffer,
+        codec: Codec.pcm16WAV,
+        sampleRate: 44100,
+        whenFinished: () {},
+      );
+    }).catchError((e) {
+      debugPrint('❌ 節拍器播放失敗: $e');
+      return null;
+    });
   }
 
   void _changeBPM(int delta) {
@@ -250,7 +261,7 @@ class _MetronomePageState extends State<MetronomePage>
     const double duration = 0.1; // 稍微延長以獲得更平滑的淡出
     final int numSamples = (sampleRate * duration).round();
     final double frequency = isAccent ? 1000.0 : 800.0; 
-    final double masterGain = 0.7; 
+    const double masterGain = 0.7; 
 
     final List<int> samples = [];
     samples.addAll('RIFF'.codeUnits);
@@ -323,8 +334,9 @@ class _MetronomePageState extends State<MetronomePage>
 
   void _showTimeSignatureDialog(BuildContext context) {
       setState(() {
-         if(_timeSignature == 4) _timeSignature = 3;
-         else if (_timeSignature == 3) _timeSignature = 2;
+         if(_timeSignature == 4) {
+           _timeSignature = 3;
+         } else if (_timeSignature == 3) _timeSignature = 2;
          else _timeSignature = 4;
       });
   }
@@ -372,9 +384,12 @@ class _MetronomePageState extends State<MetronomePage>
                                 '$_bpm',
                                 style: TextStyle(fontSize: 64, fontWeight: FontWeight.w700, color: AppColors.dynamicPrimary, height: 1.0),
                               ),
-                              Text(
-                                'BPM (點擊輸入)',
-                                style: TextStyle(fontSize: 12, color: AppColors.dynamicTextLight),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  l10n?.metronomeBpmClickInput ?? 'BPM (點擊輸入)',
+                                  style: TextStyle(fontSize: 12, color: AppColors.dynamicTextLight),
+                                ),
                               ),
                             ],
                           ),
@@ -760,11 +775,15 @@ class _BPMInputPageState extends State<_BPMInputPage> {
     setState(() {
       if (value == 'C') { inputValue = '0'; } 
       else if (value == '⌫') {
-        if (inputValue.length > 1) inputValue = inputValue.substring(0, inputValue.length - 1);
-        else inputValue = '0';
+        if (inputValue.length > 1) {
+          inputValue = inputValue.substring(0, inputValue.length - 1);
+        } else {
+          inputValue = '0';
+        }
       } else {
-        if (inputValue == '0') inputValue = value;
-        else if (inputValue.length < 3) inputValue += value;
+        if (inputValue == '0') {
+          inputValue = value;
+        } else if (inputValue.length < 3) inputValue += value;
       }
     });
   }
@@ -781,9 +800,10 @@ class _BPMInputPageState extends State<_BPMInputPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.4),
-      body: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: Center(
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Center(
           child: GestureDetector(
             onTap: () {}, 
             child: Container(
@@ -828,7 +848,10 @@ class _BPMInputPageState extends State<_BPMInputPage> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text("確定", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        AppLocalizations.of(context)?.metronomeConfirm ?? "確認",
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                      ),
                     ),
                   )
                 ],
@@ -836,6 +859,7 @@ class _BPMInputPageState extends State<_BPMInputPage> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

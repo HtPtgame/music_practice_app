@@ -1,28 +1,28 @@
-// lib/router/app_router.dart
+﻿// lib/router/app_router.dart
 
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:music_practice_app/pages/analysis_page.dart';
-import 'package:music_practice_app/pages/home_page.dart';
-import 'package:music_practice_app/pages/playback_page.dart';
-import 'package:music_practice_app/pages/practice_page.dart';
-import 'package:music_practice_app/pages/upload_page.dart';
-import 'package:music_practice_app/pages/upload_page2.dart';
-import 'package:music_practice_app/pages/library_page.dart';
-import 'package:music_practice_app/pages/settings_page.dart';
-import 'package:music_practice_app/pages/note_page.dart';
-import 'package:music_practice_app/features/pieces/pages/piece_detail_page.dart';
-import 'package:music_practice_app/pages/metronome_page.dart';
-import 'package:music_practice_app/pages/login_page.dart';
-import 'package:music_practice_app/pages/register_page.dart';
-import 'package:music_practice_app/pages/profile_page.dart';
-import 'package:music_practice_app/pages/animal_collection_page.dart';
-import 'package:music_practice_app/pages/practice_stats_page.dart';
-import 'package:music_practice_app/models/sheet_annotation.dart';
-import 'package:music_practice_app/widgets/main_shell.dart';
-import 'package:music_practice_app/features/lessons/pages/lesson_book_page.dart';
-import 'package:music_practice_app/features/practice/pages/slow_practice_page.dart';
+import 'package:veloria/pages/analysis_page.dart';
+import 'package:veloria/pages/home_page.dart';
+import 'package:veloria/pages/playback_page.dart';
+import 'package:veloria/pages/practice_page.dart';
+import 'package:veloria/pages/upload_page.dart';
+import 'package:veloria/pages/upload_page2.dart';
+import 'package:veloria/pages/library_page.dart';
+import 'package:veloria/pages/settings_page.dart';
+import 'package:veloria/pages/note_page.dart';
+import 'package:veloria/features/pieces/pages/piece_detail_page.dart';
+import 'package:veloria/pages/metronome_page.dart';
+import 'package:veloria/pages/login_page.dart';
+import 'package:veloria/pages/register_page.dart';
+import 'package:veloria/pages/profile_page.dart';
+import 'package:veloria/pages/animal_collection_page.dart';
+import 'package:veloria/pages/practice_stats_page.dart';
+import 'package:veloria/models/sheet_annotation.dart';
+import 'package:veloria/widgets/main_shell.dart';
+import 'package:veloria/features/lessons/pages/lesson_book_page.dart';
+import 'package:veloria/features/practice/pages/slow_practice_page.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
 final rootNavigatorKey = GlobalKey<NavigatorState>();

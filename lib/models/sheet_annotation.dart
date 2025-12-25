@@ -18,7 +18,7 @@ class AnnotationMarker {
     this.measure,
     required this.createdAt,
     this.color = Colors.red,
-    this.iconPath = 'assets/star1.svg', // 預設為星星1
+    this.iconPath = 'assets/icon/star1.svg', // 預設為星星1
   });
 
   Map<String, dynamic> toJson() {
@@ -35,6 +35,13 @@ class AnnotationMarker {
   }
 
   factory AnnotationMarker.fromJson(Map<String, dynamic> json) {
+    // 修正舊路徑 (assets/star*.svg → assets/icon/star*.svg)
+    String iconPath = json['iconPath'] as String? ?? 'assets/icon/star1.svg';
+    if (iconPath.startsWith('assets/star') &&
+        !iconPath.startsWith('assets/icon/')) {
+      iconPath = iconPath.replaceFirst('assets/', 'assets/icon/');
+    }
+
     return AnnotationMarker(
       id: json['id'] as String,
       position: Offset(
@@ -45,7 +52,7 @@ class AnnotationMarker {
       measure: json['measure'] as int?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       color: Color(json['color'] as int),
-      iconPath: json['iconPath'] as String? ?? 'assets/star1.svg', // 向後兼容
+      iconPath: iconPath,
     );
   }
 }

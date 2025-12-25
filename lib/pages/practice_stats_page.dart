@@ -1,8 +1,8 @@
-// lib/pages/practice_stats_page.dart
+﻿// lib/pages/practice_stats_page.dart
 import 'package:flutter/material.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/services/practice_session_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/services/practice_session_service.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -78,6 +78,11 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
       return '${monday.month}/${monday.day} - ${sunday.month}/${sunday.day}';
     } else {
       final monthStart = _getMonthStart();
+      final locale = Localizations.localeOf(context);
+      if (locale.languageCode == 'en') {
+        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return '${months[monthStart.month - 1]} ${monthStart.year}';
+      }
       return '${monthStart.year}年 ${monthStart.month}月';
     }
   }
@@ -338,7 +343,8 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
         ),
         centerTitle: true,
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: AppColors.dynamicPrimary),
             )
@@ -376,8 +382,8 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
                                 : '${_getMonthPracticeDays()}/${DateTime(_getMonthStart().year, _getMonthStart().month + 1, 0).day}',
                             label: l10n?.statsPracticeDays ?? '練習天數',
                             trend: _isWeekly 
-                                ? (_getPracticeDays() >= 5 ? '優秀' : '加油')
-                                : (_getMonthPracticeDays() >= 20 ? '優秀' : '加油'),
+                                ? (_getPracticeDays() >= 5 ? (l10n?.statsExcellent ?? '優秀') : (l10n?.statsKeepGoing ?? '加油'))
+                                : (_getMonthPracticeDays() >= 20 ? (l10n?.statsExcellent ?? '優秀') : (l10n?.statsKeepGoing ?? '加油')),
                             isPositive: _isWeekly 
                                 ? _getPracticeDays() >= 5 
                                 : _getMonthPracticeDays() >= 20,
@@ -404,6 +410,7 @@ class _PracticeStatsPageState extends State<PracticeStatsPage> {
                 ),
               ),
             ),
+          ),
     );
   }
 

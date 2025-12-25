@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:veloria/utils/app_colors.dart';
 
 enum PracticeStepType { slowPractice, rhythmTraining, toneListening }
 

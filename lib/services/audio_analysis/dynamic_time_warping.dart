@@ -1,5 +1,5 @@
-import 'dart:math';
-import 'package:music_practice_app/services/audio_analysis/sequence_matcher_service.dart';
+﻿import 'dart:math';
+import 'package:veloria/services/audio_analysis/sequence_matcher_service.dart';
 
 /// Phase 1C: Dynamic Time Warping (DTW) 動態時間對齊
 ///

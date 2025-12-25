@@ -1,8 +1,8 @@
-// lib/services/practice_session_service.dart
+﻿// lib/services/practice_session_service.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:music_practice_app/services/user_data_sync_service.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
 
 /// 練習會話記錄
 class PracticeSession {
@@ -20,7 +20,7 @@ class PracticeSession {
     required this.durationSeconds,
     required this.startTime,
     required this.endTime,
-  }) : id = id ?? '${DateTime.now().millisecondsSinceEpoch}_${durationSeconds}';
+  }) : id = id ?? '${DateTime.now().millisecondsSinceEpoch}_$durationSeconds';
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -156,7 +156,7 @@ class PracticeSessionService extends ChangeNotifier {
 
   /// 清理超過保留期限的舊數據
   Future<void> _cleanOldSessions() async {
-    final cutoffDate = DateTime.now().subtract(Duration(days: _maxRetentionDays));
+    final cutoffDate = DateTime.now().subtract(const Duration(days: _maxRetentionDays));
     final originalCount = _sessions.length;
 
     _sessions.removeWhere((session) {

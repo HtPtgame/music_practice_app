@@ -1,12 +1,12 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/animal_collection.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
 import '../services/user_data_sync_service.dart';
 import '../services/sound_effect_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 // import '../widgets/unlock_animation_dialog.dart';
 
 /// 動物圖鑑頁面
@@ -509,7 +509,7 @@ class _AnimalCollectionPageState extends State<AnimalCollectionPage> with Ticker
               ),
               _buildStatItem(
                 l10n?.animalCollectionConsecutiveStreak ?? '連續打卡',
-                '${_consecutiveDays}${l10n?.animalCollectionDaysUnit ?? '天'}',
+                '$_consecutiveDays${l10n?.animalCollectionDaysUnit ?? '天'}',
                 Icons.local_fire_department,
               ),
             ],
@@ -888,7 +888,7 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
                   Colors.blue),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.emoji_events, widget.l10n?.animalUnlockCondition ?? '解鎖條件',
-                  '${widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天'}', Colors.orange),
+                  widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天', Colors.orange),
               const SizedBox(height: 12),
               // 命名理由
               _buildReasonSection(widget.animal.id, widget.l10n),
@@ -896,12 +896,12 @@ class _AnimalCardState extends State<_AnimalCard> with SingleTickerProviderState
               _buildInfoRow(Icons.lock, widget.l10n?.animalStatus ?? '狀態', widget.l10n?.animalLockedValue ?? '未解鎖', Colors.grey),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.emoji_events, widget.l10n?.animalUnlockCondition ?? '解鎖條件',
-                  '${widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天'}', Colors.orange),
+                  widget.l10n?.animalCheckInDays.replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '打卡 ${widget.animal.requiredCheckInDays} 天', Colors.orange),
               const SizedBox(height: 12),
               _buildInfoRow(
                   Icons.show_chart,
                   widget.l10n?.animalCurrentProgress ?? '目前進度',
-                  '${widget.l10n?.animalProgressDays.replaceFirst('%d', '${widget.currentDays}').replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '${widget.currentDays} / ${widget.animal.requiredCheckInDays} 天'}',
+                  widget.l10n?.animalProgressDays.replaceFirst('%d', '${widget.currentDays}').replaceFirst('%d', '${widget.animal.requiredCheckInDays}') ?? '${widget.currentDays} / ${widget.animal.requiredCheckInDays} 天',
                   Colors.blue),
               const SizedBox(height: 12),
               // 進度條
@@ -1089,8 +1089,8 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
   bool _soundPlayed = false; // 音效是否已播放
   
   void _onAnimationUpdate() {
-    // 當動畫接近 80% 時提前播放音效（在爆破前更早）
-    if (_controller.value > 0.80 && !_soundPlayed) {
+    // 當動畫接近 68% 時提前播放音效（在爆破前更早）
+    if (_controller.value > 0.68 && !_soundPlayed) {
       _soundPlayed = true;
       SoundEffectService().playUnlockSound();
     }
@@ -1125,7 +1125,7 @@ class _MagicParticleOverlayState extends State<_MagicParticleOverlay>
     final start = widget.startPosition;
     final end = widget.targetPosition;
     
-    final padding = 40.0;
+    const padding = 40.0;
     double clampX(double x) => x.clamp(padding, screenSize.width - padding);
     double clampY(double y) => y.clamp(padding, screenSize.height - padding);
     

@@ -15,6 +15,7 @@
 /// # 分析音訊檔案資訊
 /// dart tools/audio_tools.dart analyze <檔案路徑>
 /// ```
+library;
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -314,7 +315,7 @@ void fixAudioFormat(String filePath) {
   }
 
   if (bitsPerSample != 16) {
-    issues.add('位深度不正確（應為 16-bit，實際 ${bitsPerSample}-bit）');
+    issues.add('位深度不正確（應為 16-bit，實際 $bitsPerSample-bit）');
     needsFix = true;
   }
 
@@ -331,7 +332,7 @@ void fixAudioFormat(String filePath) {
   print('\n🔄 開始修復...');
 
   // 備份原檔案
-  final backupPath = '${filePath}.backup';
+  final backupPath = '$filePath.backup';
   file.copySync(backupPath);
   print('   ✓ 已建立備份: $backupPath');
 

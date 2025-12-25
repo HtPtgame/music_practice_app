@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
+import 'package:veloria/l10n/app_localizations.dart';
+import 'package:veloria/utils/error_handler.dart';
 
 /// 個人資料頁面
 class ProfilePage extends StatefulWidget {
@@ -50,8 +51,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      body: ListView(
-        children: [
+      body: SafeArea(
+        child: ListView(
+          children: [
           Container(
             padding: const EdgeInsets.all(24),
             color: Theme.of(context).primaryColor.withOpacity(0.1),
@@ -106,6 +108,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -137,8 +140,9 @@ class _ProfilePageState extends State<ProfilePage> {
               if (mounted) {
                 Navigator.pop(context);
                 setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n?.profileDataUpdated ?? '資料已更新')),
+                ErrorHandler.showSuccess(
+                  context,
+                  l10n?.profileDataUpdated ?? '資料已更新',
                 );
               }
             },
@@ -201,8 +205,9 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () async {
               if (newPasswordController.text !=
                   confirmPasswordController.text) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n?.profilePasswordMismatch ?? '新密碼不一致')),
+                ErrorHandler.showWarning(
+                  context,
+                  l10n?.profilePasswordMismatch ?? '新密碼不一致',
                 );
                 return;
               }
@@ -213,14 +218,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 );
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n?.profilePasswordChanged ?? '密碼已變更')),
+                  ErrorHandler.showSuccess(
+                    context,
+                    l10n?.profilePasswordChanged ?? '密碼已變更',
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${l10n?.profileChangeFailed ?? '變更失敗'}: $e')),
+                  ErrorHandler.show(
+                    context,
+                    '${l10n?.profileChangeFailed ?? '變更失敗'}: $e',
                   );
                 }
               }
@@ -250,8 +257,9 @@ class _ProfilePageState extends State<ProfilePage> {
               if (mounted) {
                 Navigator.pop(context);
                 context.go('/');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n?.profileLoggedOut ?? '已登出')),
+                ErrorHandler.showSuccess(
+                  context,
+                  l10n?.profileLoggedOut ?? '已登出',
                 );
               }
             },
@@ -317,11 +325,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) {
                       context.go('/');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n?.profileAccountDeleted ?? '帳號已刪除'),
-                          backgroundColor: Colors.green,
-                        ),
+                      ErrorHandler.showSuccess(
+                        context,
+                        l10n?.profileAccountDeleted ?? '帳號已刪除',
                       );
                     }
                   });
@@ -329,13 +335,9 @@ class _ProfilePageState extends State<ProfilePage> {
               } catch (e) {
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          '${l10n?.profileDeleteError ?? '刪除失敗'}: ${e.toString().replaceFirst("Exception: ", "")}'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 4),
-                    ),
+                  ErrorHandler.show(
+                    context,
+                    '${l10n?.profileDeleteError ?? '刪除失敗'}: ${e.toString().replaceFirst("Exception: ", "")}',
                   );
                 }
               }

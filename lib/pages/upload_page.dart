@@ -1,9 +1,9 @@
-// lib/pages/upload_page.dart
+﻿// lib/pages/upload_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class UploadPage extends StatelessWidget {
   const UploadPage({super.key});

@@ -1,7 +1,7 @@
-// lib/services/haptic_service.dart
+﻿// lib/services/haptic_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:music_practice_app/core/services/settings_service.dart';
+import 'package:veloria/core/services/settings_service.dart';
 
 /// 音效和震動管理服務
 class HapticService {

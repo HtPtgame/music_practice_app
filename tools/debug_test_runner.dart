@@ -69,7 +69,7 @@ Future<void> _runRound(int round, bool quietMode) async {
   };
 
   // 執行 Flutter 測試
-  final testPath = 'test/integration/debug_accuracy_test.dart';
+  const testPath = 'test/integration/debug_accuracy_test.dart';
 
   final result = await Process.run(
     'flutter',

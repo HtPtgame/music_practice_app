@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/features/practice/models/slow_practice_task.dart';
-import 'package:music_practice_app/features/practice/services/slow_practice_service.dart';
-import 'package:music_practice_app/features/lessons/models/lesson_note.dart';
-import 'package:music_practice_app/services/metronome_service.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/features/practice/models/slow_practice_task.dart';
+import 'package:veloria/features/practice/services/slow_practice_service.dart';
+import 'package:veloria/features/lessons/models/lesson_note.dart';
+import 'package:veloria/services/metronome_service.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:ui'; // For FontFeature
+// For FontFeature
 
 class SlowPracticePage extends StatefulWidget {
   const SlowPracticePage({super.key});
@@ -106,15 +106,17 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
             const Text('🏰', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 8),
             Flexible(
-              child: Text(
-                l10n?.slowPracticeTitle ?? '慢練魔法屋',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  color: AppColors.dynamicTextDark, // 使用 App 主題文字色
-                  letterSpacing: 1.2,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n?.slowPracticeTitle ?? '慢練魔法屋',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: AppColors.dynamicTextDark,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -132,9 +134,11 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
             ),
         ],
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildBody(l10n),
+      ),
     );
   }
 
@@ -259,7 +263,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                                 ),
                               ),
                               Text(
-                                '跟著步驟一起練習吧！',
+                                l10n?.slowFollowSteps ?? '跟著步驟一起練習吧！',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.dynamicTextLight,
@@ -282,7 +286,8 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                 const SizedBox(height: 20),
                 // 三個步驟的可愛卡片
                 Builder(
-                  builder: (context) {
+                  builder: (innerContext) {
+                    final l10n = AppLocalizations.of(innerContext);
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -316,14 +321,17 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                                   child: Text(stepIcons[i], style: const TextStyle(fontSize: 24)),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  i == 0 ? '設定目標' : (i == 1 ? '慢練偵探' : '最終挑戰'),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.dynamicTextDark,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    i == 0 ? (l10n?.slowPracticeStep1Title ?? '設定目標') : (i == 1 ? (l10n?.slowPracticeStep2Title ?? '慢練偵探') : (l10n?.slowPracticeStep3Title ?? '最終挑戰')),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.dynamicTextDark,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),
@@ -649,7 +657,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                               )),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<_PieceOption?>(
-                            value: selectedPiece,
+                            initialValue: selectedPiece,
                             decoration: InputDecoration(
                               hintText: l10n?.slowPracticeSelectSheet ?? '選擇樂譜',
                               filled: true,
@@ -780,7 +788,9 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
             color: AppColors.dynamicBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
+          child: SafeArea(
+            top: false,
+            child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -805,7 +815,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                           color: Colors.red.shade400,
                         ),
                         label: Text(
-                          '清除全部',
+                          l10n?.slowPracticeClearAll ?? '清除全部',
                           style: TextStyle(
                             color: Colors.red.shade400,
                             fontWeight: FontWeight.w600,
@@ -824,7 +834,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                   children: [
                     if (_service.inProgressTasks.isNotEmpty) ...[
                       _buildHistorySection(
@@ -841,6 +851,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                 ),
               ),
             ],
+            ),
           ),
         );
       },
@@ -1418,6 +1429,17 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
       if (_task.checklistSelected.contains(item)) {
         _task.checklistSelected.remove(item);
       } else {
+        // 互斥邏輯：左手單獨 vs 右手單獨
+        final l10n = AppLocalizations.of(context);
+        final decompositions = l10n?.slowPracticeDecompositions ?? 
+            ['左手單獨', '右手單獨', '節奏拆解', '只彈重拍', '唱譜', '不踩踏板'];
+        
+        if (item == decompositions[0]) { // 左手單獨
+          _task.checklistSelected.remove(decompositions[1]); // 移除右手單獨
+        } else if (item == decompositions[1]) { // 右手單獨
+          _task.checklistSelected.remove(decompositions[0]); // 移除左手單獨
+        }
+        
         _task.checklistSelected.add(item);
       }
     });
@@ -1721,6 +1743,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
       padding: const EdgeInsets.fromLTRB(32, 12, 32, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (int i = 0; i < SlowPracticeSteps.all.length; i++) ...[
             _buildStepItem(
@@ -1729,7 +1752,14 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
               isActive: i == _currentStepIndex,
             ),
             if (i < SlowPracticeSteps.all.length - 1)
-              Icon(Icons.arrow_forward_rounded, size: 20, color: AppColors.dynamicTextLight),
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 24,
+                  color: AppColors.dynamicTextLight.withValues(alpha: 0.3),
+                ),
+              ),
           ],
         ],
       ),
@@ -1879,7 +1909,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                             _bpmController.text.isEmpty
                                 ? '100'
                                 : _bpmController.text,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.w900,
                               color: colorSpeed, // 數字跟著主題色
@@ -1938,10 +1968,10 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                           ),
                           boxShadow: isSelected
                               ? [
-                                  BoxShadow(
+                                  const BoxShadow(
                                       color: colorCheck,
                                       blurRadius: 0,
-                                      offset: const Offset(0, 4))
+                                      offset: Offset(0, 4))
                                 ] // 硬邊陰影
                               : [
                                   BoxShadow(
@@ -2003,7 +2033,7 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
                             ),
                             child: Text(
                               '${_task.initialSpeedPercent}%',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 color: colorStart,
@@ -2138,10 +2168,10 @@ class _SlowPracticeSessionPageState extends State<_SlowPracticeSessionPage>
         const SizedBox(width: 8),
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: const Color(0xFF455A64),
+            color: Color(0xFF455A64),
           ),
         ),
       ],

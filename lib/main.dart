@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:music_practice_app/router/app_router.dart';
-import 'package:music_practice_app/core/theme/theme_manager.dart';
-import 'package:music_practice_app/core/language/language_manager.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
-import 'package:music_practice_app/core/services/settings_service.dart';
-import 'package:music_practice_app/core/services/auth_service_config.dart';
-import 'package:music_practice_app/services/practice_timer_service.dart';
-import 'package:music_practice_app/widgets/floating_timer_widget.dart';
+import 'package:veloria/router/app_router.dart';
+import 'package:veloria/core/theme/theme_manager.dart';
+import 'package:veloria/core/language/language_manager.dart';
+import 'package:veloria/l10n/app_localizations.dart';
+import 'package:veloria/core/services/settings_service.dart';
+import 'package:veloria/core/services/auth_service_config.dart';
+import 'package:veloria/services/practice_timer_service.dart';
+import 'package:veloria/widgets/floating_timer_widget.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 

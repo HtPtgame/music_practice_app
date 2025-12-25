@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:music_practice_app/models/sheet_annotation.dart';
-import 'package:music_practice_app/widgets/annotatable_image_viewer.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:veloria/models/sheet_annotation.dart';
+import 'package:veloria/widgets/annotatable_image_viewer.dart';
 
 class SheetViewerPage extends StatefulWidget {
   final AnnotatedSheet sheet;
@@ -39,8 +39,9 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
+      body: SafeArea(
+        child: Stack(
+          children: [
           // 全螢幕圖片檢視器
           AnnotatableImageViewer(
             sheet: _currentSheet,
@@ -99,6 +100,7 @@ class _SheetViewerPageState extends State<SheetViewerPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

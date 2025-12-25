@@ -1,7 +1,7 @@
-// ignore_for_file: avoid_print
+﻿// ignore_for_file: avoid_print
 
 import 'dart:io';
-import 'package:music_practice_app/utils/midi_parser.dart';
+import 'package:veloria/utils/midi_parser.dart';
 
 /// 測試 MIDI 檔案解析器
 /// 用法: dart run tools/test_midi_parser.dart <midi_file_path>

@@ -1,11 +1,11 @@
-/// 動態參數整合示範 (Round 9)
+﻿/// 動態參數整合示範 (Round 9)
 ///
 /// 展示如何在 PerformanceAnalyzer 中使用動態參數系統
 /// 這是整合指南,實際整合需要修改 performance_analyzer.dart
 library;
 
-import 'package:music_practice_app/services/audio_analysis/dynamic_parameter_service.dart';
-import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
+import 'package:veloria/services/audio_analysis/dynamic_parameter_service.dart';
+import 'package:veloria/services/audio_analysis/models/note_event.dart';
 
 /// 示範：如何使用動態參數系統
 ///

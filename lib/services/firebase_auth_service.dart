@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+﻿import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:music_practice_app/models/user.dart' as app_user;
+import 'package:veloria/models/user.dart' as app_user;
 
 /// Firebase 認證服務 - 整合 Firebase Authentication 和 Firestore
 class FirebaseAuthService extends ChangeNotifier {

@@ -1,16 +1,17 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
 import '../models/drawing_data.dart';
 import '../widgets/drawing_canvas.dart';
 import '../models/sheet_annotation.dart';
-import 'package:music_practice_app/features/pieces/pages/sheet_viewer_page.dart';
+import 'package:veloria/features/pieces/pages/sheet_viewer_page.dart';
 
 // 練習要點數據模型
 class PracticeNote {
@@ -232,6 +233,24 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
 
   void _deleteNote(int index) {
     final l10n = AppLocalizations.of(context);
+    final noteToDelete = _notes[index];
+    
+    // 檢查是否有對應的電子譜星星標記
+    bool hasStarMarker = false;
+    AnnotatedSheet? sheetWithMarker;
+    
+    for (final sheet in _sheets) {
+      final hasMarker = sheet.markers.any(
+        (marker) => marker.measure == noteToDelete.measure && 
+                   marker.note == noteToDelete.content,
+      );
+      if (hasMarker) {
+        hasStarMarker = true;
+        sheetWithMarker = sheet;
+        break;
+      }
+    }
+    
     showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -242,8 +261,13 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             style: TextStyle(color: AppColors.dynamicTextDark),
           ),
           content: Text(
-            l10n?.sheetDetailConfirmDeleteMessage ?? '確定要刪除這條筆記嗎？',
-            style: TextStyle(color: AppColors.dynamicTextDark),
+            hasStarMarker
+                ? '這條筆記有電子譜的星星標記，確定要一起刪除嗎？'
+                : (l10n?.sheetDetailConfirmDeleteMessage ?? '確定要刪除這條筆記嗎？'),
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
+              fontWeight: hasStarMarker ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
           actions: [
             TextButton(
@@ -267,6 +291,23 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
       if (confirmed == true) {
         setState(() {
           _notes.removeAt(index);
+          
+          // 如果有對應的星星標記，也一起刪除
+          if (hasStarMarker && sheetWithMarker != null) {
+            final sheetIndex = _sheets.indexWhere((s) => s.sheetId == sheetWithMarker!.sheetId);
+            if (sheetIndex != -1) {
+              final updatedMarkers = _sheets[sheetIndex].markers.where(
+                (marker) => !(marker.measure == noteToDelete.measure &&
+                             marker.note == noteToDelete.content),
+              ).toList();
+              
+              _sheets[sheetIndex] = _sheets[sheetIndex].copyWith(
+                markers: updatedMarkers,
+                updatedAt: DateTime.now(),
+              );
+              widget.onSheetsChanged(_sheets);
+            }
+          }
         });
         widget.onNotesChanged(_notes.map((note) => note.toString()).toList());
       }
@@ -280,6 +321,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
 
     showDialog(
       context: context,
+      barrierDismissible: false, // 防止點擊外部關閉
       builder: (BuildContext context) {
         return Dialog(
           child: Container(
@@ -522,12 +564,14 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildSheetsTab(l10n),
-          _buildNotesTab(l10n),
-        ],
+      body: SafeArea(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildSheetsTab(l10n),
+            _buildNotesTab(l10n),
+          ],
+        ),
       ),
       floatingActionButton: _isSheetEditMode
           ? null
@@ -943,17 +987,17 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
   Future<Size?> _getImageSize(File file) async {
     if (!file.existsSync()) return null;
     try {
-      final image = Image.file(file);
-      final completer = Completer<Size>();
-      image.image.resolve(const ImageConfiguration()).addListener(
-        ImageStreamListener((ImageInfo info, bool _) {
-          completer.complete(Size(
-            info.image.width.toDouble(),
-            info.image.height.toDouble(),
-          ));
-        }),
+      // 直接解碼圖片獲取尺寸，避免建立 Image widget
+      final bytes = await file.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final size = Size(
+        image.width.toDouble(),
+        image.height.toDouble(),
       );
-      return completer.future;
+      image.dispose();
+      return size;
     } catch (e) {
       return null;
     }
@@ -1118,8 +1162,39 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
   
   /// 將電子譜標記統整到練習筆記
   void _syncMarkersToNotes(AnnotatedSheet sheet) {
-    bool hasNewNotes = false;
+    bool hasChanges = false;
     
+    // 先移除來自此電子譜但已被修改或刪除的舊筆記
+    // 比對策略：找出練習筆記中有小節數，但在當前標記中不存在的項目
+    final markerMeasures = sheet.markers
+        .where((m) => m.measure != null)
+        .map((m) => m.measure!)
+        .toSet();
+    
+    // 移除已經不在標記中的舊筆記（只移除有對應小節的）
+    _notes.removeWhere((note) {
+      // 檢查這個筆記的小節是否還有對應的標記
+      if (markerMeasures.contains(note.measure)) {
+        // 小節還存在，檢查內容是否匹配
+        final matchingMarker = sheet.markers.firstWhere(
+          (m) => m.measure == note.measure && m.note == note.content,
+          orElse: () => AnnotationMarker(
+            id: '',
+            position: Offset.zero,
+            note: '',
+            createdAt: DateTime.now(),
+          ),
+        );
+        // 如果找不到匹配的標記（內容已變更），移除舊筆記
+        if (matchingMarker.note.isEmpty) {
+          hasChanges = true;
+          return true;
+        }
+      }
+      return false;
+    });
+    
+    // 新增或更新標記到筆記
     for (final marker in sheet.markers) {
       if (marker.measure != null && marker.note.isNotEmpty) {
         // 檢查是否已經有相同小節+內容的筆記
@@ -1133,12 +1208,12 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage> with Single
             measure: marker.measure!,
             content: marker.note,
           ));
-          hasNewNotes = true;
+          hasChanges = true;
         }
       }
     }
     
-    if (hasNewNotes) {
+    if (hasChanges) {
       // 按小節數排序
       _notes.sort((a, b) => a.measure.compareTo(b.measure));
       

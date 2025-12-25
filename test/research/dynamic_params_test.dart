@@ -1,8 +1,9 @@
-/// 動態參數測試腳本 (Round 9)
+﻿/// 動態參數測試腳本 (Round 9)
 ///
 /// 測試 DynamicParameterService 對不同樂曲的參數計算
-import 'package:music_practice_app/services/audio_analysis/dynamic_parameter_service.dart';
-import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
+library;
+import 'package:veloria/services/audio_analysis/dynamic_parameter_service.dart';
+import 'package:veloria/services/audio_analysis/models/note_event.dart';
 
 void main() {
   final service = DynamicParameterService();

@@ -1,7 +1,7 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:music_practice_app/services/audio_analysis/models/note_event.dart';
-import 'package:music_practice_app/services/audio_analysis/models/spectrogram.dart';
-import 'package:music_practice_app/services/audio_analysis/note_verification_service_impl.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:veloria/services/audio_analysis/models/note_event.dart';
+import 'package:veloria/services/audio_analysis/models/spectrogram.dart';
+import 'package:veloria/services/audio_analysis/note_verification_service_impl.dart';
 
 void main() {
   group('NoteEvent 測試', () {

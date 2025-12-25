@@ -1,11 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_midi_pro/flutter_midi_pro.dart';
-import 'package:music_practice_app/utils/midi_parser.dart';
+import 'package:veloria/utils/midi_parser.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:music_practice_app/core/services/settings_service.dart';
+import 'package:veloria/core/services/settings_service.dart';
+import 'package:veloria/core/constants/midi_constants.dart';
 
 /// 預排程音符 - 用於 look-ahead scheduling
 class _ScheduledNote {
@@ -35,8 +36,13 @@ class _CachedTempo {
 }
 
 class MidiPlayerService {
-  static final MidiPlayerService _instance = MidiPlayerService._internal();
-  factory MidiPlayerService() => _instance;
+  static MidiPlayerService? _instance;
+  
+  factory MidiPlayerService() {
+    _instance ??= MidiPlayerService._internal();
+    return _instance!;
+  }
+  
   MidiPlayerService._internal();
 
   final MidiPro _midiPro = MidiPro();
@@ -52,13 +58,13 @@ class MidiPlayerService {
   // 播放狀態
   int _currentIndex = 0;
   List<MidiNoteEvent> _events = [];
-  List<_ScheduledNote> _scheduledNotes = [];
+  final List<_ScheduledNote> _scheduledNotes = [];
   String? _currentMidiPath;
   bool _isPaused = false;
 
   // Tempo 管理
   List<TempoChange> _tempoChanges = [];
-  List<_CachedTempo> _cachedTempos = [];
+  final List<_CachedTempo> _cachedTempos = [];
   int _tpq = 480;
 
   final _playingStateController = StreamController<bool>.broadcast();
@@ -100,8 +106,8 @@ class MidiPlayerService {
     try {
       // 嘗試直接從 assets 載入 SoundFont
       try {
-        _soundfontId = await _midiPro.loadSoundfont(
-            path: 'assets/TimGM6mb.sf2', bank: 0, program: 0);
+        _soundfontId = await _midiPro.loadSoundfontAsset(
+            assetPath: 'assets/TimGM6mb.sf2', bank: 0, program: 0);
 
         if (_soundfontId != null) {
           // 選擇鋼琴音色 (Program 0 = Acoustic Grand Piano)
@@ -148,7 +154,7 @@ class MidiPlayerService {
 
       // 載入 SoundFont
       _soundfontId =
-          await _midiPro.loadSoundfont(path: sfPath, bank: 0, program: 0);
+          await _midiPro.loadSoundfontFile(filePath: sfPath, bank: 0, program: 0);
 
       if (_soundfontId != null) {
         // 設定鋼琴音色
@@ -617,7 +623,7 @@ class MidiPlayerService {
     // 停止所有音符
     if (_soundfontId != null) {
       try {
-        for (var i = 21; i <= 108; i++) {
+        for (var i = MidiConstants.minPianoNote; i <= MidiConstants.maxPianoNote; i++) {
           // 只停止鋼琴音域
           await _midiPro.stopNote(sfId: _soundfontId!, key: i);
         }
@@ -645,11 +651,34 @@ class MidiPlayerService {
   }
 
   void dispose() {
+    debugPrint('🧹 MidiPlayerService disposing...');
+    
+    // 停止播放循環
     _playbackLoop?.cancel();
+    _playbackLoop = null;
+    
+    // 停止計時器
     _stopwatch.stop();
+    _stopwatch.reset();
+    
+    // 關閉 StreamControllers (防止重複關閉)
+    if (!_playingStateController.isClosed) {
+      _playingStateController.close();
+    }
+    if (!_progressController.isClosed) {
+      _progressController.close();
+    }
+    
+    // 清理 MIDI 資源
     _midiPro.dispose();
-    _playingStateController.close();
-    _progressController.close();
+    
+    debugPrint('✅ MidiPlayerService disposed');
+  }
+  
+  /// 重置服務實例 (用於測試或應用重啟)
+  static void reset() {
+    _instance?.dispose();
+    _instance = null;
   }
 
   // 演奏偵錯功能（專注於鋼琴）
@@ -686,7 +715,7 @@ class MidiPlayerService {
   Future<void> stopAllNotes() async {
     if (_soundfontId != null) {
       try {
-        for (var i = 21; i <= 108; i++) {
+        for (var i = MidiConstants.minPianoNote; i <= MidiConstants.maxPianoNote; i++) {
           // 鋼琴音域
           await _midiPro.stopNote(sfId: _soundfontId!, key: i);
         }

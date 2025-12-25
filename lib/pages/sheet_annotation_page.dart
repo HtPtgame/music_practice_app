@@ -1,10 +1,10 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/l10n/app_localizations.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 import '../models/sheet_annotation.dart';
 import '../widgets/annotatable_image_viewer.dart';
 import '../utils/app_colors.dart';
@@ -20,7 +20,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
   List<AnnotatedSheet> _sheets = [];
   bool _isLoading = true;
   bool _isEditMode = false;
-  Set<int> _selectedIndices = {};
+  final Set<int> _selectedIndices = {};
 
   @override
   void initState() {
@@ -325,7 +325,8 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
             ),
         ],
       ),
-      body: _isLoading
+      body: SafeArea(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _sheets.isEmpty
               ? Center(
@@ -432,7 +433,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                                             fit: BoxFit.cover,
                                             errorBuilder:
                                                 (context, error, stackTrace) {
-                                              return Icon(
+                                              return const Icon(
                                                 Icons.image,
                                                 color: Colors.white,
                                                 size: 36,
@@ -548,6 +549,7 @@ class _SheetAnnotationPageState extends State<SheetAnnotationPage> {
                     );
                   },
                 ),
+      ),
       floatingActionButton: _isEditMode
           ? null
           : FloatingActionButton(

@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
-import 'package:music_practice_app/features/pieces/pages/piece_detail_page.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:veloria/utils/app_colors.dart';
+import 'package:veloria/features/pieces/pages/piece_detail_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:music_practice_app/l10n/app_localizations.dart';
-import 'package:music_practice_app/models/sheet_annotation.dart';
+import 'package:veloria/l10n/app_localizations.dart';
+import 'package:veloria/models/sheet_annotation.dart';
 
 // 樂譜目錄數據模型
 class MusicSheet {
@@ -327,7 +327,9 @@ class _NotePageState extends State<NotePage> {
             ),
         ],
       ),
-      body: _buildMusicSheetsList(l10n),
+      body: SafeArea(
+        child: _buildMusicSheetsList(l10n),
+      ),
       floatingActionButton: _isNoteEditMode
           ? null
           : FloatingActionButton(
