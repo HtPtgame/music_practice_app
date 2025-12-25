@@ -1087,7 +1087,22 @@ class _PracticePageState extends State<PracticePage> {
                                   _enableCountdown = value;
                                 });
                               },
-                              activeThumbColor: AppColors.dynamicPrimary,
+                              thumbColor: WidgetStateProperty.resolveWith<Color>(
+                                (Set<WidgetState> states) {
+                                  if (states.contains(WidgetState.selected)) {
+                                    return AppColors.dynamicPrimary;
+                                  }
+                                  return Colors.white;
+                                },
+                              ),
+                              trackColor: WidgetStateProperty.resolveWith<Color>(
+                                (Set<WidgetState> states) {
+                                  if (states.contains(WidgetState.selected)) {
+                                    return AppColors.dynamicPrimary.withValues(alpha: 0.5);
+                                  }
+                                  return Colors.grey.withValues(alpha: 0.3);
+                                },
+                              ),
                             ),
                           ],
                         ),

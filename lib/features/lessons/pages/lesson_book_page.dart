@@ -761,7 +761,7 @@ class _PointEditor extends StatelessWidget {
                 flex: 2,
                 child: DropdownButtonFormField<_PieceOption?>(
                   isExpanded: true, // 關鍵：讓下拉框內容展開填充可用空間
-                  initialValue: point.relatedPiece,
+                  value: point.relatedPiece,
                   decoration: InputDecoration(
                     hintText: l10n?.lessonBookSheetHint ?? '樂譜',
                     filled: true,

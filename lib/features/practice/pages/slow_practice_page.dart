@@ -657,7 +657,7 @@ class _SlowPracticePageState extends State<SlowPracticePage> {
                               )),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<_PieceOption?>(
-                            initialValue: selectedPiece,
+                            value: selectedPiece,
                             decoration: InputDecoration(
                               hintText: l10n?.slowPracticeSelectSheet ?? '選擇樂譜',
                               filled: true,
