@@ -37,7 +37,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     
     <application
-        android:label="音靈偵探(測試版)"
+        android:label="音靈偵探"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true"
