@@ -38,6 +38,7 @@ class _PracticePageState extends State<PracticePage> {
   final AudioRecorder _recordAlt = AudioRecorder(); // 新增：替代錄音器
   final bool _useAltRecorder = true; // 新增：預設啟用替代方案
   String? _audioPath;
+  String? _uploadedFileName; // 保存上傳的原始檔名
   bool isPlaying = false;
   bool isRecording = false;
   bool isConverting = false; // 新增：轉換狀態
@@ -129,11 +130,13 @@ class _PracticePageState extends State<PracticePage> {
   // [已淘汰 2025/10/08] 載入 AI 模型
   // 此函數使用 tflite_flutter 依賴,已移除
   @override
-  void dispose() {
-    _recordingTimer?.cancel();
-    _closeAudio();
-    super.dispose();
-  }
+void dispose() {
+  _recordingTimer?.cancel();
+  _playbackTimer?.cancel();        // 新增
+  _playerSubscription?.cancel();   // 新增
+  _closeAudio();
+  super.dispose();
+}
 
   Future<void> _closeAudio() async {
     try {
@@ -827,6 +830,7 @@ class _PracticePageState extends State<PracticePage> {
 
           setState(() {
             _audioPath = targetPath;
+            _uploadedFileName = file.name; // 保存原始檔名
           });
 
           if (mounted) {
@@ -1199,7 +1203,7 @@ class _PracticePageState extends State<PracticePage> {
                             if (_audioPath != null) ...[
                               const SizedBox(height: 4),
                               Text(
-                                _audioPath!.split('/').last,
+                                _uploadedFileName ?? _audioPath!.split('/').last,
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.grey),
                                 maxLines: 1,

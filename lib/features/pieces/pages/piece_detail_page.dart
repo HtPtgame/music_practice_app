@@ -195,6 +195,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
 
     showDialog(
       context: context,
+      barrierDismissible: false, // 防止點擊外部關閉
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,
@@ -397,6 +398,7 @@ class _MusicSheetDetailPageState extends State<MusicSheetDetailPage>
 
     showDialog(
       context: context,
+      barrierDismissible: false, // 防止點擊外部關閉
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: AppColors.dynamicCard,

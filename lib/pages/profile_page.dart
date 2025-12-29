@@ -161,6 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     showDialog(
       context: context,
+      barrierDismissible: false, // 防止點擊外部關閉
       builder: (context) => AlertDialog(
         title: Text(l10n?.profileChangePassword ?? '變更密碼'),
         content: SingleChildScrollView(
@@ -213,8 +214,8 @@ class _ProfilePageState extends State<ProfilePage> {
               }
               try {
                 await authService.changePassword(
-                  oldPasswordController.text,
-                  newPasswordController.text,
+                  oldPassword: oldPasswordController.text,
+                  newPassword: newPasswordController.text,
                 );
                 if (mounted) {
                   Navigator.pop(context);

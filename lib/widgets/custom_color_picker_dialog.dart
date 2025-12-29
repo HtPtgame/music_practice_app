@@ -38,6 +38,7 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
     super.initState();
     _currentColor = widget.initialColor;
     _hsvColor = HSVColor.fromColor(_currentColor);
+    _editingColorIndex = 0; // 預設選取第一個顏色槽位
     
     // 預設的5種顏色
     final defaultColors = [
@@ -65,6 +66,10 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
         _tempSavedColors = _tempSavedColors.sublist(0, 5);
       }
     }
+    
+    // 預設使用第一個顏色槽位的顏色
+    _currentColor = _tempSavedColors[0];
+    _hsvColor = HSVColor.fromColor(_currentColor);
   }
 
   void _updateColor(Color color) {
