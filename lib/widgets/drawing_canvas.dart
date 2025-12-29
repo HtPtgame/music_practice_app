@@ -88,6 +88,19 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
               .map((hex) => Color(int.parse(hex.replaceFirst('#', '0xFF'))))
               .toList();
         });
+      } else if (mounted) {
+        // 第一次使用時，初始化為預設的5種顏色
+        setState(() {
+          _customColors = [
+            const Color(0xFF000000), // 黑色
+            const Color(0xFFFF0000), // 紅色
+            const Color(0xFF0000FF), // 藍色
+            const Color(0xFF00FF00), // 綠色
+            const Color(0xFFFFFF00), // 黃色
+          ];
+        });
+        // 保存預設顏色
+        await _saveCustomColors();
       }
     } catch (e) {
       debugPrint('Error loading custom colors: $e');
@@ -140,13 +153,17 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     _texturePool?.dispose();
     _currentStrokeCache?.dispose();
     
-    // 清理快取歷史
+    // 清理快取歷史（使用 Set 避免重複 dispose）
+    final disposedImages = <ui.Image>{};
     for (var cache in _cacheHistory) {
-      cache?.dispose();
+      if (cache != null && !disposedImages.contains(cache)) {
+        cache.dispose();
+        disposedImages.add(cache);
+      }
     }
     
-    // 如果當前快取不在歷史中，才需要 dispose
-    if (_cachedBackground != null && !_cacheHistory.contains(_cachedBackground)) {
+    // 如果當前快取不在已處理的集合中，才需要 dispose
+    if (_cachedBackground != null && !disposedImages.contains(_cachedBackground)) {
       _cachedBackground!.dispose();
     }
     
@@ -244,9 +261,11 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
         
         // 如果沒有要刪除的筆劃，直接返回
         if (toDelete.isEmpty) {
-          setState(() {
-            _currentStroke = [];
-          });
+          if (mounted) {
+            setState(() {
+              _currentStroke = [];
+            });
+          }
           return;
         }
         
@@ -290,7 +309,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   }
 
   void _undoLastStroke() {
-    if (_historyIndex > 0) {
+    if (_historyIndex > 0 && mounted) {
       setState(() {
         _historyIndex--;
         _drawingData.strokes.clear();
@@ -310,11 +329,16 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
     if (_historyIndex < _history.length - 1) {
       _history.removeRange(_historyIndex + 1, _history.length);
       // 同時清理快取歷史（需要先 dispose 不再使用的 Image）
+      // 使用 Set 追蹤已處理的 Image，避免重複 dispose
+      final disposedInRange = <ui.Image>{};
       for (int i = _historyIndex + 1; i < _cacheHistory.length; i++) {
         final imageToDispose = _cacheHistory[i];
-        // 只 dispose 不是當前快取的 Image
-        if (imageToDispose != null && imageToDispose != _cachedBackground) {
+        // 只 dispose 不是當前快取且未被處理過的 Image
+        if (imageToDispose != null && 
+            imageToDispose != _cachedBackground && 
+            !disposedInRange.contains(imageToDispose)) {
           imageToDispose.dispose();
+          disposedInRange.add(imageToDispose);
         }
       }
       _cacheHistory.removeRange(_historyIndex + 1, _cacheHistory.length);

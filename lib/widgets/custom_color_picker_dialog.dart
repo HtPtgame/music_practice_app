@@ -38,13 +38,32 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
     super.initState();
     _currentColor = widget.initialColor;
     _hsvColor = HSVColor.fromColor(_currentColor);
+    
+    // 預設的5種顏色
+    final defaultColors = [
+      const Color(0xFF000000), // 黑色
+      const Color(0xFFFF0000), // 紅色
+      const Color(0xFF0000FF), // 藍色
+      const Color(0xFF00FF00), // 綠色
+      const Color(0xFFFFFF00), // 黃色
+    ];
+    
     // 確保總是有5個顏色槽位
-    _tempSavedColors = List.from(widget.savedColors);
-    while (_tempSavedColors.length < 5) {
-      _tempSavedColors.add(Colors.grey.shade300); // 空槽位用灰色填充
-    }
-    if (_tempSavedColors.length > 5) {
-      _tempSavedColors = _tempSavedColors.sublist(0, 5);
+    if (widget.savedColors.isEmpty) {
+      // 如果沒有儲存的顏色，使用預設顏色
+      _tempSavedColors = List.from(defaultColors);
+    } else {
+      _tempSavedColors = List.from(widget.savedColors);
+      while (_tempSavedColors.length < 5) {
+        // 用預設顏色填充不足的槽位
+        int index = _tempSavedColors.length;
+        _tempSavedColors.add(index < defaultColors.length 
+          ? defaultColors[index] 
+          : Colors.grey.shade300);
+      }
+      if (_tempSavedColors.length > 5) {
+        _tempSavedColors = _tempSavedColors.sublist(0, 5);
+      }
     }
   }
 
@@ -443,10 +462,10 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
   Widget _buildColorSlot(int index, Color color) {
     final bool isSelected = _selectedColorIndex == index;
     final bool isEditing = _editingColorIndex == index && !_isSortMode;
+    // 檢查是否為空槽位（灰色）
+    final bool isEmpty = color.value == Colors.grey.shade300.value;
     final bool isCurrentColor =
-        (_currentColor.value == color.value || isEditing) &&
-            color != Colors.grey.shade300;
-    final bool isEmpty = color == Colors.grey.shade300;
+        (_currentColor.value == color.value || isEditing) && !isEmpty;
     final bool showSortIcon = _isSortMode &&
         (_selectedColorIndex == null || _selectedColorIndex != index);
 
