@@ -52,9 +52,9 @@ android {
 
     buildTypes {
         release {
-            // 啟用代碼混淆和資源壓縮
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // 暫時禁用代碼混淆以避免 R8 緩存問題
+            isMinifyEnabled = false
+            isShrinkResources = false
             
             // 使用 ProGuard 規則
             proguardFiles(
