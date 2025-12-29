@@ -195,12 +195,14 @@ class FirebaseAuthService extends ChangeNotifier {
       await _googleSignIn.signOut();
 
       // 觸發 Google 登入流程
+      debugPrint('開始 Google 登入流程...');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         // 使用者取消登入
         debugPrint('Google 登入已取消');
         return false;
       }
+      debugPrint('Google 登入成功: ${googleUser.email}');
 
       // 取得認證詳情
       final GoogleSignInAuthentication googleAuth =
@@ -288,6 +290,27 @@ class FirebaseAuthService extends ChangeNotifier {
           e.toString().contains('popup_closed_by_user')) {
         return false;
       }
+      
+      // 針對 Google Sign-In 特定錯誤提供更詳細的訊息
+      if (e.toString().contains('sign_in_failed')) {
+        throw Exception(
+          'Google 登入設定錯誤\n\n'
+          '可能原因：\n'
+          '1. SHA-1 fingerprint 未在 Firebase Console 中正確配置\n'
+          '2. google-services.json 配置不正確\n'
+          '3. Firebase 專案未啟用 Google 登入\n\n'
+          '請按照 GOOGLE_SIGNIN_SETUP.md 文件檢查設定'
+        );
+      } else if (e.toString().contains('PlatformException')) {
+        throw Exception(
+          'Google 服務初始化失敗\n\n'
+          '請確認：\n'
+          '1. 應用程式的 SHA-1 fingerprint 已添加到 Firebase\n'
+          '2. 已下載最新的 google-services.json\n'
+          '3. 重新構建應用程式'
+        );
+      }
+      
       rethrow;
     }
   }
