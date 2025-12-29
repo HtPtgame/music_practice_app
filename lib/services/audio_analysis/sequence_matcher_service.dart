@@ -1,75 +1,65 @@
-/// 序列匹配服務
+/// 序列匹配服務 (V3 最終修復版)
 ///
-/// 使用動態時間規整 (Dynamic Time Warping, DTW) 或序列對齊算法
-/// 確保演奏的音符序列與標準答案匹配,而不僅僅是音高匹配
+/// 使用動態時間規整 (DTW) 或貪心算法進行序列對齊
+/// 確保演奏的音符序列與標準答案匹配
 library;
 
 import 'dart:math';
-import 'models/note_event.dart';
-import 'models/spectrogram.dart';
+import 'package:veloria/services/audio_analysis/models/note_event.dart';
+// ✅ 1. 引入正宮 (外部定義的 DetectedNote)
+import 'package:veloria/services/detected_note.dart';
 
-/// 序列匹配結果
+/// 序列匹配結果 (V3 - 包含詳細統計)
 class SequenceMatchResult {
   /// 匹配的音符對 (MIDI事件索引 -> 檢測到的時間)
   final Map<int, double?> matches;
 
-  /// 整體匹配分數 (0-1, 越高越好)
-  final double overallScore;
+  /// 整體匹配分數 (0-100)
+  final double score;
 
-  /// 序列相似度 (考慮順序)
+  /// 序列相似度
   final double sequenceSimilarity;
 
   /// 時間對齊偏移 (秒)
   final double timeOffset;
 
+  // ✅ 2. 新增統計欄位 (為了給 PerformanceAnalyzer 用)
+  final int perfectMatches; // TP
+  final int wrongNotes;     // 錯音 (Pitch mismatch)
+  final int missedNotes;    // FN
+  final int extraNotes;     // FP
+
   SequenceMatchResult({
     required this.matches,
-    required this.overallScore,
+    required this.score,
     required this.sequenceSimilarity,
     required this.timeOffset,
+    required this.perfectMatches,
+    required this.wrongNotes,
+    required this.missedNotes,
+    required this.extraNotes,
   });
 }
 
-/// 檢測到的音符
-class DetectedNote {
-  final int midiNote;
-  final double time;
-  final double confidence;
-
-  DetectedNote({
-    required this.midiNote,
-    required this.time,
-    required this.confidence,
-  });
-}
+// ❌ 原本這裡的 class DetectedNote 被刪除了，因為我們用了 import
 
 abstract class ISequenceMatcher {
-  /// 執行序列匹配
-  ///
-  /// [expectedTimeline] 期望的 MIDI 時間軸
-  /// [spectrogram] 頻譜圖
-  /// [detectedNotes] 檢測到的音符列表
   Future<SequenceMatchResult> match(
     MidiTimeline expectedTimeline,
-    Spectrogram spectrogram,
-    List<DetectedNote> detectedNotes,
+    List<DetectedNote> detectedNotes, // 介面微調：不需要 Spectrogram 了
   );
 }
 
 /// 序列匹配服務實現
-///
-/// 使用改進的動態規劃算法進行序列對齊
 class SequenceMatcherService implements ISequenceMatcher {
   // 匹配參數
-  static const double maxTimeDifference = 2.0; // 最大時間差 (秒)
-  static const double pitchMatchWeight = 0.4; // 音高匹配權重
-  static const double timingMatchWeight = 0.3; // 時間匹配權重
-  static const double sequenceOrderWeight = 0.3; // 序列順序權重
+  static const double maxTimeDifference = 0.5; // 縮小時間窗，提高精確度 (原本 2.0 太寬)
+  static const double pitchMatchWeight = 0.6;  // 提高音高權重
+  static const double timingMatchWeight = 0.4;
 
   @override
   Future<SequenceMatchResult> match(
     MidiTimeline expectedTimeline,
-    Spectrogram spectrogram,
     List<DetectedNote> detectedNotes,
   ) async {
     final expectedNotes = expectedTimeline.events;
@@ -77,225 +67,139 @@ class SequenceMatcherService implements ISequenceMatcher {
     if (expectedNotes.isEmpty) {
       return SequenceMatchResult(
         matches: {},
-        overallScore: 0.0,
+        score: 0.0,
         sequenceSimilarity: 0.0,
         timeOffset: 0.0,
+        perfectMatches: 0,
+        wrongNotes: 0,
+        missedNotes: 0,
+        extraNotes: detectedNotes.length,
       );
     }
 
     // 1. 計算時間偏移 (全局對齊)
     final timeOffset = _estimateTimeOffset(expectedNotes, detectedNotes);
 
-    // 2. 使用動態規劃進行序列對齊
+    // 2. 貪心序列對齊
     final alignmentResult = _alignSequences(
       expectedNotes,
       detectedNotes,
       timeOffset,
     );
 
-    // 3. 計算序列相似度
-    final sequenceSimilarity = _calculateSequenceSimilarity(
-      expectedNotes,
-      detectedNotes,
-      alignmentResult,
-    );
+    // 3. 計算統計數據 (TP, FN, FP)
+    int perfectCount = 0;
+    int missedCount = 0;
+    
+    // 計算完美匹配和漏音
+    for (int i = 0; i < expectedNotes.length; i++) {
+      if (alignmentResult[i] != null) {
+        perfectCount++;
+      } else {
+        missedCount++;
+      }
+    }
 
-    // 4. 計算整體分數
-    final overallScore = _calculateOverallScore(
-      alignmentResult,
-      sequenceSimilarity,
-    );
+    // 計算多餘音符 (FP)
+    // 簡單算法：總檢測數 - 成功匹配數
+    // (進階版可以用 Set 記錄哪些檢測音符被用過了)
+    final matchedDetectedCount = alignmentResult.values.where((v) => v != null).length;
+    final extraCount = max(0, detectedNotes.length - matchedDetectedCount);
+
+    // 4. 計算分數 (F1 Score 近似值)
+    final precision = matchedDetectedCount / (matchedDetectedCount + extraCount + 0.001);
+    final recall = perfectCount / (expectedNotes.length + 0.001);
+    final f1Score = 2 * (precision * recall) / (precision + recall + 0.001);
 
     return SequenceMatchResult(
       matches: alignmentResult,
-      overallScore: overallScore,
-      sequenceSimilarity: sequenceSimilarity,
+      score: f1Score * 100, // 轉成 0-100 分
+      sequenceSimilarity: recall,
       timeOffset: timeOffset,
+      perfectMatches: perfectCount,
+      wrongNotes: 0, // 目前簡易版不區分錯音與漏音，統一算在 missed/extra
+      missedNotes: missedCount,
+      extraNotes: extraCount,
     );
   }
 
   /// 估算時間偏移
-  ///
-  /// 找出最佳的全局時間偏移,使得期望音符和檢測音符最匹配
   double _estimateTimeOffset(
     List<NoteEvent> expectedNotes,
     List<DetectedNote> detectedNotes,
   ) {
-    if (expectedNotes.isEmpty || detectedNotes.isEmpty) {
-      return 0.0;
-    }
+    if (expectedNotes.isEmpty || detectedNotes.isEmpty) return 0.0;
 
-    // 使用前幾個音符估算偏移
+    // 取前 5 個音符來對齊
     final sampleSize = min(5, min(expectedNotes.length, detectedNotes.length));
     double totalOffset = 0.0;
     int validSamples = 0;
 
     for (int i = 0; i < sampleSize; i++) {
       final expected = expectedNotes[i];
-
-      // 找出與期望音高最接近的檢測音符
-      DetectedNote? bestMatch;
-      double bestDistance = double.infinity;
-
+      
+      // 在檢測音符中找同音高的
       for (final detected in detectedNotes) {
         if (detected.midiNote == expected.midiNote) {
-          final timeDiff = (detected.time - expected.startTime).abs();
-          if (timeDiff < bestDistance) {
-            bestDistance = timeDiff;
-            bestMatch = detected;
+          // 如果時間差在合理範圍內
+          if ((detected.time - expected.startTime).abs() < 2.0) {
+            totalOffset += (detected.time - expected.startTime);
+            validSamples++;
+            break; // 找到一個就停
           }
         }
-      }
-
-      if (bestMatch != null) {
-        totalOffset += bestMatch.time - expected.startTime;
-        validSamples++;
       }
     }
 
     return validSamples > 0 ? totalOffset / validSamples : 0.0;
   }
 
-  /// 序列對齊 (動態規劃)
-  ///
-  /// 返回每個期望音符的最佳匹配 (索引 -> 檢測時間)
+  /// 序列對齊核心邏輯
   Map<int, double?> _alignSequences(
     List<NoteEvent> expectedNotes,
     List<DetectedNote> detectedNotes,
     double timeOffset,
   ) {
     final matches = <int, double?>{};
-    final usedDetections = <int>{}; // 記錄已使用的檢測音符
+    final usedDetections = <int>{}; // 避免重複使用同一個檢測音符
 
-    // 貪心匹配: 按順序為每個期望音符找最佳匹配
     for (int i = 0; i < expectedNotes.length; i++) {
       final expected = expectedNotes[i];
-      final expectedTime = expected.startTime + timeOffset;
+      final adjustedExpectedTime = expected.startTime + timeOffset;
 
-      DetectedNote? bestMatch;
-      int? bestMatchIndex;
       double bestScore = -1.0;
+      int? bestMatchIndex;
 
-      // 在檢測音符中尋找最佳匹配
       for (int j = 0; j < detectedNotes.length; j++) {
-        // 跳過已使用的音符
         if (usedDetections.contains(j)) continue;
 
         final detected = detectedNotes[j];
-        final score = _calculateMatchScore(
-          expected,
-          detected,
-          expectedTime,
-          i,
-          j,
-          expectedNotes.length,
-          detectedNotes.length,
-        );
+        
+        // 必須音高相同才考慮匹配 (這是嚴格模式，錯音就算 Miss)
+        if (detected.midiNote != expected.midiNote) continue;
+
+        final timeDiff = (detected.time - adjustedExpectedTime).abs();
+        
+        // 超出時間窗就不匹配
+        if (timeDiff > maxTimeDifference) continue;
+
+        // 分數越高越好 (時間越近分數越高)
+        final score = 1.0 - (timeDiff / maxTimeDifference);
 
         if (score > bestScore) {
           bestScore = score;
-          bestMatch = detected;
           bestMatchIndex = j;
         }
       }
 
-      // 只接受分數足夠高的匹配
-      if (bestMatch != null && bestScore > 0.3) {
-        matches[i] = bestMatch.time;
-        usedDetections.add(bestMatchIndex!);
+      if (bestMatchIndex != null) {
+        matches[i] = detectedNotes[bestMatchIndex].time;
+        usedDetections.add(bestMatchIndex);
       } else {
-        matches[i] = null; // 未找到匹配
+        matches[i] = null; // Missed
       }
     }
 
     return matches;
-  }
-
-  /// 計算單個音符的匹配分數
-  double _calculateMatchScore(
-    NoteEvent expected,
-    DetectedNote detected,
-    double expectedTime,
-    int expectedIndex,
-    int detectedIndex,
-    int totalExpected,
-    int totalDetected,
-  ) {
-    double score = 0.0;
-
-    // 1. 音高匹配 (40%)
-    if (detected.midiNote == expected.midiNote) {
-      score += pitchMatchWeight;
-    } else {
-      // 音高不匹配,直接返回0
-      return 0.0;
-    }
-
-    // 2. 時間匹配 (30%)
-    final timeDiff = (detected.time - expectedTime).abs();
-    if (timeDiff <= maxTimeDifference) {
-      final timingScore = 1.0 - (timeDiff / maxTimeDifference);
-      score += timingMatchWeight * timingScore;
-    }
-
-    // 3. 序列順序匹配 (30%)
-    // 期望索引應該與檢測索引大致對應
-    final expectedPosition = expectedIndex / totalExpected;
-    final detectedPosition =
-        totalDetected > 0 ? detectedIndex / totalDetected : 0.0;
-    final positionDiff = (expectedPosition - detectedPosition).abs();
-    final orderScore = 1.0 - positionDiff;
-    score += sequenceOrderWeight * orderScore;
-
-    return score.clamp(0.0, 1.0);
-  }
-
-  /// 計算序列相似度
-  ///
-  /// 檢查整體序列結構是否相似
-  double _calculateSequenceSimilarity(
-    List<NoteEvent> expectedNotes,
-    List<DetectedNote> detectedNotes,
-    Map<int, double?> alignmentResult,
-  ) {
-    if (expectedNotes.isEmpty) return 0.0;
-
-    // 統計連續匹配的音符對
-    int consecutiveMatches = 0;
-    int maxConsecutive = 0;
-
-    for (int i = 0; i < expectedNotes.length; i++) {
-      if (alignmentResult[i] != null) {
-        consecutiveMatches++;
-        maxConsecutive = max(maxConsecutive, consecutiveMatches);
-      } else {
-        consecutiveMatches = 0;
-      }
-    }
-
-    // 計算匹配率
-    final matchRate = alignmentResult.values.where((v) => v != null).length /
-        expectedNotes.length;
-
-    // 計算連續性分數
-    final consecutivenessScore = maxConsecutive / expectedNotes.length;
-
-    // 綜合分數
-    return (matchRate * 0.7 + consecutivenessScore * 0.3).clamp(0.0, 1.0);
-  }
-
-  /// 計算整體分數
-  double _calculateOverallScore(
-    Map<int, double?> alignmentResult,
-    double sequenceSimilarity,
-  ) {
-    if (alignmentResult.isEmpty) return 0.0;
-
-    // 匹配率
-    final matchRate = alignmentResult.values.where((v) => v != null).length /
-        alignmentResult.length;
-
-    // 綜合評分: 70% 匹配率 + 30% 序列相似度
-    return (matchRate * 0.7 + sequenceSimilarity * 0.3).clamp(0.0, 1.0);
   }
 }

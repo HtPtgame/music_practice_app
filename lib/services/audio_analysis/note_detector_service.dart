@@ -7,6 +7,8 @@ library;
 import 'dart:math';
 import 'models/spectrogram.dart';
 import 'sequence_matcher_service.dart';
+import 'package:veloria/services/detected_note.dart';
+
 
 abstract class INoteDetector {
   /// 從頻譜圖中檢測所有音符

@@ -1,3 +1,5 @@
+// 📂 檔名: lib/services/audio_analysis/models/performance_error.dart
+
 /// 演奏錯誤類型
 enum ErrorType {
   /// ✅ 正確
@@ -14,10 +16,16 @@ enum ErrorType {
 
   /// ⏸️ 拖拍 - 延遲彈奏 (>100ms)
   lateTiming,
+  
+  /// 👻 多餘音 - 額外的雜訊 (V20 新增相容)
+  extraNote,
 }
 
 /// 演奏錯誤詳情
 class PerformanceError {
+  /// 錯誤發生時間點 (統一欄位，對應 V20 的 time 參數)
+  final double time;
+
   /// 錯誤類型
   final ErrorType type;
 
@@ -27,10 +35,7 @@ class PerformanceError {
   /// 實際彈奏的 MIDI 音符 (如果有)
   final int? actualNote;
 
-  /// 預期時間 (秒)
-  final double expectedTime;
-
-  /// 實際時間 (秒,如果有)
+  /// 實際彈奏時間 (秒,如果有)
   final double? actualTime;
 
   /// 時間偏移 (秒, 正數=遲到, 負數=提前)
@@ -43,15 +48,19 @@ class PerformanceError {
   final double confidence;
 
   PerformanceError({
+    required this.time, // ✅ 改用 time 以匹配 V20 分析器
     required this.type,
+    required this.message,
     this.expectedNote,
     this.actualNote,
-    required this.expectedTime,
     this.actualTime,
     this.timingOffset,
-    required this.message,
     this.confidence = 1.0,
   });
+
+  /// 為了相容舊 UI 的 getter
+  /// 如果你的 UI 原本是用 .expectedTime，這個 getter 會讓它繼續運作
+  double get expectedTime => time;
 
   /// 是否為節奏問題
   bool get isTimingError =>
@@ -59,17 +68,20 @@ class PerformanceError {
 
   /// 是否為音高問題
   bool get isPitchError =>
-      type == ErrorType.wrongNote || type == ErrorType.missedNote;
+      type == ErrorType.wrongNote || type == ErrorType.missedNote || type == ErrorType.extraNote;
 
   /// 計算錯誤嚴重程度 (0-1)
+  /// 用於熱力圖顏色深淺
   double get severity {
     switch (type) {
       case ErrorType.correct:
         return 0.0;
       case ErrorType.wrongNote:
-        return 1.0;
+        return 1.0; // 紅色最深
       case ErrorType.missedNote:
-        return 0.9;
+        return 0.9; // 黃色/橘色
+      case ErrorType.extraNote:
+        return 0.5; // 雜訊輕微
       case ErrorType.lateTiming:
         return 0.3 + (timingOffset?.abs() ?? 0) * 2; // 最多0.6
       case ErrorType.earlyTiming:
@@ -77,7 +89,7 @@ class PerformanceError {
     }
   }
 
-  /// 獲取錯誤圖標
+  /// 獲取錯誤圖標 (UI 直接顯示這個)
   String get icon {
     switch (type) {
       case ErrorType.correct:
@@ -90,16 +102,18 @@ class PerformanceError {
         return '⏩';
       case ErrorType.lateTiming:
         return '⏸️';
+      case ErrorType.extraNote:
+        return '👻';
     }
   }
 
   @override
   String toString() {
-    return '$icon $message (${expectedTime.toStringAsFixed(2)}s)';
+    return '$icon $message (at ${time.toStringAsFixed(2)}s) [Exp:$expectedNote, Act:$actualNote]';
   }
 }
 
-/// 對齊結果
+/// 對齊結果 (保留原本邏輯)
 class AlignmentResult {
   /// 時間偏移量 (秒)
   final double timeOffset;

@@ -13,7 +13,10 @@ import 'package:veloria/widgets/countdown_overlay.dart'; // Phase 1B: 倒數計�
 import 'package:veloria/l10n/app_localizations.dart';
 import 'dart:io';
 
+
 // Week 4 Phase 2: 分析功能
+// 在 practice_page.dart 的最上面加入這行
+// 在 practice_page.dart 的最上面加入這行
 import 'package:veloria/services/audio_analysis/performance_analyzer.dart';
 import 'package:veloria/pages/analysis_result_page.dart';
 
@@ -22,6 +25,7 @@ import 'dart:async';
 
 class PracticePage extends StatefulWidget {
   final PlatformFile? file;
+  
   const PracticePage({super.key, this.file});
 
   @override

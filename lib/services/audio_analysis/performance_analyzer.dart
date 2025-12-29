@@ -3,7 +3,8 @@ import 'package:veloria/services/audio_analysis/performance_analysis_service.dar
 import 'package:veloria/services/audio_analysis/audio_analyzer_service_impl.dart';
 import 'package:veloria/services/audio_analysis/midi_parser_service.dart';
 import 'package:veloria/services/audio_analysis/note_verification_service_impl.dart';
-import 'package:veloria/services/audio_analysis/note_detector_service.dart';
+// ✅ 1. 引入 V6 優化版偵測器 (關鍵！)
+import 'package:veloria/services/audio_analysis/note_detector_service_optimized.dart'; 
 import 'package:veloria/services/audio_analysis/error_classification_service_impl_v2.dart';
 import 'package:veloria/services/audio_analysis/auto_alignment_service.dart';
 import 'package:veloria/services/audio_analysis/timeline_analysis_service.dart';
@@ -12,65 +13,41 @@ import 'package:veloria/services/audio_analysis/models/performance_error.dart';
 import 'package:veloria/services/audio_analysis/models/confusion_matrix.dart';
 import 'package:veloria/services/audio_analysis/models/spectrogram.dart';
 
-/// Week 3 演奏分析器實現 (已恢復 v3.4-v3.6 功能 - 2025/11/27)
-///
-/// 完整流程:
-/// 1. 解析 MIDI 標準答案
-/// 2. 分析 WAV 錄音頻譜
-/// 2.5. 時間軸分析 (Phase 1B - 新增)
-/// 2.6. 自動檢測錄音起始點並對齊時間軸 (Phase 1A)
-/// 3. 檢測所有音符 (不僅驗證)
-/// 4. 計算混淆矩陣 (TP/FP/FN)
-/// 5. 驗證期望音符是否存在
-/// 6. 分類錯誤類型
-/// 7. 生成分析報告 (包含 F1 分數)
-///
-/// 功能清單:
-/// - Phase 0: 檢測所有演奏音符,計算 Precision/Recall/F1 Score,防止「亂彈高分」問題
-/// - Phase 1A: 自動檢測錄音起始點,支持 0-30 秒延遲容錯
-/// - Phase 1B: 時間軸分析 - 偵測延遲開始、中斷、短錄音、跳過段落
-///
-/// v3.4-v3.6 恢復功能 (2025/11/27):
-/// - 時間軸分析服務 (TimelineAnalysisService)
-/// - 短錄音偵測 (durationPenalty)
-/// - 節奏評分優化
+/// 演奏分析器 (V5 最終修正版 - 解決高音量泛音問題)
 class PerformanceAnalyzer implements IPerformanceAnalyzer {
   final _midiParser = MidiParserService();
   final _audioAnalyzer = AudioAnalyzerServiceImpl();
   final _noteVerifier = NoteVerificationServiceImpl();
-  final _noteDetector = NoteDetectorService(); // Phase 0 - 檢測所有音符
-  final _autoAlignment = AutoAlignmentService(); // Phase 1A - 自動對齊
-  final _timelineAnalysis = TimelineAnalysisService(); // Phase 1B - 時間軸分析
+  
+  // ✅ 2. 使用 Optimized 版本 (關鍵！)
+  final _noteDetector = OptimizedNoteDetectorService(); 
+  
+  final _autoAlignment = AutoAlignmentService(); 
+  final _timelineAnalysis = TimelineAnalysisService();
   final _errorClassifier = ErrorClassificationServiceImpl();
 
   @override
   Future<AnalysisReport> analyze(
     String wavPath,
     String midiPath, {
-    double? energyThreshold, // 動態能量閾值（2025/10/27）
-    double? timingTolerance, // 動態時間容錯（2025/10/27）
+    double? energyThreshold,
+    double? timingTolerance,
     void Function(double progress)? onProgress,
   }) async {
     final startTime = DateTime.now();
 
     try {
-      // 步驟 1: 解析 MIDI (15%)
+      // 1. 解析 MIDI
       onProgress?.call(0.0);
       final timeline = await _midiParser.parseFile(midiPath);
-
-      if (timeline.events.isEmpty) {
-        throw Exception('MIDI 文件中沒有音符');
-      }
+      if (timeline.events.isEmpty) throw Exception('MIDI 文件中沒有音符');
       onProgress?.call(0.15);
 
-      // 步驟 2: 分析音訊 (30%)
+      // 2. 分析音訊
       final spectrogram = await _audioAnalyzer.analyze(wavPath);
       onProgress?.call(0.45);
 
-      // 步驟 2.3: 動態閾值計算 (基於 SNR 自適應)
-      // 2025/11/29: 解決「內建錄音 vs 上傳錄音」分數差異問題
-      // 內建錄音噪音底板低 (~0.027)，上傳錄音噪音高 (~0.194)
-      // 使用自適應閾值而非固定值 0.38
+      // 3. 🔥 計算自適應參數 (V5 核心修正：看 Peak)
       final adaptiveParams = _calculateAdaptiveParameters(
         spectrogram,
         energyThreshold: energyThreshold,
@@ -78,60 +55,51 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
       );
       final effectiveEnergyThreshold = adaptiveParams['energyThreshold']!;
       final effectiveTimingTolerance = adaptiveParams['timingTolerance']!;
-      print('🔧 自適應參數:');
-      print('   能量閾值: ${effectiveEnergyThreshold.toStringAsFixed(4)} '
-          '(${energyThreshold != null ? "外部指定" : "自動計算"})');
+      
+      print('🔧 自適應參數 (V5修正):');
+      print('   能量閾值: ${effectiveEnergyThreshold.toStringAsFixed(4)} (已針對大音量優化)');
       print('   時間容錯: ${effectiveTimingTolerance.toStringAsFixed(3)}s');
 
-      // 步驟 2.5: 時間軸分析 (Phase 1B - 5%)
-      // 分析錄音的整體時間軸特徵：延遲開始、中斷、跳過段落等
+      // 4. 時間軸分析
       TimelineAnalysisResult? timelineResult;
       try {
         timelineResult = await _timelineAnalysis.analyze(
           spectrogram: spectrogram,
           midiTimeline: timeline,
         );
-        print('📊 時間軸分析狀態: ${timelineResult.overallStatus}');
       } catch (e) {
-        print('⚠️ 時間軸分析失敗 (非致命): $e');
+        print('⚠️ 時間軸分析失敗: $e');
       }
 
-      // 步驟 2.6: 自動對齊時間軸 (Phase 1A - 5%)
-      // 檢測錄音的實際起始點,並調整 MIDI 時間軸以匹配
-      // 這解決了「延遲 10 秒才開始演奏」的問題
+      // 5. 自動對齊
       final actualStart = _autoAlignment.detectActualStart(spectrogram);
-      final alignedTimeline =
-          _autoAlignment.alignMidiTimeline(timeline, actualStart);
+      final alignedTimeline = _autoAlignment.alignMidiTimeline(timeline, actualStart);
       onProgress?.call(0.50);
 
-      // 參數調優 Round 1: 設定音符範圍限制 (2025/10/25)
-      // 從 MIDI 檔案中提取實際使用的音符範圍，避免掃描不必要的音符
+      // 設定範圍
       final midiNotes = alignedTimeline.events.map((e) => e.midiNote).toList();
       if (midiNotes.isNotEmpty) {
-        final minNote = midiNotes.reduce((a, b) => a < b ? a : b);
-        final maxNote = midiNotes.reduce((a, b) => a > b ? a : b);
+        final minNote = midiNotes.reduce(min);
+        final maxNote = midiNotes.reduce(max);
         _noteDetector.setNoteRange(minNote: minNote, maxNote: maxNote);
       }
 
-      // 步驟 3: 檢測所有音符 (Phase 0 - 15%)
-      // 這是關鍵改進:不僅驗證,還要檢測出所有演奏的音符
+      // 6. 檢測所有音符
       final allDetectedNotes = await _noteDetector.detectAll(spectrogram);
       onProgress?.call(0.65);
 
-      // 步驟 4: 驗證期望音符 (15%)
-      // 使用對齊後的時間軸進行驗證 (Phase 1A)
-      // 傳入自適應參數 (2025/11/29 更新 - 基於 SNR)
+      // 7. 驗證期望音符
       final verificationResults = await _noteVerifier.verifyAll(
-        alignedTimeline, // 使用對齊後的時間軸!
+        alignedTimeline,
         spectrogram,
-        energyThreshold: effectiveEnergyThreshold, // 使用自適應能量閾值
-        timingTolerance: effectiveTimingTolerance, // 使用自適應時間容錯
+        energyThreshold: effectiveEnergyThreshold, // 傳入正確的高門檻
+        timingTolerance: effectiveTimingTolerance,
       );
       onProgress?.call(0.80);
 
-      // 步驟 5: 計算混淆矩陣 (Phase 0 - 5%)
+      // 8. 計算混淆矩陣
       final correctNotes = verificationResults.values.where((v) => v).length;
-      final totalExpected = alignedTimeline.events.length; // 使用對齊後的數量
+      final totalExpected = alignedTimeline.events.length;
       final totalDetected = allDetectedNotes.length;
 
       final confusionMatrix = ConfusionMatrix.fromDetectionResults(
@@ -140,56 +108,29 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
         correctlyMatched: correctNotes,
       );
 
-      print('🎯 混淆矩陣計算完成:');
-      print('   TP (正確): $correctNotes');
-      print('   FP (多彈): ${confusionMatrix.falsePositive}');
-      print('   FN (漏音): ${confusionMatrix.falseNegative}');
-      print(
-          '   Precision: ${(confusionMatrix.precision * 100).toStringAsFixed(1)}%');
-      print('   Recall: ${(confusionMatrix.recall * 100).toStringAsFixed(1)}%');
-      print(
-          '   F1 Score: ${(confusionMatrix.f1Score * 100).toStringAsFixed(1)}%');
+      print('🎯 混淆矩陣:');
+      print('   TP: $correctNotes, FP: ${confusionMatrix.falsePositive}, FN: ${confusionMatrix.falseNegative}');
 
-      onProgress?.call(0.85);
-
-      // 步驟 6: 分類錯誤 (5%)
-      // 使用自適應時間容錯 (2025/11/29 更新)
+      // 9. 分類錯誤
       final errors = await _errorClassifier.classifyErrors(
-        expectedTimeline: alignedTimeline, // 使用對齊後的時間軸!
+        expectedTimeline: alignedTimeline,
         spectrogram: spectrogram,
         verificationResults: verificationResults,
-        timingTolerance: effectiveTimingTolerance, // 使用自適應時間容錯
+        timingTolerance: effectiveTimingTolerance,
       );
 
-      // 步驟 7: 統計各類錯誤 (5%)
-      int missedCount = 0;
-      int wrongCount = 0;
-      int earlyCount = 0;
-      int lateCount = 0;
-
+      // 10. 統計與報告
+      int missedCount = 0, wrongCount = 0, earlyCount = 0, lateCount = 0;
       for (final error in errors) {
-        switch (error.type) {
-          case ErrorType.missedNote:
-            missedCount++;
-            break;
-          case ErrorType.wrongNote:
-            wrongCount++;
-            break;
-          case ErrorType.earlyTiming:
-            earlyCount++;
-            break;
-          case ErrorType.lateTiming:
-            lateCount++;
-            break;
-          case ErrorType.correct:
-            break;
-        }
+        if (error.type == ErrorType.missedNote) missedCount++;
+        else if (error.type == ErrorType.wrongNote) wrongCount++;
+        else if (error.type == ErrorType.earlyTiming) earlyCount++;
+        else if (error.type == ErrorType.lateTiming) lateCount++;
       }
 
       final processingTime = DateTime.now().difference(startTime);
       onProgress?.call(1.0);
 
-      // 生成報告 (包含混淆矩陣、時間偏移與時間軸分析)
       return AnalysisReport(
         totalNotes: totalExpected,
         correctNotes: correctNotes,
@@ -199,87 +140,61 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
         lateNotes: lateCount,
         errors: errors,
         processingTime: processingTime,
-        timeOffset: actualStart, // Phase 1A: 記錄檢測到的時間偏移
-        confusionMatrix: confusionMatrix, // Phase 0
-        totalDetectedNotes: totalDetected, // Phase 0
-        timelineAnalysis: timelineResult, // Phase 1B: 時間軸分析
+        timeOffset: actualStart,
+        confusionMatrix: confusionMatrix,
+        totalDetectedNotes: totalDetected,
+        timelineAnalysis: timelineResult,
       );
     } catch (e) {
       rethrow;
     }
   }
 
-  /// 計算自適應參數 (基於信噪比 SNR)
-  ///
-  /// 問題背景 (2025/11/29):
-  /// - 內建錄音: 噪音底板 ~0.027, 固定閾值 0.38 太高 → Recall 63.9%
-  /// - 上傳錄音: 噪音底板 ~0.194, 信號段落過度分割 (173段) → FP 5999
-  ///
-  /// 解決方案:
-  /// 根據實際音訊的噪音底板動態調整能量閾值
-  /// - 低噪音錄音 → 降低閾值, 提高敏感度
-  /// - 高噪音錄音 → 提高閾值, 減少誤判
+  /// 🔥🔥🔥 V5 參數計算邏輯 (修正版) 🔥🔥🔥
+  /// 
+  /// 針對 MIDI 轉 WAV 這種「底噪極低 (0) 但峰值極高 (>1.0)」的檔案
+  /// 強制使用「動態相對門檻」
   Map<String, double> _calculateAdaptiveParameters(
     Spectrogram spectrogram, {
     double? energyThreshold,
     double? timingTolerance,
   }) {
-    // 如果外部已指定參數，優先使用
     if (energyThreshold != null && timingTolerance != null) {
-      return {
-        'energyThreshold': energyThreshold,
-        'timingTolerance': timingTolerance,
-      };
+      return {'energyThreshold': energyThreshold, 'timingTolerance': timingTolerance};
     }
 
-    // 估計噪音底板（使用前 0.5 秒的中位數能量）
-    final noiseFloor = _estimateNoiseFloor(spectrogram);
-    
-    // 估計信號峰值（使用整體能量的 95 分位數）
+    // 1. 估計信號峰值 (找出最大聲的地方)
     final signalPeak = _estimateSignalPeak(spectrogram);
     
-    // 計算信噪比 (SNR)
-    final snr = signalPeak / max(noiseFloor, 0.001);
-    
-    print('📈 音訊特徵分析:');
-    print('   噪音底板: ${noiseFloor.toStringAsFixed(6)}');
-    print('   信號峰值: ${signalPeak.toStringAsFixed(6)}');
-    print('   信噪比 (SNR): ${snr.toStringAsFixed(2)}');
+    // 2. 估計底噪
+    final noiseFloor = _estimateNoiseFloor(spectrogram);
 
-    // 計算自適應能量閾值
-    // 策略: 閾值 = 噪音底板 × 倍率，倍率根據 SNR 調整
-    //
-    // 參考數據:
-    // - 內建錄音: 噪音 0.027, 需要閾值約 0.08-0.15 (3-6倍)
-    // - 上傳錄音: 噪音 0.194, 需要閾值約 0.58-0.78 (3-4倍)
-    //
-    // 統一策略: 使用噪音底板的 3-5 倍作為能量閾值
-    // 高 SNR (>20): 可以用較低倍率 (3倍)
-    // 中 SNR (10-20): 使用中等倍率 (4倍)  
-    // 低 SNR (<10): 使用較高倍率 (5倍)
-    double multiplier;
-    if (snr > 20) {
-      multiplier = 3.0;
-    } else if (snr > 10) {
-      multiplier = 4.0;
-    } else {
-      multiplier = 5.0;
+    print('📈 V5 分析: Peak=${signalPeak.toStringAsFixed(4)}, Noise=${noiseFloor.toStringAsFixed(6)}');
+
+    // 🔥 關鍵修正：動態相對門檻
+    // 如果是普通錄音 (Peak ~0.8)，門檻約 0.28
+    // 如果是過載錄音 (Peak ~1.4)，門檻會自動拉高到 0.49，擋住泛音
+    double minThreshold = 0.15; // 絕對底限
+    double relativeThreshold = signalPeak * 0.35; // 相對門檻 (35% 的峰值)
+    
+    // 如果發現過載嚴重 (>1.2)，比例再提高一點
+    if (signalPeak > 1.2) {
+       relativeThreshold = signalPeak * 0.45; // 提高到 45%
     }
     
-    // 計算自適應閾值
-    final adaptiveThreshold = noiseFloor * multiplier;
+    // 最終門檻取最大值
+    double finalThreshold = max(minThreshold, relativeThreshold);
     
-    // 限制在合理範圍內 (0.05 - 0.80)
-    final clampedThreshold = adaptiveThreshold.clamp(0.05, 0.80);
+    // 如果底噪很大，也要考慮進去 (傳統邏輯)
+    final snr = signalPeak / max(noiseFloor, 0.001);
+    double noiseBasedThreshold = noiseFloor * (snr > 20 ? 3.0 : 4.0);
+    finalThreshold = max(finalThreshold, noiseBasedThreshold);
     
-    print('   SNR 倍率: ${multiplier.toStringAsFixed(1)}');
-    print('   計算閾值: ${adaptiveThreshold.toStringAsFixed(4)}');
-    print('   最終閾值: ${clampedThreshold.toStringAsFixed(4)}');
+    // 限制範圍
+    final clampedThreshold = finalThreshold.clamp(0.05, 0.85);
 
-    // 時間容錯：根據 SNR 調整
-    // 高 SNR → 較嚴格 (0.15s)
-    // 低 SNR → 較寬鬆 (0.25s)
-    final adaptiveTolerance = snr > 15 ? 0.15 : (snr > 8 ? 0.20 : 0.25);
+    // 時間容錯調整
+    final adaptiveTolerance = snr > 15 ? 0.15 : 0.20;
 
     return {
       'energyThreshold': energyThreshold ?? clampedThreshold,
@@ -287,45 +202,35 @@ class PerformanceAnalyzer implements IPerformanceAnalyzer {
     };
   }
 
-  /// 估計噪音底板（使用前 0.5 秒的中位數能量）
-  double _estimateNoiseFloor(Spectrogram spectrogram) {
-    const windowSize = 0.5;
-    final windowFrames = (windowSize / spectrogram.timeResolution).round();
-    final maxFrames = min(windowFrames, spectrogram.timeFrames);
-
-    final energies = <double>[];
-    for (int frame = 0; frame < maxFrames; frame++) {
-      energies.add(_calculateFrameEnergy(spectrogram, frame));
-    }
-
-    energies.sort();
-    return energies.isNotEmpty ? energies[energies.length ~/ 2] : 0.0;
-  }
-
-  /// 估計信號峰值（使用整體能量的 95 分位數）
   double _estimateSignalPeak(Spectrogram spectrogram) {
     final energies = <double>[];
-    for (int frame = 0; frame < spectrogram.timeFrames; frame++) {
+    // 抽樣檢查，提升效能
+    final step = max(1, spectrogram.timeFrames ~/ 200);
+    for (int frame = 0; frame < spectrogram.timeFrames; frame += step) {
       energies.add(_calculateFrameEnergy(spectrogram, frame));
     }
-
     if (energies.isEmpty) return 0.0;
-
     energies.sort();
-    final p95Index = (energies.length * 0.95).floor();
-    return energies[p95Index.clamp(0, energies.length - 1)];
+    // 取 95% 分位數作為峰值代表
+    return energies[(energies.length * 0.95).floor()];
   }
 
-  /// 計算單幀能量
-  double _calculateFrameEnergy(Spectrogram spectrogram, int frame) {
-    if (frame < 0 || frame >= spectrogram.timeFrames) return 0.0;
-
-    double totalEnergy = 0.0;
-    for (int bin = 0; bin < spectrogram.freqBins; bin++) {
-      final magnitude = spectrogram.data[frame][bin];
-      totalEnergy += magnitude * magnitude;
+  double _estimateNoiseFloor(Spectrogram spectrogram) {
+    // 取前 0.5 秒估算底噪
+    final checkFrames = min(20, spectrogram.timeFrames);
+    final energies = <double>[];
+    for (int frame = 0; frame < checkFrames; frame++) {
+      energies.add(_calculateFrameEnergy(spectrogram, frame));
     }
+    if (energies.isEmpty) return 0.0;
+    energies.sort();
+    return energies[energies.length ~/ 2]; // 中位數
+  }
 
-    return sqrt(totalEnergy / spectrogram.freqBins);
+  double _calculateFrameEnergy(Spectrogram spectrogram, int frame) {
+    if (frame >= spectrogram.timeFrames) return 0.0;
+    double sum = 0.0;
+    for (final val in spectrogram.data[frame]) sum += val * val;
+    return sqrt(sum / spectrogram.freqBins);
   }
 }
