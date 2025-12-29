@@ -9,6 +9,7 @@ import 'package:veloria/core/services/settings_service.dart';
 import 'package:veloria/core/services/auth_service_config.dart';
 import 'package:veloria/services/practice_timer_service.dart';
 import 'package:veloria/widgets/floating_timer_widget.dart';
+import 'package:veloria/pages/library_page.dart'; // 導入 MidiFileManager
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -33,6 +34,9 @@ void main() async {
   
   // 初始化練習計時器服務
   await PracticeTimerService().initialize();
+
+  // 初始化 MIDI 檔案管理器
+  await MidiFileManager.initialize();
 
   // 鎖定螢幕方向為直立模式，防止旋轉破圖
   await SystemChrome.setPreferredOrientations([

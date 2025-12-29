@@ -211,26 +211,26 @@ class AnalysisResultPage extends StatelessWidget {
               '${report.correctNotes}/${report.totalNotes}',
               Colors.green[700]!,
             ),
+            // _buildStatRow(
+            //   '❌ ${l10n?.analysisResultMissed ?? '漏音'}',
+            //   '${report.missedNotes}',
+            //   Colors.red[700]!,
+            // ),
             _buildStatRow(
-              '❌ ${l10n?.analysisResultMissed ?? '漏音'}',
-              '${report.missedNotes}',
+              '❌ ${l10n?.analysisResultWrong ?? '錯誤'}',
+              '${report.wrongNotes+report.missedNotes+report.earlyNotes+report.lateNotes}',
               Colors.red[700]!,
             ),
-            _buildStatRow(
-              '🔴 ${l10n?.analysisResultWrong ?? '錯音'}',
-              '${report.wrongNotes}',
-              Colors.red[700]!,
-            ),
-            _buildStatRow(
-              '⏪ ${l10n?.analysisResultEarly ?? '搶拍'}',
-              '${report.earlyNotes}',
-              Colors.blue[700]!,
-            ),
-            _buildStatRow(
-              '⏩ ${l10n?.analysisResultLate ?? '拖拍'}',
-              '${report.lateNotes}',
-              Colors.blue[700]!,
-            ),
+            // _buildStatRow(
+            //   '⏪ ${l10n?.analysisResultEarly ?? '搶拍'}',
+            //   '${report.earlyNotes}',
+            //   Colors.blue[700]!,
+            // ),
+            // _buildStatRow(
+            //   '⏩ ${l10n?.analysisResultLate ?? '拖拍'}',
+            //   '${report.lateNotes}',
+            //   Colors.blue[700]!,
+            // ),
           ],
         ),
       ),
@@ -327,7 +327,7 @@ class AnalysisResultPage extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '${_getErrorIcon(error.type)} ${error.message}',
+              '${_getErrorIcon(error.type)} ${_formatErrorMessage(error.message)}',
               style: TextStyle(
                 fontSize: 14,
                 color: _getErrorColor(error.type),
@@ -337,6 +337,18 @@ class AnalysisResultPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 格式化錯誤訊息，移除錯誤類型前綴
+  String _formatErrorMessage(String message) {
+    // 移除常見的錯誤類型前綴
+    final prefixes = ['漏音: ', '錯音: ', '節奏偏差: ', '多餘音: '];
+    for (final prefix in prefixes) {
+      if (message.startsWith(prefix)) {
+        return message.substring(prefix.length);
+      }
+    }
+    return message;
   }
 
   /// 練習建議卡片

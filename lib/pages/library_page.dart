@@ -4,15 +4,24 @@ import 'package:go_router/go_router.dart';
 import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart'; // 確保這個導入也存在
 import 'package:veloria/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
 
 // 全域MIDI檔案管理類別
 // 這些類別必須放在這裡 (文件頂層)，才能被其他文件導入和使用
 class MidiFileManager {
   static final List<MidiFileInfo> _midiFiles = [];
+  static const String _storageKey = 'midi_files_library';
 
   static List<MidiFileInfo> get midiFiles => List.unmodifiable(_midiFiles);
 
-  static void addMidiFile(PlatformFile file) {
+  // 初始化並從持久化存儲載入檔案
+  static Future<void> initialize() async {
+    await loadFromStorage();
+  }
+
+  static Future<void> addMidiFile(PlatformFile file) async {
     final midiInfo = MidiFileInfo(
       name: file.name,
       size: file.size,
@@ -20,11 +29,66 @@ class MidiFileManager {
       file: file,
     );
     _midiFiles.add(midiInfo);
+    await saveToStorage();
   }
 
-  static void removeMidiFile(int index) {
+  static Future<void> removeMidiFile(int index) async {
     if (index >= 0 && index < _midiFiles.length) {
       _midiFiles.removeAt(index);
+      await saveToStorage();
+    }
+  }
+
+  // 保存到持久化存儲
+  static Future<void> saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> fileDataList = _midiFiles.map((info) {
+        return {
+          'name': info.name,
+          'size': info.size,
+          'uploadTime': info.uploadTime.toIso8601String(),
+          'path': info.file.path,
+        };
+      }).toList();
+      await prefs.setString(_storageKey, jsonEncode(fileDataList));
+    } catch (e) {
+      print('保存MIDI檔案列表失敗: $e');
+    }
+  }
+
+  // 從持久化存儲載入
+  static Future<void> loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? jsonData = prefs.getString(_storageKey);
+      if (jsonData != null) {
+        final List<dynamic> fileDataList = jsonDecode(jsonData);
+        _midiFiles.clear();
+        
+        for (final data in fileDataList) {
+          final filePath = data['path'] as String?;
+          if (filePath != null && File(filePath).existsSync()) {
+            final file = File(filePath);
+            final platformFile = PlatformFile(
+              name: data['name'] as String,
+              size: data['size'] as int,
+              path: filePath,
+              bytes: file.readAsBytesSync(),
+            );
+            
+            final midiInfo = MidiFileInfo(
+              name: data['name'] as String,
+              size: data['size'] as int,
+              uploadTime: DateTime.parse(data['uploadTime'] as String),
+              file: platformFile,
+            );
+            _midiFiles.add(midiInfo);
+          }
+        }
+      }
+    } catch (e) {
+      print('載入MIDI檔案列表失敗: $e');
     }
   }
 }
@@ -54,6 +118,21 @@ class LibraryPage extends StatefulWidget {
 }
 
 class _LibraryPageState extends State<LibraryPage> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMidiFiles();
+  }
+
+  Future<void> _loadMidiFiles() async {
+    await MidiFileManager.initialize();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   // 注意：如果您希望在添加或刪除檔案後立即更新列表，
   // 您需要在 _deleteMidiFile 或其他地方呼叫 setState()。
   // 並且，MidiFileManager 的更改需要通知到所有監聽者。
@@ -63,6 +142,30 @@ class _LibraryPageState extends State<LibraryPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.dynamicBackground,
+        appBar: AppBar(
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n?.libraryTitle ?? '我的樂庫',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: AppColors.dynamicBackground,
+          elevation: 0,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.dynamicBackground, // 使用您定義的背景色
       appBar: AppBar(
@@ -273,18 +376,19 @@ class _LibraryPageState extends State<LibraryPage> {
               child: Text(l10n?.cancel ?? '取消'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  // 呼叫 setState 觸發 UI 更新
-                  MidiFileManager.removeMidiFile(index);
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n?.libraryDeleteSuccess ?? '檔案已刪除'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+              onPressed: () async {
+                // 呼叫 setState 觸發 UI 更新
+                await MidiFileManager.removeMidiFile(index);
+                setState(() {});
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n?.libraryDeleteSuccess ?? '檔案已刪除'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,

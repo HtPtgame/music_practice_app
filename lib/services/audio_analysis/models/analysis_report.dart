@@ -450,13 +450,13 @@ class AnalysisReport {
     // === 第一層：致命問題檢測 ===
     
     // 1. 亂彈檢測（最高優先級）
-    if (isProbablyRandomPlaying) {
-      suggestions.add(l10n?.suggestionRandomPlaying ?? '🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:');
-      suggestions.add(l10n?.suggestionCheckCorrectFile ?? '   1. 是否選擇了正確的 MIDI 檔案');
-      suggestions.add(l10n?.suggestionCheckCompleteSong ?? '   2. 是否完整演奏了指定曲目');
-      suggestions.add(l10n?.suggestionCheckQuietEnvironment ?? '   3. 是否在安靜環境下錄音');
-      return suggestions; // 直接返回,不提供其他建議
-    }
+    // if (isProbablyRandomPlaying) {
+    //   suggestions.add(l10n?.suggestionRandomPlaying ?? '🚨 系統檢測到疑似亂彈或錯誤曲目,請確認:');
+    //   suggestions.add(l10n?.suggestionCheckCorrectFile ?? '   1. 是否選擇了正確的 MIDI 檔案');
+    //   suggestions.add(l10n?.suggestionCheckCompleteSong ?? '   2. 是否完整演奏了指定曲目');
+    //   suggestions.add(l10n?.suggestionCheckQuietEnvironment ?? '   3. 是否在安靜環境下錄音');
+    //   return suggestions; // 直接返回,不提供其他建議
+    // }
 
     // 2. 錯誤曲目檢測
     if (isProbablyWrongSong) {
@@ -497,11 +497,11 @@ class AnalysisReport {
           suggestions.add(l10n?.suggestionRhythmGood ?? '✨ 節奏掌握很好!');
         }
         // 給出細微改進建議
-        if (earlyNotes > totalNotes * 0.05) {
-          suggestions.add('💡 小提示：有輕微搶拍傾向，可以再放鬆一點');
-        } else if (lateNotes > totalNotes * 0.05) {
-          suggestions.add('💡 小提示：節奏可以再緊湊一些');
-        }
+        // if (earlyNotes > totalNotes * 0.05) {
+        //   suggestions.add('💡 小提示：有輕微搶拍傾向，可以再放鬆一點');
+        // } else if (lateNotes > totalNotes * 0.05) {
+        //   suggestions.add('💡 小提示：節奏可以再緊湊一些');
+        // }
       }
       return suggestions;
     }
@@ -556,11 +556,11 @@ class AnalysisReport {
         suggestions.add('   - 可以嘗試在安靜環境下重新錄音');
       }
       
-      if (falsePositives > totalNotes * 0.15) {
-        suggestions.add('⚠️ 檢測到 $falsePositives 個多餘音符');
-        suggestions.add('   - 注意手指不要誤觸其他琴鍵');
-        suggestions.add('   - 確保手指準確按在正確位置');
-      }
+      // if (falsePositives > totalNotes * 0.15) {
+      //   suggestions.add('⚠️ 檢測到 $falsePositives 個多餘音符');
+      //   suggestions.add('   - 注意手指不要誤觸其他琴鍵');
+      //   suggestions.add('   - 確保手指準確按在正確位置');
+      // }
       
       // 節奏問題分析
       if (rhythmScore < 70) {
@@ -598,11 +598,11 @@ class AnalysisReport {
         suggestions.add(l10n?.suggestionCheckMicSensitivity ?? '   - 確保麥克風靈敏度足夠');
       }
       
-      if (precision < 0.5 && falsePositives > 10) {
-        suggestions.add(l10n?.suggestionExtraNotes(falsePositives) ?? '⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
-        suggestions.add(l10n?.suggestionAvoidWrongKeys ?? '   - 避免誤觸其他琴鍵');
-        suggestions.add(l10n?.suggestionEnsureAccuracy ?? '   - 確保手指準確按在正確位置');
-      }
+      // if (precision < 0.5 && falsePositives > 10) {
+      //   suggestions.add(l10n?.suggestionExtraNotes(falsePositives) ?? '⚠️ 檢測到 $falsePositives 個多餘音符,請注意:');
+      //   suggestions.add(l10n?.suggestionAvoidWrongKeys ?? '   - 避免誤觸其他琴鍵');
+      //   suggestions.add(l10n?.suggestionEnsureAccuracy ?? '   - 確保手指準確按在正確位置');
+      // }
     }
     
     // 嚴重的節奏問題

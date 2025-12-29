@@ -65,21 +65,23 @@ class _UploadPage2State extends State<UploadPage2> {
     }
   }
 
-  void _saveToLibrary() {
+  Future<void> _saveToLibrary() async {
     if (_pickedFile != null) {
       bool isValidFile =
           _pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty;
 
       if (isValidFile) {
         final l10n = AppLocalizations.of(context);
-        MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n?.uploadMidiSuccess ?? 'MIDI檔案已成功儲存到樂庫！'),
-            backgroundColor: Colors.green,
-            duration: const Duration(milliseconds: 800),
-          ),
-        );
+        await MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n?.uploadMidiSuccess ?? 'MIDI檔案已成功儲存到樂庫！'),
+              backgroundColor: Colors.green,
+              duration: const Duration(milliseconds: 800),
+            ),
+          );
+        }
         if (mounted) {
           context.go('/library');
         }

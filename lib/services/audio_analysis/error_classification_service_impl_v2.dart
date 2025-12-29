@@ -44,7 +44,7 @@ class ErrorClassificationServiceImpl {
           expectedNote: expectedNote.midiNote,
           // ⚠️ 修正點：配合新模型，這裡原本是 expectedTime，現在改用 time
           time: expectedNote.startTime, 
-          message: '漏音: ${expectedNote.noteName}',
+          message: '漏音: ${expectedNote.noteName} 在 ${expectedNote.startTime.toStringAsFixed(2)}秒',
           confidence: 0.9,
         ));
       }
@@ -81,7 +81,7 @@ class ErrorClassificationServiceImpl {
             time: expectedNote.startTime,
             actualTime: nearestOnset.time,
             timingOffset: timeOffset,
-            message: '節奏偏差: ${expectedNote.noteName} $direction ${offsetMs}ms',
+            message: '節奏偏差: ${expectedNote.noteName} $direction ${offsetMs}ms 在 ${expectedNote.startTime.toStringAsFixed(2)}秒',
             confidence: 0.9, // Phase 2B: 提高置信度
           ));
         }

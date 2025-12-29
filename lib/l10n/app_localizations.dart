@@ -597,7 +597,7 @@ class AppLocalizations {
   String get analysisResultStatistics => '統計數據';
   String get analysisResultCorrect => '正確';
   String get analysisResultMissed => '漏音';
-  String get analysisResultWrong => '錯音';
+  String get analysisResultWrong => '錯誤';
   String get analysisResultEarly => '搶拍';
   String get analysisResultLate => '拖拍';
   String get analysisResultErrorDetails => '錯誤詳情';
