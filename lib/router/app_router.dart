@@ -1,23 +1,35 @@
-// lib/router/app_router.dart
+﻿// lib/router/app_router.dart
 
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:music_practice_app/pages/analysis_page.dart';
-import 'package:music_practice_app/pages/home_page.dart';
-import 'package:music_practice_app/pages/playback_page.dart';
-import 'package:music_practice_app/pages/practice_page.dart';
-import 'package:music_practice_app/pages/upload_page.dart';
-import 'package:music_practice_app/pages/upload_page2.dart';
-import 'package:music_practice_app/pages/library_page.dart';
-import 'package:music_practice_app/widgets/main_shell.dart';
+import 'package:veloria/pages/analysis_page.dart';
+import 'package:veloria/pages/home_page.dart';
+import 'package:veloria/pages/playback_page.dart';
+import 'package:veloria/pages/practice_page.dart';
+import 'package:veloria/pages/upload_page.dart';
+import 'package:veloria/pages/upload_page2.dart';
+import 'package:veloria/pages/library_page.dart';
+import 'package:veloria/pages/settings_page.dart';
+import 'package:veloria/pages/note_page.dart';
+import 'package:veloria/features/pieces/pages/piece_detail_page.dart';
+import 'package:veloria/pages/metronome_page.dart';
+import 'package:veloria/pages/login_page.dart';
+import 'package:veloria/pages/register_page.dart';
+import 'package:veloria/pages/profile_page.dart';
+import 'package:veloria/pages/animal_collection_page.dart';
+import 'package:veloria/pages/practice_stats_page.dart';
+import 'package:veloria/models/sheet_annotation.dart';
+import 'package:veloria/widgets/main_shell.dart';
+import 'package:veloria/features/lessons/pages/lesson_book_page.dart';
+import 'package:veloria/features/practice/pages/slow_practice_page.dart';
 
 // 建立一個 GlobalKey 給我們的 ShellRoute，用於全螢幕跳轉
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // 這是 appRouter 的定義
 final GoRouter appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/',
   routes: [
     // ShellRoute 會作為底下 routes 的 UI 外殼，讓底部導覽列常駐
@@ -48,8 +60,42 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/settings',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: Center(child: Text('設定')),
+            child: SettingsPage(),
           ),
+        ),
+        GoRoute(
+          path: '/metronome',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: MetronomePage(),
+          ),
+        ),
+        GoRoute(
+          path: '/notes',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: NotePage(),
+          ),
+          routes: [
+            // 樂曲詳情頁面作為筆記頁面的子路由,保留底部導航欄
+            GoRoute(
+              path: 'detail/:sheetIndex',
+              pageBuilder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>;
+                return NoTransitionPage(
+                  child: MusicSheetDetailPage(
+                    sheetName: extra['sheetName'] as String,
+                    initialNotes: extra['initialNotes'] as List<String>,
+                    initialSheets:
+                        extra['initialSheets'] as List<AnnotatedSheet>,
+                    onNotesChanged:
+                        extra['onNotesChanged'] as Function(List<String>),
+                    onSheetsChanged: extra['onSheetsChanged']
+                        as Function(List<AnnotatedSheet>),
+                  ),
+                );
+              },
+            ),
+
+          ],
         ),
       ],
     ),
@@ -57,7 +103,7 @@ final GoRouter appRouter = GoRouter(
     // 獨立的全螢幕頁面 (不會顯示底部導覽列)
     GoRoute(
       path: '/playback',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) {
         final file = state.extra as PlatformFile?;
         return NoTransitionPage(
@@ -66,27 +112,81 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/practice',
-      parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (context, state) {
-        final file = state.extra as PlatformFile?; // 練習頁面也需要檔案資訊
-        return NoTransitionPage(
-          child: PracticePage(file: file),
-        );
-      },
-    ),
-    GoRoute(
       path: '/analysis',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: AnalysisPage(),
       ),
     ),
     GoRoute(
       path: '/upload2',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => const NoTransitionPage(
         child: UploadPage2(),
+      ),
+    ),
+    // 使用者認證頁面
+    GoRoute(
+      path: '/login',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: LoginPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/register',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: RegisterPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/profile',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: ProfilePage(),
+      ),
+    ),
+    // 動物圖鑑頁面
+    GoRoute(
+      path: '/animal-collection',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: AnimalCollectionPage(),
+      ),
+    ),
+    // 練習頁面 (演奏偵錯)
+    GoRoute(
+      path: '/practice',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final file = state.extra as PlatformFile?;
+        return NoTransitionPage(
+          child: PracticePage(file: file),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/lessons',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: LessonBookPage(),
+      ),
+    ),
+    // 練習統計報表頁面
+    GoRoute(
+      path: '/practice-stats',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: PracticeStatsPage(),
+      ),
+    ),
+    // 慢速練習頁面
+    GoRoute(
+      path: '/slow-practice',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => const NoTransitionPage(
+        child: SlowPracticePage(),
       ),
     ),
   ],

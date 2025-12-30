@@ -1,8 +1,8 @@
-// lib/pages/playback_page.dart
+﻿// lib/pages/playback_page_simple.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 
 class PlaybackPage extends StatefulWidget {
   final PlatformFile? file;
@@ -17,209 +17,148 @@ class _PlaybackPageState extends State<PlaybackPage> {
   bool _isPlaying = false;
   bool _isPaused = false;
   double _currentPosition = 0.0;
-  final double _totalDuration = 180.0; // 模擬3分鐘的歌曲長度
+  final double _totalDuration = 180.0; // 模擬3分鐘長度
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: Text(
-          widget.file?.name ?? 'MIDI 播放器',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            widget.file?.name ?? (l10n?.playbackPageTitle ?? 'MIDI 播放器'),
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
+            ),
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/library'),
-        ),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.dynamicBackground,
         elevation: 0,
+        iconTheme: IconThemeData(
+          color: AppColors.dynamicTextDark,
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
+      body: SafeArea(
+        child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 檔案資訊區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.music_note,
-                      size: 80,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.file?.name ?? '未知檔案',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (widget.file != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '檔案大小: ${(widget.file!.size / 1024).toStringAsFixed(1)} KB',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textLight,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // 播放進度區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    // 進度條
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: AppColors.primary,
-                        inactiveTrackColor: AppColors.primary.withOpacity(0.3),
-                        thumbColor: AppColors.primary,
-                        overlayColor: AppColors.primary.withOpacity(0.2),
-                        trackHeight: 4.0,
-                      ),
-                      child: Slider(
-                        value: _currentPosition,
-                        max: _totalDuration,
-                        onChanged: _isPlaying ? (value) {
-                          setState(() {
-                            _currentPosition = value;
-                          });
-                        } : null,
-                      ),
-                    ),
-                    
-                    // 時間顯示
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatTime(_currentPosition),
-                            style: const TextStyle(
-                              color: AppColors.textLight,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            _formatTime(_totalDuration),
-                            style: const TextStyle(
-                              color: AppColors.textLight,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // 播放控制區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // 重新播放按鈕
-                    IconButton(
-                      onPressed: _restart,
-                      icon: const Icon(Icons.replay),
-                      iconSize: 36,
-                      color: AppColors.textDark,
-                      tooltip: '重新播放',
-                    ),
-                    
-                    // 主要播放/暫停按鈕
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: _togglePlayPause,
-                        icon: Icon(
-                          _isPlaying 
-                            ? Icons.pause 
-                            : Icons.play_arrow,
-                        ),
-                        iconSize: 48,
-                        color: Colors.white,
-                        tooltip: _isPlaying ? '暫停' : '播放',
-                      ),
-                    ),
-                    
-                    // 停止按鈕
-                    IconButton(
-                      onPressed: _stop,
-                      icon: const Icon(Icons.stop),
-                      iconSize: 36,
-                      color: AppColors.textDark,
-                      tooltip: '停止',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const Spacer(),
-            
-            // 狀態顯示
+            // 播放進度條
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.dynamicCard,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
                 children: [
-                  Icon(
-                    _isPlaying ? Icons.music_note : Icons.music_off,
-                    color: AppColors.primary,
-                    size: 20,
+                  // 進度滑桿
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 4.0,
+                    ),
+                    child: Slider(
+                      value: _currentPosition,
+                      max: _totalDuration,
+                      onChanged: _isPlaying
+                          ? (value) {
+                              setState(() {
+                                _currentPosition = value;
+                              });
+                            }
+                          : null,
+                      activeColor: AppColors.dynamicPrimary,
+                      inactiveColor:
+                          AppColors.dynamicTextLight.withOpacity(0.3),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _getStatusText(),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
+
+                  // 時間顯示
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatTime(_currentPosition),
+                          style: TextStyle(
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                        Text(
+                          _formatTime(_totalDuration),
+                          style: TextStyle(
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 32),
+
+            // 控制按鈕
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // 重新開始按鈕
+                IconButton(
+                  onPressed: _restart,
+                  icon: Icon(
+                    Icons.replay,
+                    size: 32,
+                    color: AppColors.dynamicTextDark,
+                  ),
+                ),
+
+                // 播放/暫停按鈕
+                IconButton(
+                  onPressed: _togglePlayPause,
+                  icon: Icon(
+                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                    size: 48,
+                    color: AppColors.dynamicPrimary,
+                  ),
+                ),
+
+                // 停止按鈕
+                IconButton(
+                  onPressed: _stop,
+                  icon: Icon(
+                    Icons.stop,
+                    size: 32,
+                    color: AppColors.dynamicTextDark,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 32),
+
+            // 狀態顯示
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppColors.dynamicCard,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _getStatusText(),
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -281,14 +220,15 @@ class _PlaybackPageState extends State<PlaybackPage> {
   }
 
   String _getStatusText() {
+    final l10n = AppLocalizations.of(context);
     if (_isPlaying) {
-      return '播放中...';
+      return l10n?.playbackPagePlaying ?? '播放中...';
     } else if (_isPaused) {
-      return '已暫停';
+      return l10n?.playbackPagePaused ?? '已暫停';
     } else if (_currentPosition > 0) {
-      return '已停止';
+      return l10n?.playbackPageStopped ?? '已停止';
     } else {
-      return '準備播放';
+      return '';
     }
   }
 }

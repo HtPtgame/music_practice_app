@@ -1,0 +1,215 @@
+name: 📦 構建 Android 和 iOS 發布版本
+
+on:
+  # 手動觸發
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本號 (例如: 1.0.0)'
+        required: true
+        default: '1.0.0'
+  
+  # 推送 tag 時自動觸發
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  # ===== Android 構建 =====
+  build-android:
+    name: 🤖 構建 Android APK/AAB
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. 檢出代碼
+      - name: 📥 檢出代碼
+        uses: actions/checkout@v4
+
+      # 2. 設置 Java
+      - name: ☕ 設置 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. 設置 Flutter
+      - name: 🐦 設置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.3'
+          channel: 'stable'
+          cache: true
+
+      # 4. 獲取依賴
+      - name: 📦 獲取依賴
+        run: flutter pub get
+
+      # 5. 分析代碼
+      - name: 🔍 分析代碼
+        run: flutter analyze
+
+      # 6. 構建 APK (分架構)
+      - name: 🔨 構建 APK
+        run: flutter build apk --release --split-per-abi
+
+      # 7. 構建 App Bundle
+      - name: 🔨 構建 App Bundle
+        run: flutter build appbundle --release
+
+      # 8. 上傳 APK 構建產物
+      - name: 📤 上傳 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-release
+          path: |
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
+          retention-days: 30
+
+      # 9. 上傳 AAB 構建產物
+      - name: 📤 上傳 App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-release
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  # ===== iOS 構建 =====
+  build-ios:
+    name: 🍎 構建 iOS IPA
+    runs-on: macos-latest  # 使用 GitHub 提供的免費 macOS runner
+    
+    steps:
+      # 1. 檢出代碼
+      - name: 📥 檢出代碼
+        uses: actions/checkout@v4
+
+      # 2. 設置 Flutter
+      - name: 🐦 設置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.3'
+          channel: 'stable'
+          cache: true
+
+      # 3. 獲取依賴
+      - name: 📦 獲取依賴
+        run: flutter pub get
+
+      # 4. 安裝 CocoaPods 依賴
+      - name: 🍫 安裝 CocoaPods 依賴
+        run: |
+          cd ios
+          pod install
+          cd ..
+
+      # 5. 分析代碼
+      - name: 🔍 分析代碼
+        run: flutter analyze
+
+      # 6. 構建 iOS (不簽名 - 適用於測試)
+      - name: 🔨 構建 iOS (無簽名)
+        run: flutter build ios --release --no-codesign
+
+      # 7. 創建 IPA (未簽名版本 - 僅供參考)
+      - name: 📦 打包 IPA
+        run: |
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -r app-unsigned.ipa Payload
+          cd ../../..
+
+      # 8. 上傳 iOS 構建產物
+      - name: 📤 上傳 iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-unsigned
+          path: |
+            build/ios/iphoneos/app-unsigned.ipa
+            build/ios/iphoneos/Runner.app
+          retention-days: 30
+
+      # 9. 構建摘要
+      - name: 📊 構建摘要
+        run: |
+          echo "### 🍎 iOS 構建完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **注意**: 此構建未簽名，僅供測試參考。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "要正式發布到 App Store，需要：" >> $GITHUB_STEP_SUMMARY
+          echo "1. Apple Developer 帳號 (\$99/年)" >> $GITHUB_STEP_SUMMARY
+          echo "2. 配置簽名證書和 Provisioning Profile" >> $GITHUB_STEP_SUMMARY
+          echo "3. 使用 Fastlane 或 Xcode 進行簽名和上傳" >> $GITHUB_STEP_SUMMARY
+
+  # ===== 創建 GitHub Release =====
+  create-release:
+    name: 🚀 創建 GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      # 1. 下載所有構建產物
+      - name: 📥 下載 Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk-release
+          path: artifacts/android-apk
+
+      - name: 📥 下載 Android AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: android-aab-release
+          path: artifacts/android-aab
+
+      - name: 📥 下載 iOS
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-release-unsigned
+          path: artifacts/ios
+
+      # 2. 創建 Release
+      - name: 🚀 創建 GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/android-apk/*.apk
+            artifacts/android-aab/*.aab
+            artifacts/ios/*.ipa
+          draft: true
+          body: |
+            ## 📦 音靈偵探 ${{ github.ref_name }}
+            
+            ### 🤖 Android 版本
+            - **支援版本**: Android 5.0+ (API 21)
+            - **建議安裝**: `app-arm64-v8a-release.apk` (適用於大部分現代手機)
+            - **Google Play**: 使用 `app-release.aab` 上傳
+            
+            ### 🍎 iOS 版本
+            - **支援版本**: iOS 13.0+
+            - **注意**: 此版本未簽名，僅供參考
+            - **正式發布**: 需要透過 Apple Developer 帳號簽名後上傳 App Store
+            
+            ### 📝 更新內容
+            - [ ] 功能改進
+            - [ ] Bug 修復
+            - [ ] 性能優化
+            
+            ### 📥 下載說明
+            
+            #### Android 用戶
+            1. 下載對應架構的 APK:
+               - 🔹 `app-arm64-v8a-release.apk` - 64位 ARM (推薦，適用於大部分新手機)
+               - 🔹 `app-armeabi-v7a-release.apk` - 32位 ARM (舊手機)
+               - 🔹 `app-x86_64-release.apk` - 64位 x86 (模擬器/特殊設備)
+            2. 在手機上啟用「未知來源安裝」
+            3. 點擊 APK 文件安裝
+            
+            #### iOS 用戶
+            - ⚠️ 直接安裝 IPA 需要越獄設備
+            - ✅ 建議等待 App Store 正式版本
+            - 🔧 開發者可使用 Xcode 重新簽名後安裝
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

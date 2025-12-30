@@ -1,5 +1,5 @@
-name: music_practice_app
-description: "A new Flutter project."
+name: veloria
+description: "音靈偵探 (Veloria) - 基於 AI 音訊檢測的智能音樂練習系統"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,25 +9,72 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:  # 多語言支援
+    sdk: flutter
 
   # 核心功能套件 (最終確認版)
   file_picker: ^8.0.0
-  path_provider: ^2.1.3
   flutter_midi_pro: ^3.1.4     # <--- 專注於 MIDI 鋼琴演奏
+  path_provider: ^2.1.5
 
   # 導覽與 UI 套件
   go_router: ^14.2.0
   flutter_vector_icons: ^2.0.0
+  flutter_svg: ^2.0.10
   cupertino_icons: ^1.0.8
-  intl: ^0.19.0
+  intl: ^0.20.2
+  flutter_sound: ^9.28.0
+  permission_handler: ^12.0.1
+  open_file: ^3.3.2  # 用於開啟檔案/資料夾
+  record: ^6.1.1  # 升級修正 linux 平台未實作 startStream 問題
+  shared_preferences: ^2.3.2  # 本地儲存套件
+  fftea: ^1.5.0+1  # FFT/STFT 頻譜分析 (音訊分析系統核心,支援任意大小輸入)
+  image_picker: ^1.1.2  # 圖片選擇器
+  syncfusion_flutter_pdfviewer: ^28.1.36  # PDF 檢視器
   
+  # Firebase 認證套件
+  firebase_core: ^3.8.1  # Firebase 核心
+  firebase_auth: ^5.3.3  # Firebase 認證
+  cloud_firestore: ^5.6.12  # Firestore 資料庫（儲存使用者資料） - 明確版本
+  google_sign_in: ^6.2.2  # Google 登入
+  
+  # 音效套件
+  audioplayers: ^6.1.0  # 用於播放短音效
+  flutter_local_notifications: ^19.5.0
+
+  logger: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
   
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icon.png"
+  linux:
+    generate: true
+    image_path: "assets/icon.png"
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/ # <--- 宣告整個 assets 資料夾
+    - assets/ # 宣告整個 assets 資料夾
+    - assets/icon/ # 底部導航欄圖示
+    - assets/animals/ # 動物圖鑑圖片
+    - assets/audio/ # 節拍器音效資料夾
+    - assets/TimGM6mb.sf2 # SoundFont 檔案
+    - assets/unlock.mp3 # 解鎖音效
+    - assets/new_animal.mp3 # 獲得新動物音效

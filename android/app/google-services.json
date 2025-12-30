@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "927535785315",
+    "project_id": "sound-spirit-detective",
+    "storage_bucket": "sound-spirit-detective.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:927535785315:android:7a2b437ba33252efc31f56",
+        "android_client_info": {
+          "package_name": "com.example.music_practice_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "927535785315-0ckuvfjfj7ruikep6l99qp08jc0607vd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.music_practice_app",
+            "certificate_hash": "6f0e811f29446349593337027c7138b7f8fa8acb"
+          }
+        },
+        {
+          "client_id": "927535785315-7o1bk6olroge0m5npsfsncjsau35o29v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.music_practice_app",
+            "certificate_hash": "5eecfd2f560ceaec6471379edc89b85f3ae766f1"
+          }
+        },
+        {
+          "client_id": "927535785315-oagd1qsdf3eufe91mhboao9fpgha64j7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8eXmmBqYSAe3-_Hhs1ssCfI9H6YF1eEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "927535785315-oagd1qsdf3eufe91mhboao9fpgha64j7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "927535785315-ekhtvuv5ouafmknnboi7c8m96lv0gc3o.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.musicPracticeApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

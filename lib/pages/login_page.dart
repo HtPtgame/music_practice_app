@@ -1,0 +1,321 @@
+﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:veloria/services/firebase_auth_service.dart';
+import 'package:veloria/services/user_data_sync_service.dart';
+import 'package:veloria/utils/error_handler.dart';
+import 'package:veloria/l10n/app_localizations.dart';
+
+/// 登入頁面 - Firebase 版本
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = FirebaseAuthService();
+  final _syncService = UserDataSyncService();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  /// 處理 Email/密碼登入
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (mounted) {
+        // 登入成功後同步雲端數據
+        try {
+          await _syncService.syncFromCloudAfterLogin();
+        } catch (e) {
+          debugPrint('同步雲端數據時發生錯誤（不影響登入）: $e');
+        }
+
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
+        ErrorHandler.showSuccess(
+          context,
+          l10n?.loginSuccess ?? '登入成功！',
+        );
+        context.go('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        // 提取錯誤訊息（移除 "Exception: " 前綴）
+        String errorMessage = e.toString().replaceFirst('Exception: ', '');
+
+        ErrorHandler.show(
+          context,
+          errorMessage,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// 處理 Google 登入
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await _authService.signInWithGoogle();
+
+      if (mounted) {
+        if (success) {
+          // 登入成功，同步雲端數據
+          try {
+            await _syncService.syncFromCloudAfterLogin();
+          } catch (e) {
+            debugPrint('同步雲端數據時發生錯誤（不影響登入）: $e');
+          }
+
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context);
+          ErrorHandler.showSuccess(
+            context,
+            l10n?.loginGoogleSuccess ?? 'Google 登入成功！',
+          );
+          context.go('/');
+        } else {
+          // 使用者取消登入,不顯示任何訊息
+          debugPrint('使用者取消 Google 登入');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // 提取錯誤訊息（移除 "Exception: " 前綴）
+        String errorMessage = e.toString().replaceFirst('Exception: ', '');
+
+        ErrorHandler.show(
+          context,
+          errorMessage,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n?.loginTitle ?? '登入'),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo
+                  Icon(
+                    Icons.music_note,
+                    size: 80,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 標題
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      l10n?.loginWelcomeBack ?? '歡迎回來',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Music Practice App',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.grey,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Email
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: l10n?.loginEmailLabel ?? 'Email',
+                      prefixIcon: const Icon(Icons.email),
+                      border: const OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return l10n?.loginEmailHint ?? '請輸入 Email';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return l10n?.loginEmailInvalid ?? '請輸入有效的 Email';
+                      }
+                      return null;
+                    },
+                    enabled: !_isLoading,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 密碼
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: l10n?.loginPasswordLabel ?? '密碼',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return l10n?.loginPasswordHint ?? '請輸入密碼';
+                      }
+                      return null;
+                    },
+                    enabled: !_isLoading,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 登入按鈕
+                  FilledButton(
+                    onPressed: _isLoading ? null : _handleLogin,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              l10n?.loginButton ?? '登入',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 分隔線
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          l10n?.loginOr ?? '或',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Google 登入按鈕
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _handleGoogleSignIn,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size(double.infinity, 50),
+                      side: BorderSide(
+                        color: Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                    icon: Image.asset(
+                      'assets/google_logo.png',
+                      height: 24,
+                      width: 24,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.g_mobiledata, size: 24);
+                      },
+                    ),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        l10n?.loginGoogleButton ?? '使用 Google 帳號登入',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 註冊連結
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(l10n?.loginNoAccount ?? '還沒有帳號？'),
+                      TextButton(
+                        onPressed:
+                            _isLoading ? null : () => context.push('/register'),
+                        child: Text(l10n?.loginRegisterNow ?? '立即註冊'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,17 +1,27 @@
-// lib/pages/library_page.dart
+﻿// lib/pages/library_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart'; // 確保這個導入也存在
+import 'package:veloria/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
 
 // 全域MIDI檔案管理類別
 // 這些類別必須放在這裡 (文件頂層)，才能被其他文件導入和使用
 class MidiFileManager {
   static final List<MidiFileInfo> _midiFiles = [];
-  
+  static const String _storageKey = 'midi_files_library';
+
   static List<MidiFileInfo> get midiFiles => List.unmodifiable(_midiFiles);
-  
-  static void addMidiFile(PlatformFile file) {
+
+  // 初始化並從持久化存儲載入檔案
+  static Future<void> initialize() async {
+    await loadFromStorage();
+  }
+
+  static Future<void> addMidiFile(PlatformFile file) async {
     final midiInfo = MidiFileInfo(
       name: file.name,
       size: file.size,
@@ -19,11 +29,66 @@ class MidiFileManager {
       file: file,
     );
     _midiFiles.add(midiInfo);
+    await saveToStorage();
   }
-  
-  static void removeMidiFile(int index) {
+
+  static Future<void> removeMidiFile(int index) async {
     if (index >= 0 && index < _midiFiles.length) {
       _midiFiles.removeAt(index);
+      await saveToStorage();
+    }
+  }
+
+  // 保存到持久化存儲
+  static Future<void> saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> fileDataList = _midiFiles.map((info) {
+        return {
+          'name': info.name,
+          'size': info.size,
+          'uploadTime': info.uploadTime.toIso8601String(),
+          'path': info.file.path,
+        };
+      }).toList();
+      await prefs.setString(_storageKey, jsonEncode(fileDataList));
+    } catch (e) {
+      print('保存MIDI檔案列表失敗: $e');
+    }
+  }
+
+  // 從持久化存儲載入
+  static Future<void> loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? jsonData = prefs.getString(_storageKey);
+      if (jsonData != null) {
+        final List<dynamic> fileDataList = jsonDecode(jsonData);
+        _midiFiles.clear();
+        
+        for (final data in fileDataList) {
+          final filePath = data['path'] as String?;
+          if (filePath != null && File(filePath).existsSync()) {
+            final file = File(filePath);
+            final platformFile = PlatformFile(
+              name: data['name'] as String,
+              size: data['size'] as int,
+              path: filePath,
+              bytes: file.readAsBytesSync(),
+            );
+            
+            final midiInfo = MidiFileInfo(
+              name: data['name'] as String,
+              size: data['size'] as int,
+              uploadTime: DateTime.parse(data['uploadTime'] as String),
+              file: platformFile,
+            );
+            _midiFiles.add(midiInfo);
+          }
+        }
+      }
+    } catch (e) {
+      print('載入MIDI檔案列表失敗: $e');
     }
   }
 }
@@ -44,8 +109,8 @@ class MidiFileInfo {
   });
 }
 
-
-class LibraryPage extends StatefulWidget { // 將 StatelessWidget 改回 StatefulWidget
+class LibraryPage extends StatefulWidget {
+  // 將 StatelessWidget 改回 StatefulWidget
   const LibraryPage({super.key});
 
   @override
@@ -53,6 +118,20 @@ class LibraryPage extends StatefulWidget { // 將 StatelessWidget 改回 Statefu
 }
 
 class _LibraryPageState extends State<LibraryPage> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMidiFiles();
+  }
+
+  Future<void> _loadMidiFiles() async {
+    await MidiFileManager.initialize();
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   // 注意：如果您希望在添加或刪除檔案後立即更新列表，
   // 您需要在 _deleteMidiFile 或其他地方呼叫 setState()。
@@ -61,60 +140,86 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background, // 使用您定義的背景色
-      appBar: AppBar(
-        title: const Text(
-          '我的樂庫',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppColors.background, // AppBar 背景色與頁面背景色一致
-        elevation: 0, // 移除 AppBar 陰影
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 8.0),
-              child: Text(
-                '我的樂庫',
-                style: TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+    final l10n = AppLocalizations.of(context);
+    
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.dynamicBackground,
+        appBar: AppBar(
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              l10n?.libraryTitle ?? '我的樂庫',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
             ),
+          ),
+          centerTitle: true,
+          backgroundColor: AppColors.dynamicBackground,
+          elevation: 0,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    return Scaffold(
+      backgroundColor: AppColors.dynamicBackground, // 使用您定義的背景色
+      appBar: AppBar(
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            l10n?.libraryTitle ?? '我的樂庫',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: AppColors.dynamicBackground, // AppBar 背景色與頁面背景色一致
+        elevation: 0, // 移除 AppBar 陰影
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ...existing code...
             const SizedBox(height: 16),
-            
+
             if (MidiFileManager.midiFiles.isEmpty)
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.library_music_outlined,
+                        Icons.audio_file_outlined,
                         size: 64,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text(
-                        '尚無音樂檔案',
+                        l10n?.libraryEmpty ?? '尚無音樂檔案',
                         style: TextStyle(
                           fontSize: 18,
-                          color: AppColors.textLight,
+                          color: AppColors.dynamicTextLight,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        '請前往上傳頁面添加MIDI檔案',
+                        l10n?.libraryEmptyDesc ?? '請前往上傳頁面添加MIDI檔案',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textLight,
+                          color: AppColors.dynamicTextLight,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -133,23 +238,27 @@ class _LibraryPageState extends State<LibraryPage> {
           ],
         ),
       ),
+      ),
       // 在這裡添加 FloatingActionButton
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 點擊按鈕後導航到上傳頁面 (upload_page2.dart)
-          context.go('/upload2');
+          // 點擊按鈕後導航到上傳頁面 (upload_page.dart)
+          context.go('/upload');
         },
-        backgroundColor: AppColors.primary, // 使用您定義的主題色
+        backgroundColor: AppColors.dynamicPrimary, // 使用您定義的主題色
         foregroundColor: Colors.white, // 加號圖標
-        tooltip: '上傳新的 MIDI 檔案', // 圖標顏色
+        tooltip: l10n?.libraryUpload ?? '新增樂曲', // 圖標顏色
         child: const Icon(Icons.add), // 長按提示
       ),
     );
   }
 
-  Widget _buildMidiFileCard(BuildContext context, MidiFileInfo midiFile, int index) {
+  Widget _buildMidiFileCard(
+      BuildContext context, MidiFileInfo midiFile, int index) {
+    final l10n = AppLocalizations.of(context);
+    
     return Card(
-      color: AppColors.card,
+      color: AppColors.dynamicCard,
       elevation: 1.5,
       shadowColor: const Color(0x196A5AE0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -161,9 +270,9 @@ class _LibraryPageState extends State<LibraryPage> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.music_note,
-                color: AppColors.primary,
+                color: AppColors.dynamicPrimary,
                 size: 32,
               ),
               const SizedBox(width: 16),
@@ -173,27 +282,27 @@ class _LibraryPageState extends State<LibraryPage> {
                   children: [
                     Text(
                       midiFile.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
+                        color: AppColors.dynamicTextDark,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '大小: ${(midiFile.size / 1024).toStringAsFixed(1)} KB',
-                      style: const TextStyle(
+                      '${l10n?.libraryFileSize ?? '大小'}: ${(midiFile.size / 1024).toStringAsFixed(1)} KB',
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                     Text(
-                      '上傳時間: ${_formatDate(midiFile.uploadTime)}',
-                      style: const TextStyle(
+                      '${l10n?.libraryUploadTime ?? '上傳時間'}: ${_formatDate(midiFile.uploadTime)}',
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textLight,
+                        color: AppColors.dynamicTextLight,
                       ),
                     ),
                   ],
@@ -204,18 +313,24 @@ class _LibraryPageState extends State<LibraryPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.play_arrow),
-                    color: AppColors.primary,
+                    color: AppColors.dynamicPrimary,
                     onPressed: () => _playMidiFile(context, midiFile),
-                    tooltip: '播放',
+                    tooltip: l10n?.libraryPlay ?? '播放',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.school),
+                    color: Colors.green,
+                    onPressed: () => _goToPractice(context, midiFile),
+                    tooltip: l10n?.libraryPractice ?? '練習',
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
                     color: Colors.red,
                     onPressed: () => _deleteMidiFile(context, index),
-                    tooltip: '刪除',
+                    tooltip: l10n?.libraryDelete ?? '刪除',
                   ),
                 ],
-              ),
+              )
             ],
           ),
         ),
@@ -229,47 +344,56 @@ class _LibraryPageState extends State<LibraryPage> {
     context.go('/playback', extra: midiFile.file);
   }
 
+  void _goToPractice(BuildContext context, MidiFileInfo midiFile) {
+    context.go('/practice', extra: midiFile.file);
+  }
+
   void _deleteMidiFile(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.card,
-          title: const Text(
-            '確認刪除',
+          backgroundColor: AppColors.dynamicCard,
+          title: Text(
+            l10n?.libraryDeleteConfirmTitle ?? '確認刪除',
             style: TextStyle(
-              color: AppColors.textDark,
+              color: AppColors.dynamicTextDark,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
+            l10n?.libraryDeleteConfirmMessage.replaceAll('{name}', MidiFileManager.midiFiles[index].name) ?? 
             '確定要刪除「${MidiFileManager.midiFiles[index].name}」嗎？',
-            style: const TextStyle(
-              color: AppColors.textDark,
+            style: TextStyle(
+              color: AppColors.dynamicTextDark,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
+              child: Text(l10n?.cancel ?? '取消'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() { // 呼叫 setState 觸發 UI 更新
-                  MidiFileManager.removeMidiFile(index);
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('檔案已刪除'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+              onPressed: () async {
+                // 呼叫 setState 觸發 UI 更新
+                await MidiFileManager.removeMidiFile(index);
+                setState(() {});
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n?.libraryDeleteSuccess ?? '檔案已刪除'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
-              child: const Text('刪除'),
+              child: Text(l10n?.delete ?? '刪除'),
             ),
           ],
         );

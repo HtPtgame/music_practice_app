@@ -1,11 +1,12 @@
-// lib/pages/upload_page2.dart
+﻿// lib/pages/upload_page2.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // 用於檢測平台
 import 'package:go_router/go_router.dart';
-import 'package:music_practice_app/utils/app_colors.dart';
+import 'package:veloria/utils/app_colors.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:veloria/l10n/app_localizations.dart';
 // 導入 Uint8List
-import 'package:music_practice_app/pages/library_page.dart'; // <<== 確保這一行存在且正確導入 MidiFileManager
+import 'package:veloria/pages/library_page.dart'; // <<== 確保這一行存在且正確導入 MidiFileManager
 
 class UploadPage2 extends StatefulWidget {
   const UploadPage2({super.key});
@@ -38,7 +39,7 @@ class _UploadPage2State extends State<UploadPage2> {
         });
         debugPrint('選擇的 MIDI 檔案: ${file.name}');
         debugPrint('檔案大小: ${file.size} bytes');
-        
+
         if (file.bytes != null) {
           debugPrint('文件數據已載入 (${file.bytes!.length} bytes)');
         } else {
@@ -52,7 +53,7 @@ class _UploadPage2State extends State<UploadPage2> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('選擇檔案時發生錯誤: $e'),
+            content: Text(AppLocalizations.of(context)!.errorFileSelection(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -64,51 +65,30 @@ class _UploadPage2State extends State<UploadPage2> {
     }
   }
 
-  void _saveToLibrary() {
+  Future<void> _saveToLibrary() async {
     if (_pickedFile != null) {
-      bool isValidFile = _pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty;
-      
-      if (isValidFile) {
-        MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('MIDI檔案已成功儲存到樂庫！'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) {
-            context.go('/library');
-          }
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('錯誤：無法讀取檔案內容，請重新選擇檔案。'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+      bool isValidFile =
+          _pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty;
 
-  void _confirmAndPlay() {
-    if (_pickedFile != null) {
-      if (_pickedFile!.bytes != null && _pickedFile!.bytes!.isNotEmpty) {
-        // 傳遞 PlatformFile 對象給 playback 頁面
-        context.go('/playback', extra: _pickedFile!); // <<== 傳遞 PlatformFile 對象
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('MIDI檔案已選取，準備播放！'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (isValidFile) {
+        final l10n = AppLocalizations.of(context);
+        await MidiFileManager.addMidiFile(_pickedFile!); // <<== 使用 MidiFileManager
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n?.uploadMidiSuccess ?? 'MIDI檔案已成功儲存到樂庫！'),
+              backgroundColor: Colors.green,
+              duration: const Duration(milliseconds: 800),
+            ),
+          );
+        }
+        if (mounted) {
+          context.go('/library');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('錯誤：無法讀取檔案內容，請重新選擇檔案。'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorFileReadFailed),
             backgroundColor: Colors.red,
           ),
         );
@@ -118,140 +98,150 @@ class _UploadPage2State extends State<UploadPage2> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.dynamicBackground,
       appBar: AppBar(
-        title: const Text('從本機上傳 MIDI', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n?.uploadMidiTitle ?? '從本機上傳 MIDI',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/upload'),
+          onPressed: () => context.go('/library'),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              '請選擇要上傳的 MIDI 檔案',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n?.uploadMidiSelectFile ?? '請選擇要上傳的 MIDI 檔案',
+                style: TextStyle(
+                  color: AppColors.dynamicTextDark,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              kIsWeb 
-                ? '支援格式：.mid, .midi (Web版本使用記憶體載入)'
-                : '支援格式：.mid, .midi',
-              style: const TextStyle(
-                color: AppColors.textLight,
-                fontSize: 14,
+              const SizedBox(height: 8),
+              Text(
+                kIsWeb ? (l10n?.uploadMidiSupportedFormatsWeb ?? '支援格式：.mid, .midi (Web版本使用記憶體載入)') : (l10n?.uploadMidiSupportedFormats ?? '支援格式：.mid, .midi'),
+                style: TextStyle(
+                  color: AppColors.dynamicTextLight,
+                  fontSize: 14,
+                ),
               ),
-            ),
-            const SizedBox(height: 40),
-            
-            // 文件選擇區域
-            Card(
-              color: AppColors.card,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    Icon(
-                      _pickedFile != null ? Icons.music_note : Icons.upload_file,
-                      size: 64,
-                      color: _pickedFile != null ? AppColors.primary : AppColors.textLight,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _pickedFile != null ? _pickedFile!.name : '尚未選擇檔案',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: _pickedFile != null ? AppColors.textDark : AppColors.textLight,
+              const SizedBox(height: 40),
+
+              // 文件選擇區域
+              Card(
+                color: AppColors.dynamicCard,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        _pickedFile != null
+                            ? Icons.music_note
+                            : Icons.upload_file,
+                        size: 64,
+                        color: _pickedFile != null
+                            ? AppColors.dynamicPrimary
+                            : AppColors.dynamicTextLight,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (_pickedFile != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       Text(
-                        '檔案大小: ${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textLight,
+                        _pickedFile != null ? _pickedFile!.name : (l10n?.uploadMidiNoFileSelected ?? '尚未選擇檔案'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: _pickedFile != null
+                              ? AppColors.dynamicTextDark
+                              : AppColors.dynamicTextLight,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        kIsWeb 
-                          ? '平台: Web (使用記憶體載入)'
-                          : '平台: ${_pickedFile!.path != null ? "本機儲存" : "記憶體載入"}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textLight,
+                      if (_pickedFile != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          '${l10n?.uploadMidiFileSize ?? '檔案大小'}: ${(_pickedFile!.size / 1024).toStringAsFixed(1)} KB',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          kIsWeb
+                              ? '${l10n?.uploadMidiPlatform ?? '平台'}: Web (使用記憶體載入)'
+                              : '${l10n?.uploadMidiPlatform ?? '平台'}: ${_pickedFile!.path != null ? (l10n?.uploadMidiPlatformLocal ?? "本機儲存") : "記憶體載入"}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.dynamicTextLight,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _pickMidiFile,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.folder_open),
+                        label: Text(_isLoading
+                            ? (l10n?.loading ?? '選擇中...')
+                            : _pickedFile != null
+                                ? (l10n?.uploadMidiReselect ?? '重新選擇')
+                                : (l10n?.uploadLocalMidi ?? '選擇檔案')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.dynamicPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ],
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _pickMidiFile,
-                      icon: _isLoading 
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.folder_open),
-                      label: Text(_isLoading ? '選擇中...' : '選擇檔案'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            
-            const Spacer(),
-            
-            // 儲存按鈕
-            if (_pickedFile != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _saveToLibrary, // 儲存到樂庫
-                    icon: const Icon(Icons.save, size: 28),
-                    label: const Text('儲存到樂庫', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+
+              const Spacer(),
+
+              // 儲存按鈕
+              if (_pickedFile != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _saveToLibrary, // 儲存到樂庫
+                        icon: const Icon(Icons.save, size: 28),
+                        label: Text(l10n?.uploadMidiSaveToLibrary ?? '儲存到樂庫',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _confirmAndPlay, // 確認並播放
-                    icon: const Icon(Icons.play_arrow, size: 28),
-                    label: const Text('確認並播放', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
-          ],
+                ),
+            ],
+          ),
         ),
       ),
     );

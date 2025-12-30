@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Music Practice App</string>
+	<string>音靈偵探</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>music_practice_app</string>
+	<string>音靈偵探</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,105 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- 網路請求權限說明 (iOS 14+) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	
+	<!-- 後台模式 (音頻播放) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>fetch</string>
+	</array>
+	
+	<!-- 防止應用休眠 (練習計時) -->
+	<key>UIApplicationExitsOnSuspend</key>
+	<false/>
+	
+	<!-- 支援深色模式 -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Automatic</string>
+	
+	<!-- 狀態欄樣式 -->
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDefault</string>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	
+	<!-- 麥克風權限 (錄音功能) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>此應用程式需要使用麥克風來錄製您的演奏，以便進行音準分析和評分。</string>
+	
+	<!-- 相機權限 (上傳樂譜圖片) -->
+	<key>NSCameraUsageDescription</key>
+	<string>此應用程式需要使用相機來拍攝樂譜，方便您在練習時查看。</string>
+	
+	<!-- 照片庫權限 (選擇樂譜圖片) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>此應用程式需要訪問您的照片庫，以便選擇樂譜圖片。</string>
+	
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>此應用程式需要將處理後的圖片保存到您的照片庫。</string>
+	
+	<!-- 文件訪問權限 (MIDI 文件) -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	
+	<!-- 支持的文件類型 -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>MIDI Files</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.midi-audio</string>
+				<string>com.midi.mid</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>PDF Documents</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- 導出的 UTI 類型 -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.audio</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>MIDI File</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.midi.mid</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mid</string>
+					<string>midi</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
