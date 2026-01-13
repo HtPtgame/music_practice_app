@@ -1165,50 +1165,6 @@ class _DrawingPainter extends CustomPainter {
     }
   }
 
-  /// ⚡ 快速簡化版 stamp - 用於即時顯示當前筆劃
-  void _drawQuickStamp(
-      Canvas canvas, Offset point, Color color, double strokeWidth) {
-    // 只渲染核心 3 層，保證速度
-    // 確定性偽隨機數
-    double deterministicRandom(int seed) {
-      final hash = ((seed * 2654435761) ^ (seed >> 16)) & 0x7FFFFFFF;
-      return (hash % 10000) / 10000.0;
-    }
-    
-    int seedCounter = 0;
-    double nextRandom() {
-      final seed = point.dx.toInt() * 73856093 ^ 
-                   point.dy.toInt() * 19349663 ^ 
-                   seedCounter;
-      seedCounter++;
-      return deterministicRandom(seed);
-    }
-
-    // 第1層: 底層擴散（簡化）
-    const diffusionCount = 6; // 減少數量
-    for (int i = 0; i < diffusionCount; i++) {
-      final angle = (i / diffusionCount) * 2 * math.pi;
-      final distance = strokeWidth * (0.3 + nextRandom() * 0.5);
-      final offsetX = math.cos(angle) * distance;
-      final offsetY = math.sin(angle) * distance;
-      final size = strokeWidth * 0.2;
-      _paintCache.color = color.withOpacity(0.1);
-      canvas.drawCircle(
-          Offset(point.dx + offsetX, point.dy + offsetY), size, _paintCache);
-    }
-
-    // 第2層: 主體核心
-    _paintCache.color = color.withOpacity(0.7);
-    canvas.drawCircle(point, strokeWidth * 0.5, _paintCache);
-
-    // 第3層: 高光
-    _paintCache.color = color.withOpacity(0.4);
-    canvas.drawCircle(
-        Offset(point.dx - strokeWidth * 0.15, point.dy - strokeWidth * 0.15),
-        strokeWidth * 0.25,
-        _paintCache);
-  }
-
   /// 🧹 簡單原始筆刷 - 用於橡皮擦，不經過任何運算
   void _drawSimpleBrush(
       Canvas canvas, List<Offset> points, Color color, double strokeWidth) {

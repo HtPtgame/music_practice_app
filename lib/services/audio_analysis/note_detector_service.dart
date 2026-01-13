@@ -6,7 +6,6 @@ library;
 
 import 'dart:math';
 import 'models/spectrogram.dart';
-import 'sequence_matcher_service.dart';
 import 'package:veloria/services/detected_note.dart';
 
 

@@ -9,7 +9,6 @@
 library;
 
 import 'dart:math';
-import 'audio_analysis/sequence_matcher_service.dart';
 import 'package:veloria/services/detected_note.dart';
 
 

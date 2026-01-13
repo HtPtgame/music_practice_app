@@ -11,7 +11,6 @@ library;
 
 import 'dart:async';
 import '../piano_score_engine.dart';
-import 'sequence_matcher_service.dart';
 import 'models/note_event.dart';
 import 'package:veloria/services/detected_note.dart';
 
